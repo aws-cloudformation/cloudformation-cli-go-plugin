@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation-rpdk-go-plugin/internal/metric"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/metric"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
@@ -232,7 +232,7 @@ func TestPublisher_PublishDurationMetric(t *testing.T) {
 	type args struct {
 		date   time.Time
 		action string
-		sec    int64
+		sec    float64
 	}
 	tests := []struct {
 		name                        string

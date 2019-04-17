@@ -1,13 +1,10 @@
 package scheduler
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
-	"github.com/aws-cloudformation-rpdk-go-plugin/internal/platform/proxy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
@@ -26,11 +23,10 @@ func New(cl cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 }
 
 //RescheduleAfterMinutes schedules a re-invocation of the executing handler no less than 1 minute from now.
-func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int, callbackContext *proxy.RequestContext, t time.Time) error {
+func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int, callbackRequest string, t time.Time, uID string, rn string, tID string) error {
 
 	if minFromNow < 1 {
-		e := "minFromNow must be positve."
-		return errors.New(e)
+		minFromNow = 1
 	}
 
 	if arn == "" {
@@ -41,24 +37,7 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 	// generate a cron expression; minutes must be a positive integer
 	cr := GenerateOneTimeCronExpression(minFromNow, t)
 
-	rd, err := NewUUID()
-	if err != nil {
-		return err
-	}
-
-	rn := fmt.Sprintf("reinvoke-handler-%s", rd)
-	tID := fmt.Sprintf("reinvoke-target-%s", rd)
-
-	// record the CloudWatchEvents objects for cleanup on the callback
-	callbackContext.CloudWatchEventsRuleName = rn
-	callbackContext.CloudWatchEventsTargetID = tID
-
-	cj, err := json.Marshal(callbackContext)
-
-	if err != nil {
-		return err
-	}
-	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, rd)
+	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
 
 	pr, err := c.Client.PutRule(&cloudwatchevents.PutRuleInput{
 
@@ -79,7 +58,7 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 			&cloudwatchevents.Target{
 				Arn:   aws.String(arn),
 				Id:    aws.String(tID),
-				Input: aws.String(string(cj)),
+				Input: aws.String(string(callbackRequest)),
 			},
 		},
 	})

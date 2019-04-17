@@ -5,8 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation-rpdk-go-plugin/internal/platform/proxy"
-	"github.com/aws-cloudformation-rpdk-go-plugin/internal/scheduler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/scheduler"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
@@ -121,7 +120,7 @@ func TestGenerateOneTimeCronExpression(t *testing.T) {
 
 func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 
-	var cb = proxy.RequestContext{}
+	var cb = `{ string: "Foo"}`
 
 	type fields struct {
 		Client cloudwatcheventsiface.CloudWatchEventsAPI
@@ -129,7 +128,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 	type args struct {
 		arn             string
 		minFromNow      int
-		callbackContext proxy.RequestContext
+		callbackContext string
 		t               time.Time
 	}
 	tests := []struct {
@@ -143,7 +142,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		WantTargetMatch    bool
 	}{
 		{"TestCloudWatchScheduler", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchSchedulerLessThen0", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -56, cb, time.Now()}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchSchedulerLessThen0", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
 		{"TestCloudWatchScheduler", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
 		{"TestCloudWatchSchedulerARNMustHaveValue", fields{New()}, args{"", 56, cb, time.Now()}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
 	}
@@ -156,7 +155,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 				c := &scheduler.CloudWatchScheduler{
 					Client: tt.fields.Client,
 				}
-				if err := c.RescheduleAfterMinutes(tt.args.arn, tt.args.minFromNow, &cb, tt.args.t); (err != nil) != tt.wantErr {
+				if err := c.RescheduleAfterMinutes(tt.args.arn, tt.args.minFromNow, cb, tt.args.t, "4754ac8a-623b-45fe-84bc-f5394118a8be", "reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be", "targetId=reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be"); (err != nil) != tt.wantErr {
 					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", failed, err)
 					return
 				}

@@ -2,7 +2,7 @@
   "awsAccountId": "123456789012",
   "bearerToken": "123456",
   "region": "us-east-1",
-  "action": "CREATE",
+  "action": "UPDATE",
   "resourceType": "AWS::Test::TestModel",
   "resourceTypeVersion": "1.0",
   "requestContext": {},
@@ -16,6 +16,10 @@
     "resourceProperties": {
       "property1": "abc",
       "property2": 123
+    },
+    "previousResourceProperties": {
+      "property1": "cba",
+      "property2": 321
     },
     "systemTags": {
       "aws:cloudformation:stack-id": "SampleStack"

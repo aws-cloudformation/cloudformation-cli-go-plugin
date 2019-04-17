@@ -1,8 +1,8 @@
- {
+{
   "awsAccountId": "123456789012",
   "bearerToken": "123456",
   "region": "us-east-1",
-  "action": "UPDATE",
+  "action": "CREATE",
   "resourceType": "AWS::Test::TestModel",
   "resourceTypeVersion": "1.0",
   "requestContext": {},
@@ -17,7 +17,6 @@
       "property1": "abc",
       "property2": 123
     },
-    "previousResourceProperties": {},
     "systemTags": {
       "aws:cloudformation:stack-id": "SampleStack"
     },
@@ -29,4 +28,4 @@
     }
   },
   "stackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/e722ae60-fe62-11e8-9a0e-0ae8cc519968"
- }
+}

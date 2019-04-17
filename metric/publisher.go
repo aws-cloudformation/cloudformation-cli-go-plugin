@@ -74,13 +74,13 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error
 }
 
 //PublishDurationMetric publishes an duration metric.
-func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs int64) error {
+func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) error {
 	dimensions := map[string]string{
 		DimensionKeyAcionType:   action,
 		DimensionKeyResouceType: p.Namespace,
 	}
 
-	_, err := p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, float64(secs), date)
+	_, err := p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, secs, date)
 
 	if err != nil {
 		return err

@@ -190,7 +190,7 @@ func (p *Proxy) checkReinvoke(context RequestContext) error {
 	return nil
 }
 
-func buildReply(status string, code string, message string, context json.RawMessage, minutes int, model json.RawMessage) *ProgressEvent {
+func buildReply(status string, code string, message string, context interface{}, minutes int, model json.RawMessage) *ProgressEvent {
 
 	p := ProgressEvent{
 		ProgressStatus:       status,

@@ -1,14 +1,12 @@
 package proxy
 
-import "encoding/json"
-
 type ProgressEvent struct {
-	ProgressStatus       string          `json:"progressStatus"`
-	HandlerErrorCode     string          `json:"handlerErrorCode"`
-	Message              string          `json:"message"`
-	CallbackContext      json.RawMessage `json:"callbackContext"`
-	CallbackDelayMinutes int             `json:"callbackDelayMinutes"`
-	ResourceModel        interface{}     `json:"resourceModel"`
+	ProgressStatus       string      `json:"progressStatus"`
+	HandlerErrorCode     string      `json:"handlerErrorCode"`
+	Message              string      `json:"message"`
+	CallbackContext      interface{} `json:"callbackContext"`
+	CallbackDelayMinutes int         `json:"callbackDelayMinutes"`
+	ResourceModel        interface{} `json:"resourceModel"`
 }
 
 type HandlerResponse struct {

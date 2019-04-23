@@ -45,8 +45,8 @@ type HandlerRequest struct {
 }
 
 type RequestContext struct {
-	Invocation               int             `json:"invocation"`
-	CallbackContext          json.RawMessage `json:"callbackContext"`
-	CloudWatchEventsRuleName string          `json:"cloudWatchEventsRuleName"`
-	CloudWatchEventsTargetID string          `json:"cloudWatchEventsTargetId"`
+	Invocation               int         `json:"invocation"`
+	CallbackContext          interface{} `json:"callbackContext"`
+	CloudWatchEventsRuleName string      `json:"cloudWatchEventsRuleName"`
+	CloudWatchEventsTargetID string      `json:"cloudWatchEventsTargetId"`
 }

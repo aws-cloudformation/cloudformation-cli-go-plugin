@@ -1,0 +1,14 @@
+README.md
+setup.cfg
+setup.py
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/PKG-INFO
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/SOURCES.txt
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/dependency_links.txt
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/entry_points.txt
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/requires.txt
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/top_level.txt
+python/aws_cloudformation_rpdk_csharp_plugin.egg-info/zip-safe
+python/rpdk/csharp/__init__.py
+python/rpdk/csharp/codegen.py
+python/rpdk/csharp/model_resolver.py
+python/rpdk/csharp/utils.py

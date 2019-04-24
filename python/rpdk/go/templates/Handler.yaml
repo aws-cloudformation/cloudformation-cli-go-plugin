@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Handler lambda function for the {{ resource_type }} resource type
+
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 5
+
+Resources:
+  LogPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "CloudWatchLogsPolicy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Action:
+          - "logs:CreateLogGroup"
+          Resource:
+            Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*"
+        - Effect: "Allow"
+          Action:
+          - "logs:CreateLogStream"
+          - "logs:PutLogEvents"
+          Resource:
+            Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*"
+      Roles:
+        - Ref: LambdaRoleName
+
+  ResourceHandler:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: "Handler lambda function for the {{ resource_type }} resource type"
+      KmsKeyArn:
+        Ref: EncryptionKey
+      Role:
+        Ref: LambdaRoleArn
+      Timeout: 60
+      MemorySize: 256
+      CodeUri: bin/
+      Handler: handler
+      Runtime: go1.x
+
+  CloudFormationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: ResourceHandler
+      Action: lambda:InvokeFunction
+      Principal: cloudformation.amazonaws.com
+
+  CloudWatchPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: ResourceHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::Sub: "arn:aws:events:${AWS::Region}:${AWS::AccountId}:*"
+
+Outputs:
+  ResourceHandlerArn:
+    Value:
+      Fn::GetAtt: ResourceHandler.Arn
+
+

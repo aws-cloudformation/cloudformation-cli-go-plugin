@@ -1,0 +1,3 @@
+[rpdk.v1.languages]
+golang = rpdk.go.codegen:GoLanguagePlugin
+

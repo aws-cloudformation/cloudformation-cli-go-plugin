@@ -23,7 +23,7 @@ def find_version(*file_paths):
 
 setup(
     name="aws-cloudformation-rpdk-go-plugin",
-    version=find_version("python", "rpdk", "csharp", "__init__.py"),
+    version=find_version("python", "rpdk", "go", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
     author="Amazon Web Services",

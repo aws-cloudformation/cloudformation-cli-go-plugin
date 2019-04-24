@@ -1,3 +1,0 @@
-[rpdk.v1.languages]
-csharp = rpdk.csharp.codegen:CSharpLanguagePlugin
-

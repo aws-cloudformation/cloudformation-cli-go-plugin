@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/metric"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/scheduler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
@@ -150,7 +150,7 @@ func (c *CustomHandler) ProcessInvocation(in *ProcessInvocationInput) *ProgressE
 
 	// When the handler responses InProgress with a callback delay, we trigger a callback to re-invoke
 	// the handler for the Resource type to implement stabilization checks and long-poll creation checks.
-	if hr.ProgressStatus == InProgress {
+	if hr.OperationStatus == InProgress {
 		req.Context.Invocation = req.Context.Invocation + 1
 		req.Context.CallbackContext = hr.CallbackContext
 
@@ -207,7 +207,9 @@ func (c *CustomHandler) checkReinvoke(context RequestContext, sh *scheduler.Clou
 }
 
 //Transform the the request into a resource handler.
-//Using reflection, finds the type of th custom resource, Unmarshalls DesiredResource and PreviousResourceState, sets the field in the CustomHandler and returns a ResourceHandlerRequest.
+//Using reflection, finds the type of th custom resource,
+//Unmarshalls DesiredResource and PreviousResourceState, sets the field in the
+//CustomHandler and returns a ResourceHandlerRequest.
 func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerRequest, error) {
 
 	// Custom resource struct.
@@ -241,6 +243,7 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 		}
 	}
 
+	//Set the resource
 	dv.Set(dr.Elem())
 
 	//create new resource
@@ -253,6 +256,7 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 		}
 	}
 
+	//Set the resource
 	pv.Set(pr.Elem())
 
 	return &ResourceHandlerRequest{
@@ -261,7 +265,6 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 		Region:              r.Region,
 		ResourceType:        r.ResourceType,
 		ResourceTypeVersion: r.ResourceTypeVersion,
-		Cred:                r.Data.Creds,
 	}, nil
 }
 
@@ -336,7 +339,7 @@ func valdiate(request *RequestContext) {
 func buildReply(status string, code string, message string, context interface{}, minutes int, model interface{}) *ProgressEvent {
 
 	p := ProgressEvent{
-		ProgressStatus:       status,
+		OperationStatus:      status,
 		HandlerErrorCode:     code,
 		Message:              message,
 		CallbackContext:      context,

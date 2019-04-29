@@ -210,11 +210,8 @@ func (c *CustomHandler) checkReinvoke(context RequestContext, sh *scheduler.Clou
 //Using reflection, finds the type of th custom resource, Unmarshalls DesiredResource and PreviousResourceState, sets the field in the CustomHandler and returns a ResourceHandlerRequest.
 func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerRequest, error) {
 
-	fmt.Printf("request: %v", r)
 	// Custom resource struct.
 	v := reflect.ValueOf(handler.CustomResource)
-
-	fmt.Printf("resource type: %v", v.Type())
 
 	// Custom resource DesiredResourceState struct.
 	dv := v.Elem().FieldByName("DesiredResourceState")
@@ -222,7 +219,6 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 	//Check if the field is found and that it's a strut value.
 	if !dv.IsValid() || dv.Kind() != reflect.Struct {
 		err := errors.New("Unable to find DesiredResource in Config object")
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -232,7 +228,6 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 	//Check if the field is found and that it's a strut value.
 	if !pv.IsValid() || pv.Kind() != reflect.Struct {
 		err := errors.New("Unable to find PreviousResource in Config object")
-		fmt.Println(err)
 		return nil, err
 	}
 

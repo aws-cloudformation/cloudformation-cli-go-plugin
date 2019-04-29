@@ -103,6 +103,12 @@ func (c *CustomHandler) ProcessInvocation(in *ProcessInvocationInput) *ProgressE
 	// transform the request object to pass to caller.
 	resHanReq, err := Transform(req, resor)
 
+	if err != nil {
+		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
+
+		return rpy
+	}
+
 	if err := c.checkReinvoke(in.Req.Context, in.Sched); err != nil {
 
 		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)

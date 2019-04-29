@@ -5,8 +5,8 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/metric"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/scheduler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -40,7 +40,7 @@ func HandleLambdaEvent(ctx context.Context, event HandlerRequest) (Reponse, erro
 	r := resor.ProcessInvocation(&p)
 
 	return Reponse{
-		Status:        r.ProgressStatus,
+		Status:        r.OperationStatus,
 		Message:       r.Message,
 		ResourceModel: r.ResourceModel,
 	}, nil

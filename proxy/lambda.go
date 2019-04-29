@@ -37,9 +37,7 @@ func HandleLambdaEvent(ctx context.Context, event HandlerRequest) (Reponse, erro
 		Sched:  scheduler.New(cloudwatchevents.New(sess)),
 	}
 
-	pxy := New(p)
-
-	r := pxy.ProcessInvocation()
+	r := resor.ProcessInvocation(&p)
 
 	return Reponse{
 		Status:        r.ProgressStatus,

@@ -5,14 +5,12 @@ import (
 )
 
 type ResourceHandlerRequest struct {
-	AwsAccountID          string
-	NextToken             string
-	Region                string
-	ResourceType          string
-	ResourceTypeVersion   string
-	Cred                  Credentials
-	DesiredResourceState  interface{}
-	PreviousResourceState interface{}
+	AwsAccountID        string
+	NextToken           string
+	Region              string
+	ResourceType        string
+	ResourceTypeVersion string
+	Cred                Credentials
 }
 
 type Credentials struct {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"reflect"
 	"testing"
 	"time"
 
@@ -103,201 +104,143 @@ func (m *MockedEvents) RemoveTargets(*cloudwatchevents.RemoveTargetsInput) (*clo
 	return nil, nil
 }
 
-type mockNilHandler struct{}
+type MockHandlerResource struct {
+	Property1 string `json:"property1"`
+	Property2 int    `json:"property2"`
+}
 
-func NewMockNil() *mockNilHandler {
+type MockHandler struct {
+	DesiredResourceState  MockHandlerResource
+	PreviousResourceState MockHandlerResource
+	ReturnState           *proxy.ProgressEvent
+	ReturnError           error
+}
 
-	h := mockNilHandler{}
+func NewMock(state *proxy.ProgressEvent, stateError error) *MockHandler {
+
+	h := MockHandler{
+		ReturnState: state,
+		ReturnError: stateError,
+	}
 	return &h
 
 }
 
-func (m *mockNilHandler) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-	return nil, nil
+func (m *MockHandler) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockNilHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return nil, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockNilHandler) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandler) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return nil, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockNilHandler) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandler) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return nil, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockNilHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return nil, nil
+	return m.ReturnState, m.ReturnError
 }
 
-type mockFailedHandler struct{}
+type MockHandlerResourceNoDesired struct {
+	Property1 string `json:"property1"`
+	Property2 int    `json:"property2"`
+}
 
-func NewmockFailedHandler() *mockFailedHandler {
+type MockHandlerNoDesired struct {
+	PreviousResourceState MockHandlerResourceNoDesired
+	ReturnState           *proxy.ProgressEvent
+	ReturnError           error
+}
 
-	h := mockFailedHandler{}
+func NewMockNoDesired(state *proxy.ProgressEvent, stateError error) *MockHandlerNoDesired {
+
+	h := MockHandlerNoDesired{
+		ReturnState: state,
+		ReturnError: stateError,
+	}
 	return &h
 
 }
 
-func (m *mockFailedHandler) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Failed,
-		HandlerErrorCode:     "Custom Fault",
-		Message:              "Custom Fault",
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+func (m *MockHandlerNoDesired) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockFailedHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoDesired) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Failed,
-		HandlerErrorCode:     "Custom Fault",
-		Message:              "Custom Fault",
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockFailedHandler) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoDesired) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Failed,
-		HandlerErrorCode:     "Custom Fault",
-		Message:              "Custom Fault",
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockFailedHandler) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoDesired) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Failed,
-		HandlerErrorCode:     "Custom Fault",
-		Message:              "Custom Fault",
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockFailedHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoDesired) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Failed,
-		HandlerErrorCode:     "Custom Fault",
-		Message:              "Custom Fault",
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-type mockCompleteSynchronouslyHandler struct{}
+type MockHandlerResourceNoPre struct {
+	Property1 string `json:"property1"`
+	Property2 int    `json:"property2"`
+}
 
-func NewmockCompleteSynchronouslyHandler() *mockCompleteSynchronouslyHandler {
+type MockHandlerNoPre struct {
+	DesiredResourceState MockHandlerResource
+	ReturnState          *proxy.ProgressEvent
+	ReturnError          error
+}
 
-	h := mockCompleteSynchronouslyHandler{}
+func NewMockNoPre(state *proxy.ProgressEvent, stateError error) *MockHandlerNoPre {
+
+	h := MockHandlerNoPre{
+		ReturnState: state,
+		ReturnError: stateError,
+	}
 	return &h
 
 }
 
-func (m *mockCompleteSynchronouslyHandler) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Complete,
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+func (m *MockHandlerNoPre) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockCompleteSynchronouslyHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoPre) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Complete,
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockCompleteSynchronouslyHandler) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoPre) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Complete,
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockCompleteSynchronouslyHandler) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoPre) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Complete,
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
-func (m *mockCompleteSynchronouslyHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
+func (m *MockHandlerNoPre) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
 
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.Complete,
-		CallbackContext:      callbackContext.CallbackContext,
-		CallbackDelayMinutes: 0,
-	}, nil
-}
-
-type mockInProgressHandler struct{}
-
-func NewmockInProgressHandler() *mockInProgressHandler {
-
-	h := mockInProgressHandler{}
-	return &h
-
-}
-
-func (m *mockInProgressHandler) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.InProgress,
-		CallbackDelayMinutes: 5,
-	}, nil
-}
-
-func (m *mockInProgressHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.InProgress,
-		CallbackDelayMinutes: 5,
-	}, nil
-}
-
-func (m *mockInProgressHandler) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.InProgress,
-		CallbackDelayMinutes: 5,
-	}, nil
-}
-
-func (m *mockInProgressHandler) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.InProgress,
-		CallbackDelayMinutes: 5,
-	}, nil
-}
-
-func (m *mockInProgressHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext proxy.RequestContext) (*proxy.ProgressEvent, error) {
-
-	return &proxy.ProgressEvent{
-		ProgressStatus:       proxy.InProgress,
-		CallbackDelayMinutes: 5,
-	}, nil
+	return m.ReturnState, m.ReturnError
 }
 
 //Load the request data from file.
@@ -318,9 +261,8 @@ func loadData(theRequest *proxy.HandlerRequest, path string) (*proxy.HandlerRequ
 }
 
 func Test_processInvocationNullResponse(t *testing.T) {
-
-	proxy.StartWithOutLambda(NewMockNil())
-
+	re := NewMock(nil, nil)
+	proxy.StartWithOutLambda(re)
 	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
 	readRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/read.request.json")
 	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.request.json")
@@ -378,11 +320,12 @@ func Test_processInvocationNullResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := proxy.New(tt.fields.in)
+			p := proxy.New(re)
 
 			m := tt.fields.in.Metric.Client.(*MockedMetrics)
 			e := tt.fields.in.Sched.Client.(*MockedEvents)
-			got := p.ProcessInvocation()
+			got := p.ProcessInvocation(&tt.fields.in)
+			t.Log(got)
 
 			if got.ProgressStatus == tt.want.ProgressStatus {
 				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.ProgressStatus)
@@ -423,8 +366,13 @@ func Test_processInvocationNullResponse(t *testing.T) {
 }
 
 func Test_processInvocationFailedResponse(t *testing.T) {
-
-	proxy.StartWithOutLambda(NewmockFailedHandler())
+	re := NewMock(&proxy.ProgressEvent{
+		ProgressStatus:       proxy.Failed,
+		HandlerErrorCode:     "Custom Fault",
+		Message:              "Custom Fault",
+		CallbackDelayMinutes: 0,
+	}, nil)
+	proxy.StartWithOutLambda(re)
 
 	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
 	readRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/read.request.json")
@@ -488,11 +436,10 @@ func Test_processInvocationFailedResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := proxy.New(tt.fields.in)
-
+			p := proxy.New(re)
 			m := tt.fields.in.Metric.Client.(*MockedMetrics)
 			e := tt.fields.in.Sched.Client.(*MockedEvents)
-			got := p.ProcessInvocation()
+			got := p.ProcessInvocation(&tt.fields.in)
 			if got.ProgressStatus == tt.want.ProgressStatus {
 				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.ProgressStatus)
 			} else {
@@ -533,7 +480,11 @@ func Test_processInvocationFailedResponse(t *testing.T) {
 
 func Test_processInvocationCompleteSynchronouslyResponse(t *testing.T) {
 
-	proxy.StartWithOutLambda(NewmockCompleteSynchronouslyHandler())
+	re := NewMock(&proxy.ProgressEvent{
+		ProgressStatus:       proxy.Complete,
+		CallbackDelayMinutes: 0,
+	}, nil)
+	proxy.StartWithOutLambda(re)
 
 	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
 	readRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/read.request.json")
@@ -586,11 +537,10 @@ func Test_processInvocationCompleteSynchronouslyResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := proxy.New(tt.fields.in)
-
+			p := proxy.New(re)
 			m := tt.fields.in.Metric.Client.(*MockedMetrics)
 			e := tt.fields.in.Sched.Client.(*MockedEvents)
-			got := p.ProcessInvocation()
+			got := p.ProcessInvocation(&tt.fields.in)
 			if got.ProgressStatus == tt.want.ProgressStatus {
 				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.ProgressStatus)
 			} else {
@@ -631,7 +581,11 @@ func Test_processInvocationCompleteSynchronouslyResponse(t *testing.T) {
 
 func Test_processMalformedSynchronouslyResponse(t *testing.T) {
 
-	proxy.StartWithOutLambda(NewmockCompleteSynchronouslyHandler())
+	re := NewMock(&proxy.ProgressEvent{
+		ProgressStatus:       proxy.Complete,
+		CallbackDelayMinutes: 0,
+	}, nil)
+	proxy.StartWithOutLambda(re)
 
 	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/malformed.request.json")
 	readRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/malformed.request.json")
@@ -684,11 +638,10 @@ func Test_processMalformedSynchronouslyResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := proxy.New(tt.fields.in)
-
+			p := proxy.New(re)
 			m := tt.fields.in.Metric.Client.(*MockedMetrics)
 			e := tt.fields.in.Sched.Client.(*MockedEvents)
-			got := p.ProcessInvocation()
+			got := p.ProcessInvocation(&tt.fields.in)
 			if got.ProgressStatus == tt.want.ProgressStatus {
 				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.ProgressStatus)
 			} else {
@@ -729,7 +682,11 @@ func Test_processMalformedSynchronouslyResponse(t *testing.T) {
 
 func Test_processInvocationInProgressWithContextResponse(t *testing.T) {
 
-	proxy.StartWithOutLambda(NewmockInProgressHandler())
+	re := NewMock(&proxy.ProgressEvent{
+		ProgressStatus:       proxy.InProgress,
+		CallbackDelayMinutes: 5,
+	}, nil)
+	proxy.StartWithOutLambda(re)
 
 	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.with-request-context.request.json")
 	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.with-request-context.request.json")
@@ -771,11 +728,10 @@ func Test_processInvocationInProgressWithContextResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := proxy.New(tt.fields.in)
-
+			p := proxy.New(re)
 			m := tt.fields.in.Metric.Client.(*MockedMetrics)
 			e := tt.fields.in.Sched.Client.(*MockedEvents)
-			got := p.ProcessInvocation()
+			got := p.ProcessInvocation(&tt.fields.in)
 			if got.ProgressStatus == tt.want.ProgressStatus {
 				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.ProgressStatus)
 			} else {
@@ -810,6 +766,206 @@ func Test_processInvocationInProgressWithContextResponse(t *testing.T) {
 			} else {
 				t.Errorf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times : %v", failed, tt.wantcleanupCloudWatchEvents, e.CleanupCloudWatchEventsCount)
 			}
+		})
+	}
+}
+
+func TestTransform(t *testing.T) {
+
+	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
+	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.request.json")
+	if err != nil {
+		log.Fatalf("error loading data. :%v", err.Error())
+	}
+
+	type args struct {
+		r       proxy.HandlerRequest
+		handler *proxy.CustomHandler
+	}
+	tests := []struct {
+		name         string
+		args         args
+		want         *proxy.ResourceHandlerRequest
+		wantResource *MockHandler
+		wantErr      bool
+	}{
+
+		{"Transform CREATE response", args{*createRequest, proxy.New(NewMock(nil, nil))}, &proxy.ResourceHandlerRequest{
+			AwsAccountID:        "123456789012",
+			Region:              "us-east-1",
+			ResourceType:        "AWS::Test::TestModel",
+			ResourceTypeVersion: "1.0",
+			Cred:                proxy.Credentials{"IASAYK835GAIFHAHEI23", "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0", "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"},
+		},
+			&MockHandler{
+				MockHandlerResource{"abc", 123},
+				MockHandlerResource{},
+				nil,
+				nil,
+			},
+
+			false},
+
+		{"Transform UPDATE response", args{*updateRequest, proxy.New(NewMock(nil, nil))}, &proxy.ResourceHandlerRequest{
+			AwsAccountID:        "123456789012",
+			Region:              "us-east-1",
+			ResourceType:        "AWS::Test::TestModel",
+			ResourceTypeVersion: "1.0",
+			Cred:                proxy.Credentials{"IASAYK835GAIFHAHEI23", "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0", "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"},
+		},
+			&MockHandler{
+				MockHandlerResource{"abc", 123},
+				MockHandlerResource{"cba", 321},
+				nil,
+				nil,
+			},
+
+			false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := proxy.Transform(tt.args.r, tt.args.handler)
+			r := tt.args.handler.CustomResource.(*MockHandler)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Transform() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if reflect.DeepEqual(got, tt.want) {
+				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want)
+			} else {
+				t.Errorf("\t%s\tShould receive a %s status code : %v", failed, tt.want, got)
+			}
+
+			if reflect.DeepEqual(got, tt.want) {
+				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want)
+			} else {
+				t.Errorf("\t%s\tShould receive a %s status code : %v", failed, tt.want, got)
+			}
+
+			if reflect.DeepEqual(r, tt.wantResource) {
+				t.Logf("\t%s\tShould update resource.", succeed)
+			} else {
+				t.Errorf("\t%s\tShould update resource %v was : %v", failed, tt.wantResource, r)
+			}
+
+		})
+	}
+}
+
+func TestTransformNoDesired(t *testing.T) {
+
+	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
+	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.request.json")
+	if err != nil {
+		log.Fatalf("error loading data. :%v", err.Error())
+	}
+
+	type args struct {
+		r       proxy.HandlerRequest
+		handler *proxy.CustomHandler
+	}
+	tests := []struct {
+		name         string
+		args         args
+		want         *proxy.ResourceHandlerRequest
+		wantResource *MockHandlerNoDesired
+		wantErr      bool
+	}{
+
+		{"Transform CREATE response", args{*createRequest, proxy.New(NewMockNoDesired(nil, nil))}, &proxy.ResourceHandlerRequest{
+			AwsAccountID:        "123456789012",
+			Region:              "us-east-1",
+			ResourceType:        "AWS::Test::TestModel",
+			ResourceTypeVersion: "1.0",
+			Cred:                proxy.Credentials{"IASAYK835GAIFHAHEI23", "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0", "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"},
+		},
+			&MockHandlerNoDesired{},
+
+			false},
+
+		{"Transform UPDATE response", args{*updateRequest, proxy.New(NewMockNoDesired(nil, nil))}, &proxy.ResourceHandlerRequest{
+			AwsAccountID:        "123456789012",
+			Region:              "us-east-1",
+			ResourceType:        "AWS::Test::TestModel",
+			ResourceTypeVersion: "1.0",
+			Cred:                proxy.Credentials{"IASAYK835GAIFHAHEI23", "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0", "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"},
+		},
+			&MockHandlerNoDesired{
+				MockHandlerResourceNoDesired{},
+				nil,
+				nil,
+			},
+
+			false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := proxy.Transform(tt.args.r, tt.args.handler)
+
+			if err.Error() == "Unable to find DesiredResource in Config object" {
+				t.Logf("\t%s\tShould receive a %s error.", succeed, "Unable to find DesiredResource in Config object")
+			} else {
+				t.Errorf("\t%s\tShould receive a %s error.", failed, "Unable to find DesiredResource in Config object")
+			}
+
+		})
+	}
+}
+
+func TestTransformNoPre(t *testing.T) {
+
+	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
+	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.request.json")
+	if err != nil {
+		log.Fatalf("error loading data. :%v", err.Error())
+	}
+
+	type args struct {
+		r       proxy.HandlerRequest
+		handler *proxy.CustomHandler
+	}
+	tests := []struct {
+		name         string
+		args         args
+		want         *proxy.ResourceHandlerRequest
+		wantResource *MockHandlerNoPre
+		wantErr      bool
+	}{
+
+		{"Transform CREATE response", args{*createRequest, proxy.New(NewMockNoPre(nil, nil))}, &proxy.ResourceHandlerRequest{
+			AwsAccountID:        "123456789012",
+			Region:              "us-east-1",
+			ResourceType:        "AWS::Test::TestModel",
+			ResourceTypeVersion: "1.0",
+			Cred:                proxy.Credentials{"IASAYK835GAIFHAHEI23", "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0", "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"},
+		},
+			&MockHandlerNoPre{},
+
+			false},
+
+		{"Transform UPDATE response", args{*updateRequest, proxy.New(NewMockNoPre(nil, nil))}, &proxy.ResourceHandlerRequest{
+			AwsAccountID:        "123456789012",
+			Region:              "us-east-1",
+			ResourceType:        "AWS::Test::TestModel",
+			ResourceTypeVersion: "1.0",
+			Cred:                proxy.Credentials{"IASAYK835GAIFHAHEI23", "66iOGPN5LnpZorcLr8Kh25u8AbjHVllv5/poh2O0", "lameHS2vQOknSHWhdFYTxm2eJc1JMn9YBNI4nV4mXue945KPL6DHfW8EsUQT5zwssYEC1NvYP9yD6Y5s5lKR3chflOHPFsIe6eqg"},
+		},
+			&MockHandlerNoPre{},
+
+			false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := proxy.Transform(tt.args.r, tt.args.handler)
+
+			if err.Error() == "Unable to find PreviousResource in Config object" {
+				t.Logf("\t%s\tShould receive a %s error.", succeed, "Unable to find PreviousResource in Config object")
+			} else {
+				t.Errorf("\t%s\tShould receive a %s error.", failed, "Unable to find PreviousResource in Config object")
+			}
+
 		})
 	}
 }

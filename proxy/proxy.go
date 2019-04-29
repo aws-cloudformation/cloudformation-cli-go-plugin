@@ -216,6 +216,7 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 	//Check if the field is found and that it's a strut value.
 	if !dv.IsValid() || dv.Kind() != reflect.Struct {
 		err := errors.New("Unable to find DesiredResource in Config object")
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -225,6 +226,7 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 	//Check if the field is found and that it's a strut value.
 	if !pv.IsValid() || pv.Kind() != reflect.Struct {
 		err := errors.New("Unable to find PreviousResource in Config object")
+		fmt.Println(err)
 		return nil, err
 	}
 

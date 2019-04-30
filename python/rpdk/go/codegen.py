@@ -9,6 +9,7 @@ from rpdk.core.plugin_base import LanguagePlugin
 
 from .model_resolver import CSharpModelResolver
 from .utils import safe_reserved
+from subprocess import call
 
 LOG = logging.getLogger(__name__)
 
@@ -42,11 +43,11 @@ class GoLanguagePlugin(LanguagePlugin):
         self._namespace_from_project(project)
 
         # project folder structure
-        src = (project.root / "cmd"  / self.namespace[2].lower() / "resource")
+        src = (project.root / "cmd"  / "resource")
         LOG.debug("Making source folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
         
-        tst = (project.root / "cmd"  / self.namespace[2].lower() / "test")
+        tst = (project.root / "cmd"  / "test" / "data")
         LOG.debug("Making test folder structure: %s", tst)
         tst.mkdir(parents=True, exist_ok=True)
         
@@ -60,11 +61,37 @@ class GoLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
         
         # CloudFormation/SAM template for handler lambda
-        path = project.root / "Handler.yaml"
+        path = project.root / "template.yaml"
         LOG.debug("Writing SAM template: %s", path)
         template = self.env.get_template("Handler.yaml")
         contents = template.render(
             resource_type=project.type_name,
+        )
+        project.safewrite(path, contents)
+
+        # Create request test data
+        path = project.root / "cmd"  / "test" / "data" / "create.request.json"
+        LOG.debug("Writing create sample request: %s", path)
+        template = self.env.get_template("create.request.json")
+        contents = template.render()
+        project.safewrite(path, contents)
+
+        # Update request test data
+        path = project.root / "cmd"  / "test" / "data" / "update.request.json"
+        LOG.debug("Writing create sample request: %s", path)
+        template = self.env.get_template("update.request.json")
+        contents = template.render()
+        project.safewrite(path, contents)
+
+        # ReadME
+        path = project.root / "README.md"
+        LOG.debug("Writing README: %s", path)
+        template = self.env.get_template("README.md")
+        contents = template.render(
+            type_name=project.type_name,
+            schema_path=project.schema_path,
+            executable=EXECUTABLE,
+            files="generated.go and main.go"
         )
         project.safewrite(path, contents)
         
@@ -73,7 +100,7 @@ class GoLanguagePlugin(LanguagePlugin):
     
     def _get_generated_root(self, project):
         self._namespace_from_project(project)
-        return project.root / "cmd"  / self.namespace[2].lower() / "resource"
+        return project.root / "cmd"  /  "resource"
 
     def generate(self, project):
         LOG.debug("Generate started")
@@ -88,7 +115,7 @@ class GoLanguagePlugin(LanguagePlugin):
         shutil.rmtree(generated_root, ignore_errors=True)
         
         # project folder structure
-        src = (project.root / "cmd"  / self.namespace[2].lower() / "resource")
+        src = (project.root / "cmd"  /  "resource")
         LOG.debug("Making resource folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
 
@@ -97,9 +124,9 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Writing %d models", len(models))
 
-        template = self.env.get_template("Model.go")
+        template = self.env.get_template("model.go")
         for model_name, properties in models.items():
-            path = src / "{}.go".format(model_name.lower())
+            path = src / "{}.go".format("generated")
             LOG.debug("%s model: %s", model_name, path)
             contents = template.render(
                 package_name=self.package_name,
@@ -108,7 +135,19 @@ class GoLanguagePlugin(LanguagePlugin):
             )
             project.overwrite(path, contents)
         
-        path = project.root / "cmd"  / self.namespace[2].lower() / "main.go"
+        myCmd = "gofmt -w {}".format(path)
+        call(myCmd, shell=True)
+
+        template = self.env.get_template("handler.go")
+        for model_name, properties in models.items():
+            path = src / "{}.go".format("resource")
+            LOG.debug("%s model: %s", model_name, path)
+            contents = template.render(
+                model_name=self.namespace[2].capitalize(),
+            )
+            project.overwrite(path, contents)
+        
+        path = project.root / "cmd"  / "main.go"
         parts = os.path.split(path)
         LOG.debug("Writing project: %s", path)
         template = self.env.get_template("main.go")
@@ -120,51 +159,7 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
         
-        '''
-        path = src / "HandlerWrapper.cs"
-        LOG.debug("Writing handler wrapper: %s", path)
-        template = self.env.get_template("HandlerWrapper.cs")
-        contents = template.render(
-            package_name=self.package_name,
-            operations=OPERATIONS,
-            model_name="ResourceModel",
-        )
-        project.overwrite(path, contents)
-
-        path = src / "BaseConfiguration.cs"
-        LOG.debug("Writing base configuration: %s", path)
-        template = self.env.get_template("BaseConfiguration.cs")
-        contents = template.render(
-            package_name=self.package_name, schema_file_name=project.schema_filename
-        )
-        project.overwrite(path, contents)
-
-        path = src / "BaseHandler.cs"
-        LOG.debug("Writing base handler: %s", path)
-        template = self.env.get_template("BaseHandler.cs")
-        contents = template.render(
-            package_name=self.package_name,
-            operations=OPERATIONS,
-            model_name="ResourceModel",
-        )
-        project.overwrite(path, contents)
-
-        model_resolver = CSharpModelResolver(objects, "ResourceModel")
-        models = model_resolver.resolve_models()
-
-        LOG.debug("Writing %d models", len(models))
-
-        template = self.env.get_template("Model.cs")
-        for model_name, properties in models.items():
-            path = src / "{}.cs".format(model_name)
-            LOG.debug("%s model: %s", model_name, path)
-            contents = template.render(
-                package_name=self.package_name,
-                model_name=model_name,
-                properties=properties,
-            )
-            project.overwrite(path, contents)
-        '''
+        
         LOG.debug("Generate complete")
 
     def package(self, project):

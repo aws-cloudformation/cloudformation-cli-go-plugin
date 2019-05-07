@@ -83,7 +83,7 @@ class GoLanguagePlugin(LanguagePlugin):
         contents = template.render()
         project.safewrite(path, contents)
 
-        # ReadME
+        # README
         path = project.root / "README.md"
         LOG.debug("Writing README: %s", path)
         template = self.env.get_template("README.md")
@@ -124,7 +124,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Writing %d models", len(models))
 
-        template = self.env.get_template("model.go")
+        template = self.env.get_template("model.go.tple")
         for model_name, properties in models.items():
             path = src / "{}.go".format("generated")
             LOG.debug("%s model: %s", model_name, path)
@@ -138,7 +138,7 @@ class GoLanguagePlugin(LanguagePlugin):
         myCmd = "gofmt -w {}".format(path)
         call(myCmd, shell=True)
 
-        template = self.env.get_template("handler.go")
+        template = self.env.get_template("handler.go.tple")
         for model_name, properties in models.items():
             path = src / "{}.go".format("resource")
             LOG.debug("%s model: %s", model_name, path)
@@ -150,7 +150,7 @@ class GoLanguagePlugin(LanguagePlugin):
         path = project.root / "cmd"  / "main.go"
         parts = os.path.split(path)
         LOG.debug("Writing project: %s", path)
-        template = self.env.get_template("main.go")
+        template = self.env.get_template("main.go.tple")
         gopath='{}/src/'.format(os.environ['GOPATH'])
         parts = parts[0].split(gopath)
         contents = template.render(

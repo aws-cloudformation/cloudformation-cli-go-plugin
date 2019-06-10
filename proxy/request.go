@@ -27,6 +27,8 @@ type RequestData struct {
 type HandlerRequest struct {
 	//The AWS account ID
 	AwsAccountID string `json:"awsAccountId"`
+	//The Response Endpoint
+	ResponseEndpoint string `json:"responseEndpoint"`
 	//The Bearer token
 	BearerToken string `json:"bearerToken"`
 	//NextToken

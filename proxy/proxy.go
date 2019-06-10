@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -87,6 +88,9 @@ func (c *CustomHandler) ProcessInvocation(in *ProcessInvocationInput) *ProgressE
 
 	//Set the Metric Publisher
 	pub := in.Metric
+
+	//If Action.CREATE, Action.DELETE, or Action.UPDATE validate if the request has properties
+	validateResourceProps(req.Data.ResourceProperties, req.Action)
 
 	pub.PublishInvocationMetric(time.Now(), req.Action)
 
@@ -333,6 +337,26 @@ func (c *CustomHandler) invoke(request *ResourceHandlerRequest, input *HandlerRe
 //// for CUD actions, validate incoming model - any error is a terminal failure on the invocation.
 func valdiate(request *RequestContext) {
 
+}
+
+func validateResourceProps(in json.RawMessage, action string) {
+	//Action.CREATE, Action.DELETE, Action.UPDATE
+
+	if action == "CREATE" || action == "DELETE" || action == "UPDATE" {
+
+		dst := new(bytes.Buffer)
+
+		err := json.Compact(dst, []byte(in))
+
+		if err != nil {
+			log.Panic("Invalid resource properties object received")
+		}
+
+		fmt.Println(dst)
+		if dst.String() == "{}" {
+			log.Panic("Invalid resource properties object received")
+		}
+	}
 }
 
 //BuildReply: Helper method to return a a ProgressEvent.

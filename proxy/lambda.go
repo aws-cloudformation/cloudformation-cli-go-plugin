@@ -23,7 +23,7 @@ func HandleLambdaEvent(ctx context.Context, event HandlerRequest) (Reponse, erro
 		Region: aws.String("us-east-1")},
 	)
 	if err != nil {
-		log.Fatal("Sesson error: ", err)
+		log.Panicln("Sesson error: ", err)
 	}
 
 	if (reflect.DeepEqual(event, HandlerRequest{})) {

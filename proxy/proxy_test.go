@@ -260,6 +260,98 @@ func loadData(theRequest *proxy.HandlerRequest, path string) (*proxy.HandlerRequ
 
 }
 
+func Test_processInvocationNoProps(t *testing.T) {
+	re := NewMock(nil, nil)
+	proxy.StartWithOutLambda(re)
+	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.no.props.json")
+	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.request.no.props.json")
+	deleteRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/delete.request.no.props.json")
+
+	if err != nil {
+		log.Fatalf("error loading data. :%v", err.Error())
+	}
+
+	type fields struct {
+		in proxy.ProcessInvocationInput
+	}
+	tests := []struct {
+		name                               string
+		fields                             fields
+		want                               *proxy.ProgressEvent
+		wantErr                            bool
+		wantHandlerExceptionCount          int
+		wantHandlerInvocationCount         int
+		wantHandlerInvocationDurationCount int
+		wantrescheduleAfterMinutesCount    int
+		wantcleanupCloudWatchEvents        int
+	}{
+		{"nil CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+			OperationStatus:  proxy.Failed,
+			HandlerErrorCode: proxy.InvalidRequest,
+			Message:          "Handler failed to provide a response",
+		},
+			true, 1, 1, 1, 0, 0},
+		{"nil DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+			OperationStatus:  proxy.Failed,
+			HandlerErrorCode: proxy.InvalidRequest,
+			Message:          "Handler failed to provide a response",
+		},
+			true, 1, 1, 1, 0, 0},
+
+		{"nil UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+			OperationStatus:  proxy.Failed,
+			HandlerErrorCode: proxy.InvalidRequest,
+			Message:          "Handler failed to provide a response",
+		},
+			true, 1, 1, 1, 0, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := proxy.New(re)
+
+			m := tt.fields.in.Metric.Client.(*MockedMetrics)
+			e := tt.fields.in.Sched.Client.(*MockedEvents)
+			got := p.ProcessInvocation(&tt.fields.in)
+			t.Log(got)
+
+			if got.OperationStatus == tt.want.OperationStatus {
+				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.OperationStatus)
+			} else {
+				t.Errorf("\t%s\tShould receive a %s status code : %v", failed, tt.want.OperationStatus, got.OperationStatus)
+			}
+
+			if m.HandlerExceptionCount == tt.wantHandlerExceptionCount {
+				t.Logf("\t%s\tHandlerException metric should be invoked (%v) times.", succeed, tt.wantHandlerExceptionCount)
+			} else {
+				t.Errorf("\t%s\tHandlerException metric should be invoked (%v) times : %v", failed, tt.wantHandlerExceptionCount, m.HandlerExceptionCount)
+			}
+
+			if m.HandlerInvocationCount == tt.wantHandlerInvocationCount {
+				t.Logf("\t%s\tHandlerInvocation metric should be invoked (%v) times.", succeed, tt.wantHandlerInvocationCount)
+			} else {
+				t.Errorf("\t%s\tHandlerInvocation metric should be invoked (%v) times : %v", failed, tt.wantHandlerInvocationCount, m.HandlerInvocationCount)
+			}
+
+			if m.HandlerInvocationDurationCount == tt.wantHandlerInvocationDurationCount {
+				t.Logf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times.", succeed, tt.wantHandlerInvocationDurationCount)
+			} else {
+				t.Errorf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times : %v", failed, tt.wantHandlerInvocationDurationCount, m.HandlerInvocationDurationCount)
+			}
+			if e.RescheduleAfterMinutesCount == tt.wantrescheduleAfterMinutesCount {
+				t.Logf("\t%s\tRescheduleAfterMinutesCount method should be invoked (%v) times.", succeed, tt.wantrescheduleAfterMinutesCount)
+			} else {
+				t.Errorf("\t%s\tRescheduleAfterMinutesCount method should be invoked (%v) times : %v", failed, tt.wantrescheduleAfterMinutesCount, e.RescheduleAfterMinutesCount)
+			}
+
+			if e.CleanupCloudWatchEventsCount == tt.wantcleanupCloudWatchEvents {
+				t.Logf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times.", succeed, tt.wantcleanupCloudWatchEvents)
+			} else {
+				t.Errorf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times : %v", failed, tt.wantcleanupCloudWatchEvents, e.CleanupCloudWatchEventsCount)
+			}
+		})
+	}
+}
+
 func Test_processInvocationNullResponse(t *testing.T) {
 	re := NewMock(nil, nil)
 	proxy.StartWithOutLambda(re)

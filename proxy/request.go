@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-//ResourceHandlerRequest repersents a request set to the resource CRUD handlers.
+//ResourceHandlerRequest represents a request set to the resource CRUD handlers.
 type ResourceHandlerRequest struct {
 	AwsAccountID        string
 	NextToken           string
@@ -13,7 +13,7 @@ type ResourceHandlerRequest struct {
 	ResourceTypeVersion string
 }
 
-//RequestData  repersents the data used to build the resource handler request.
+//RequestData represents the data used to build the resource handler request.
 type RequestData struct {
 	LogicalResourceID          string                 `json:"logicalResourceId"`
 	ResourceProperties         json.RawMessage        `json:"ResourceProperties"`
@@ -21,9 +21,18 @@ type RequestData struct {
 	SystemTags                 map[string]interface{} `json:"systemTags"`
 	StackTags                  map[string]interface{} `json:"stackTags"`
 	PreviousStackTags          map[string]interface{} `json:"previousStackTags"`
+	CallerCredentials          Credentials            `json:"callerCredentials"`
+	platformCredentials        Credentials            `json:"platformCredentials"`
 }
 
-//HandlerRequest repersents the request made from the Cloudformation service.
+//Credentials represents AWS specified provider credentials.
+type Credentials struct {
+	AccessKeyID     string `json: "AccessKeyId"`
+	SecretAccessKey string `json: secretAccessKey"`
+	SessionToken    string `json:  "sessionToken"`
+}
+
+//HandlerRequest represents the request made from the Cloudformation service.
 type HandlerRequest struct {
 	//The AWS account ID
 	AwsAccountID string `json:"awsAccountId"`

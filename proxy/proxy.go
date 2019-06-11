@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/callback"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -54,11 +55,13 @@ type InvokeHandler interface {
 	UpdateRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
 }
 
+//ProcessInvocationInput is a struct used to hold the input for the invocation functions
 type ProcessInvocationInput struct {
 	Cx     context.Context
 	Req    HandlerRequest
 	Metric *metric.Publisher
 	Sched  *scheduler.CloudWatchScheduler
+	Clf    *callback.CloudFormationCallbackAdapter
 }
 
 // CustomHandler is a wrapper that handles execution of the custom resource.

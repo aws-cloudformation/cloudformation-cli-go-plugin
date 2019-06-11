@@ -6,11 +6,13 @@ import (
 	"net/url"
 	"reflect"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/callback"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
@@ -76,5 +78,6 @@ func initialiseRuntime(ct context.Context, req HandlerRequest) *ProcessInvocatio
 		Req:    req,
 		Metric: metric.New(cloudwatch.New(sess), req.ResourceType),
 		Sched:  scheduler.New(cloudwatchevents.New(sess)),
+		Clf:    callback.New(cloudformation.New(cfsess)),
 	}
 }

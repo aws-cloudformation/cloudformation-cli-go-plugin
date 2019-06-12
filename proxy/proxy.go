@@ -14,6 +14,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 )
 
@@ -389,13 +390,17 @@ func validateResourceProps(in json.RawMessage, action string) {
 func InjectCredentialsAndInvoke(req request.Request) error {
 
 	req.Config.Credentials = proxyCreds
-
 	err := req.Send()
-	if err != nil { // resp is now filled
+	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+//SetproxyCreds sets the clients call credentials
+func SetproxyCreds(r HandlerRequest) {
+	proxyCreds = credentials.NewStaticCredentials(r.Data.CallerCredentials.AccessKeyID, r.Data.CallerCredentials.SecretAccessKey, r.Data.CallerCredentials.SessionToken)
 }
 
 //BuildReply: Helper method to return a a ProgressEvent.

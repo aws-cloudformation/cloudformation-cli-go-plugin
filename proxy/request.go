@@ -22,7 +22,7 @@ type RequestData struct {
 	StackTags                  map[string]interface{} `json:"stackTags"`
 	PreviousStackTags          map[string]interface{} `json:"previousStackTags"`
 	CallerCredentials          Credentials            `json:"callerCredentials"`
-	platformCredentials        Credentials            `json:"platformCredentials"`
+	PlatformCredentials        Credentials            `json:"platformCredentials"`
 }
 
 //Credentials represents AWS specified provider credentials.

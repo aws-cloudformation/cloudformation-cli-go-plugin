@@ -52,13 +52,12 @@ func initialiseRuntime(ct context.Context, req HandlerRequest) *ProcessInvocatio
 		Host:   req.ResponseEndpoint,
 	}
 
-	//Set caller Credentials
-	proxyCreds = credentials.NewStaticCredentials(req.Data.CallerCredentials.AccessKeyID, req.Data.CallerCredentials.SecretAccessKey, req.Data.CallerCredentials.SessionToken)
+	SetproxyCreds(req)
 
 	//Create a Cloudformation AWS session.
 	cfsess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(req.Region),
-		Credentials: credentials.NewStaticCredentials(req.Data.platformCredentials.AccessKeyID, req.Data.platformCredentials.SecretAccessKey, req.Data.platformCredentials.SessionToken),
+		Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
 		Endpoint:    aws.String(u.String()),
 		MaxRetries:  aws.Int(16),
 	})
@@ -70,7 +69,7 @@ func initialiseRuntime(ct context.Context, req HandlerRequest) *ProcessInvocatio
 	//Create a Cloudwatch AWS session.
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(req.Region),
-		Credentials: credentials.NewStaticCredentials(req.Data.platformCredentials.AccessKeyID, req.Data.platformCredentials.SecretAccessKey, req.Data.platformCredentials.SessionToken),
+		Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
 		Endpoint:    aws.String(u.String()),
 	})
 

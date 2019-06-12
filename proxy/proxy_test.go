@@ -12,7 +12,6 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -286,20 +285,20 @@ func Test_processInvocationNoProps(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"nil CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
 		},
 			true, 1, 1, 1, 0, 0},
-		{"nil DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
 		},
 			true, 1, 1, 1, 0, 0},
 
-		{"nil UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
@@ -380,31 +379,31 @@ func Test_processInvocationNullResponse(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"nil CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
 		},
 			true, 1, 1, 1, 0, 0},
-		{"nil DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
 		},
 			true, 1, 1, 1, 0, 0},
-		{"nil LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
 		},
 			true, 1, 1, 1, 0, 0},
-		{"nil READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
 		},
 			true, 1, 1, 1, 0, 0},
-		{"nil UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"nil UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:  proxy.Failed,
 			HandlerErrorCode: proxy.InvalidRequest,
 			Message:          "Handler failed to provide a response",
@@ -491,35 +490,35 @@ func Test_processInvocationFailedResponse(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"failed CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"failed CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Failed,
 			HandlerErrorCode:     "Custom Fault",
 			Message:              "Custom Fault",
 			CallbackDelayMinutes: 0,
 		},
 			false, 0, 1, 1, 0, 0},
-		{"failed DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"failed DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Failed,
 			HandlerErrorCode:     "Custom Fault",
 			Message:              "Custom Fault",
 			CallbackDelayMinutes: 0,
 		},
 			false, 0, 1, 1, 0, 0},
-		{"failed LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"failed LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Failed,
 			HandlerErrorCode:     "Custom Fault",
 			Message:              "Custom Fault",
 			CallbackDelayMinutes: 0,
 		},
 			false, 0, 1, 1, 0, 0},
-		{"failed READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"failed READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Failed,
 			HandlerErrorCode:     "Custom Fault",
 			Message:              "Custom Fault",
 			CallbackDelayMinutes: 0,
 		},
 			false, 0, 1, 1, 0, 0},
-		{"failed UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"failed UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Failed,
 			HandlerErrorCode:     "Custom Fault",
 			Message:              "Custom Fault",
@@ -603,27 +602,27 @@ func Test_processInvocationCompleteSynchronouslyResponse(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"complete synchronously CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
@@ -704,27 +703,27 @@ func Test_processMalformedSynchronouslyResponse(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"complete synchronously CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously READ response", fields{proxy.ProcessInvocationInput{mockContext{}, *readRequest, metric.New(New(), readRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
 
-		{"complete synchronously LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"complete synchronously LIST response", fields{proxy.ProcessInvocationInput{mockContext{}, *listRequest, metric.New(New(), listRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.Complete,
 			CallbackDelayMinutes: 0,
 		}, false, 0, 1, 1, 0, 0},
@@ -803,17 +802,17 @@ func Test_processInvocationInProgressWithContextResponse(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"in progress CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"in progress CREATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *createRequest, metric.New(New(), createRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.InProgress,
 			CallbackDelayMinutes: 5,
 		}, false, 0, 1, 1, 1, 1},
 
-		{"in progress UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"in progress UPDATE response", fields{proxy.ProcessInvocationInput{mockContext{}, *updateRequest, metric.New(New(), updateRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.InProgress,
 			CallbackDelayMinutes: 5,
 		}, false, 0, 1, 1, 1, 1},
 
-		{"in progress DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents())}}, &proxy.ProgressEvent{
+		{"in progress DELETE response", fields{proxy.ProcessInvocationInput{mockContext{}, *deleteRequest, metric.New(New(), deleteRequest.ResourceType), scheduler.New(NewmockedEvents()), nil}}, &proxy.ProgressEvent{
 			OperationStatus:      proxy.InProgress,
 			CallbackDelayMinutes: 5,
 			ResourceModel:        deleteRequest.Data.ResourceProperties,
@@ -1006,6 +1005,10 @@ func TestTransformNoDesired(t *testing.T) {
 func TestTransformNoPre(t *testing.T) {
 
 	createRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/create.request.json")
+	if err != nil {
+		log.Fatalf("error loading data. :%v", err.Error())
+	}
+
 	updateRequest, err := loadData(&proxy.HandlerRequest{}, "tests/data/update.request.json")
 	if err != nil {
 		log.Fatalf("error loading data. :%v", err.Error())
@@ -1053,26 +1056,6 @@ func TestTransformNoPre(t *testing.T) {
 				t.Errorf("\t%s\tShould receive a %s error.", failed, "Unable to find PreviousResource in Config object")
 			}
 
-		})
-	}
-}
-
-func TestInjectCredentialsAndInvoke(t *testing.T) {
-	type args struct {
-		req request.Request
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := InjectCredentialsAndInvoke(tt.args.req); (err != nil) != tt.wantErr {
-				t.Errorf("InjectCredentialsAndInvoke() error = %v, wantErr %v", err, tt.wantErr)
-			}
 		})
 	}
 }

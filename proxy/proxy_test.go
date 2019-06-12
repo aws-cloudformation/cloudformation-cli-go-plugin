@@ -12,6 +12,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -1052,6 +1053,26 @@ func TestTransformNoPre(t *testing.T) {
 				t.Errorf("\t%s\tShould receive a %s error.", failed, "Unable to find PreviousResource in Config object")
 			}
 
+		})
+	}
+}
+
+func TestInjectCredentialsAndInvoke(t *testing.T) {
+	type args struct {
+		req request.Request
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := InjectCredentialsAndInvoke(tt.args.req); (err != nil) != tt.wantErr {
+				t.Errorf("InjectCredentialsAndInvoke() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

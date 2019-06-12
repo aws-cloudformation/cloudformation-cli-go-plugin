@@ -14,6 +14,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/aws/aws-sdk-go/aws/request"
 )
 
 const (
@@ -338,8 +339,12 @@ func (c *CustomHandler) invoke(request *ResourceHandlerRequest, input *HandlerRe
 
 //Valdiate the model against schemata.
 //// for CUD actions, validate incoming model - any error is a terminal failure on the invocation.
-func valdiate(request *RequestContext) {
+func valdiate(request *RequestContext, action string) {
+	if action == "CREATE" || action == "DELETE" || action == "UPDATE" {
 
+		//Todo: make call to validation api
+
+	}
 }
 
 func validateResourceProps(in json.RawMessage, action string) {
@@ -359,7 +364,38 @@ func validateResourceProps(in json.RawMessage, action string) {
 		if dst.String() == "{}" {
 			log.Panic("Invalid resource properties object received")
 		}
+
 	}
+}
+
+// InjectCredentialsAndInvoke consumes a "aws/request.Request" representing the
+// client's request for a service action and injects caller credentials. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+//
+//// This method is useful when you want to inject credentials
+// into the SDK's request.
+//
+//
+//    // Example sending a request using the GetBucketReplicationRequest method.
+//    req, resp := client.GetBucketReplicationRequest(params)
+//    err := proxy.InjectCredentialsAndInvoke(req)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func InjectCredentialsAndInvoke(req request.Request) error {
+
+	req.Config.Credentials = proxyCreds
+
+	err := req.Send()
+	if err != nil { // resp is now filled
+		return err
+	}
+
+	return nil
 }
 
 //BuildReply: Helper method to return a a ProgressEvent.

@@ -17,6 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
+var proxyCreds *credentials.Credentials
+
 //HandleLambdaEvent is the main entry point for the lambda function.
 // A response will be output on all paths, though CloudFormation will
 // not block on invoking the handlers, but rather listen for callbacks
@@ -49,6 +51,9 @@ func initialiseRuntime(ct context.Context, req HandlerRequest) *ProcessInvocatio
 		Scheme: "https",
 		Host:   req.ResponseEndpoint,
 	}
+
+	//Set caller Credentials
+	proxyCreds = credentials.NewStaticCredentials(req.Data.CallerCredentials.AccessKeyID, req.Data.CallerCredentials.SecretAccessKey, req.Data.CallerCredentials.SessionToken)
 
 	//Create a Cloudformation AWS session.
 	cfsess, err := session.NewSession(&aws.Config{

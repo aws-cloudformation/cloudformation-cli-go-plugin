@@ -11,13 +11,13 @@ import (
 
 //CloudFormationCallbackAdapter is used to schedule Cloudwatch Events.
 type CloudFormationCallbackAdapter struct {
-	client cloudformationiface.CloudFormationAPI
+	Client cloudformationiface.CloudFormationAPI
 }
 
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
-func New(cl cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAdapter {
+func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
-		client: cl,
+		Client: client,
 	}
 }
 
@@ -42,7 +42,7 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, error
 	}
 
 	// TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
-	res, err := c.client.RecordHandlerProgress(&in)
+	res, err := c.Client.RecordHandlerProgress(&in)
 
 	if err != nil {
 		log.Fatalf("error: %s", err)

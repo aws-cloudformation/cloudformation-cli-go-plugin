@@ -2,9 +2,8 @@
   "awsAccountId": "123456789012",
   "bearerToken": "123456",
   "region": "us-east-1",
-  "action": "READ",
+  "action": "CREATE",
   "resourceType": "AWS::Test::TestModel",
-  "responseEndpoint": "cloudformation.us-west-2.amazonaws.com",
   "resourceTypeVersion": "1.0",
   "requestContext": {},
   "requestData": {

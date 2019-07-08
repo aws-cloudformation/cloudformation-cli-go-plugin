@@ -65,7 +65,7 @@ type RequestContext struct {
 	Invocation int `json:"invocation"`
 
 	//Custom context object to enable handlers to process re-invocation
-	CallbackContext interface{} `json:"callbackContext"`
+	CallbackContext json.RawMessage `json:"callbackContext"`
 
 	//If the request was the result of a CloudWatchEvents re-invoke trigger the
 	//CloudWatchEvents Rule name is stored to allow cleanup

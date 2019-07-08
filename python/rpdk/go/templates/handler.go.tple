@@ -105,7 +105,7 @@ func (r *{{ model_name|uppercase_first_letter }}) UpdateRequest(request *proxy.R
 	
 
 	//return the status
-	return &Pproxy.rogressEvent{
+	return &proxy.ProgressEvent{
 		OperationStatus:      proxy.Complete,
 		Message:              "Complete",
 		CallbackDelaySeconds: 0,

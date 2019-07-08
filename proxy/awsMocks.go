@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -18,9 +17,10 @@ func NewMockedCloudFormation() *MockedCloudFormation {
 	return &MockedCloudFormation{}
 }
 
-func (m *MockedCloudFormation) RecordHandlerProgress(*cloudformation.RecordHandlerProgressInput) (*cloudformation.RecordHandlerProgressOutput, error) {
-	return nil, nil
-}
+//Todo: enable later
+//func (m *MockedCloudFormation) RecordHandlerProgress(*cloudformation.RecordHandlerProgressInput) (*cloudformation.RecordHandlerProgressOutput, error) {
+//	return nil, nil
+//}
 
 //MockedMetrics mocks the call to AWS CloudWatch
 type MockedMetrics struct {

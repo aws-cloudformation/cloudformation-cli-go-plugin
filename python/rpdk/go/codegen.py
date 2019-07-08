@@ -145,9 +145,45 @@ class GoLanguagePlugin(LanguagePlugin):
         myCmd = "gofmt -w {}".format(path)
         call(myCmd, shell=True)
 
-        template = self.env.get_template("handler.go.tple")
+        template = self.env.get_template("createHandler.go.tple")
         for model_name, properties in models.items():
-            path = src / "{}.go".format("resource")
+            path = src / "{}.go".format("createHandler")
+            LOG.debug("%s model: %s", model_name, path)
+            contents = template.render(
+                model_name=self.namespace[2].capitalize(),
+            )
+            project.overwrite(path, contents)
+
+        template = self.env.get_template("deleteHandler.go.tple")
+        for model_name, properties in models.items():
+            path = src / "{}.go".format("deleteHandler")
+            LOG.debug("%s model: %s", model_name, path)
+            contents = template.render(
+                model_name=self.namespace[2].capitalize(),
+            )
+            project.overwrite(path, contents)
+        
+        template = self.env.get_template("readHandler.go.tple")
+        for model_name, properties in models.items():
+            path = src / "{}.go".format("readHandler")
+            LOG.debug("%s model: %s", model_name, path)
+            contents = template.render(
+                model_name=self.namespace[2].capitalize(),
+            )
+            project.overwrite(path, contents)
+
+        template = self.env.get_template("listHandler.go.tple")
+        for model_name, properties in models.items():
+            path = src / "{}.go".format("listHandler")
+            LOG.debug("%s model: %s", model_name, path)
+            contents = template.render(
+                model_name=self.namespace[2].capitalize(),
+            )
+            project.overwrite(path, contents)
+        
+        template = self.env.get_template("updateHandler.go.tple")
+        for model_name, properties in models.items():
+            path = src / "{}.go".format("updateHandler")
             LOG.debug("%s model: %s", model_name, path)
             contents = template.render(
                 model_name=self.namespace[2].capitalize(),

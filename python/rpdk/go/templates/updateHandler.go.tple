@@ -1,0 +1,28 @@
+package resource
+
+import (
+	"encoding/json"
+
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy"
+)
+
+
+
+//UpdateRequest handles the Update event from the Cloudformation service.
+//The DesiredResourceState and PreviousResourceState are Unmarshal into a resource struct and
+//made avalible as an interface{}. The interfaces needs Type assertions be for you can access
+//the stored values.
+func (r *{{ model_name|uppercase_first_letter }}) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+
+	
+	//***Add code here: Make your API call, modify the model, etc..
+
+	//***
+
+	//return the status
+	return &proxy.ProgressEvent{
+		OperationStatus:      proxy.Complete,
+		Message:              "Complete",
+		CallbackDelaySeconds: 0,
+	}
+}

@@ -20,7 +20,7 @@ EXECUTABLE = "uluru-cli"
 class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "golang"
-    RUNTIME = "dotnetcore2.0"
+    RUNTIME = "1.8"
     ENTRY_POINT = "{}.LambdaInterceptor::InterceptRequest"
     CODE_URI = "./bin/Release/netstandard2.0/ResourceProvider.dll"
 
@@ -124,6 +124,13 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Writing %d models", len(models))
 
+        template = self.env.get_template("callback.go.tple")
+        for model_name, properties in models.items():
+            path = src / "{}.go".format("callbackContext")
+            contents = template.render()
+            project.overwrite(path, contents)
+        
+        
         template = self.env.get_template("model.go.tple")
         for model_name, properties in models.items():
             path = src / "{}.go".format("generated")

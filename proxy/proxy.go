@@ -4,24 +4,20 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"reflect"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/callback"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 )
 
 const (
-	InProgress = "InProgress"
-	Complete   = "Complete"
-	Failed     = "Failed"
+	InProgress = "IN_PROGRESS"
+	Complete   = "SUCCESS"
+	Failed     = "FAILED"
 )
 
 const (
@@ -50,20 +46,11 @@ const (
 
 // InvokeHandler is an interface that the custom resource must implement.
 type InvokeHandler interface {
-	CreateRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-	DeleteRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-	ListRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-	ReadRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-	UpdateRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-}
-
-//ProcessInvocationInput is a struct used to hold the input for the invocation functions
-type ProcessInvocationInput struct {
-	Cx     context.Context
-	Req    HandlerRequest
-	Metric *metric.Publisher
-	Sched  *scheduler.CloudWatchScheduler
-	Clf    *callback.CloudFormationCallbackAdapter
+	CreateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent
+	DeleteRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent
+	ListRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent
+	ReadRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent
+	UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent
 }
 
 // CustomHandler is a wrapper that handles execution of the custom resource.
@@ -80,146 +67,187 @@ func New(input InvokeHandler) *CustomHandler {
 }
 
 //ProcessInvocation process the request information and invokes the handler.
-func (c *CustomHandler) ProcessInvocation(in *ProcessInvocationInput) *ProgressEvent {
+func (c *CustomHandler) ProcessInvocation(cx context.Context, req HandlerRequest) (r *ProgressEvent) {
 
-	//Set the request and context.
-	req := in.Req
+	hr := &ProgressEvent{}
 
 	//Set the lambda Context.
-	lc, _ := lambdacontext.FromContext(in.Cx)
-
-	//Set the Scheduler.
-	sh := in.Sched
-
-	//Set the Metric Publisher
-	pub := in.Metric
+	lc, _ := lambdacontext.FromContext(cx)
 
 	//If Action.CREATE, Action.DELETE, or Action.UPDATE validate if the request has properties
 	validateResourceProps(req.Data.ResourceProperties, req.Action)
 
-	pub.PublishInvocationMetric(time.Now(), req.Action)
-
-	if (reflect.DeepEqual(in.Req, HandlerRequest{})) {
-
-		err := errors.New("No request object received")
-		log.Printf("No request object received : request value %v", req)
-		pub.PublishExceptionMetric(time.Now(), req.Action, err)
-		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
-
-		return rpy
-	}
-
 	// transform the request object to pass to caller.
-	resHanReq, err := Transform(req, resor)
+	resHanReq := Transform(req, resor)
 
-	if err != nil {
-		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
+	checkReinvoke(req.Context)
 
-		return rpy
-	}
+	//valdiate()
 
-	if err := c.checkReinvoke(in.Req.Context, in.Sched); err != nil {
+	// Set a duration.
+	//TODO: set Duration value to Constant
+	duration := 60 * time.Second
+	computeLocally := true
+	for {
+		// Create a context that is both manually cancellable and will signal
+		// a cancel at the specified duration.
+		ctx, cancel := context.WithTimeout(context.Background(), duration)
+		defer cancel()
 
-		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
+		// Create a channel to received a signal that work is done.
+		ch := make(chan *ProgressEvent, 1)
 
-		return rpy
-	}
+		//start the timer
+		st := time.Now()
 
-	// for CUD actions, validate incoming model - any error is a terminal failure on the invocation
-	//if req.Action == "CREATE" || req.Action == "Update" || req.Action == "Delete" {
-	//	valdiate(&p.in.Req.Context)
-	//}
+		// Ask the goroutine to do some work for us.
+		go func() {
+			//Publish invocation metric
+			metpub.PublishInvocationMetric(time.Now(), req.Action)
 
-	//start the timer
-	st := time.Now()
+			// Report the work is done.
+			re := c.invoke(resHanReq, &req)
 
-	//todo: It would be better to make this call with a goroutine/channel and set a timeout.
-	hr, err := c.invoke(resHanReq, &in.Req)
+			ch <- re
+		}()
 
-	//Stop the timer.
-	elapsed := time.Since(st) * time.Millisecond
+		// Wait for the work to finish. If it takes too long move on.
+		select {
+		case d := <-ch:
+			elapsed := time.Since(st)
+			metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
+			computeLocally = scheduleReinvocation(cx, &req, d, lc)
+			hr = d
 
-	pub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
-
-	log.Printf("Handler Duration :%vms", elapsed.Seconds()*1e3)
-
-	if err != nil {
-		pub.PublishExceptionMetric(time.Now(), req.Action, err)
-		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
-		return rpy
-	}
-
-	if hr == nil {
-		err := errors.New("Handler failed to provide a response")
-		pub.PublishExceptionMetric(time.Now(), req.Action, err)
-
-		rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
-		return rpy
-	}
-
-	// When the handler responses InProgress with a callback delay, we trigger a callback to re-invoke
-	// the handler for the Resource type to implement stabilization checks and long-poll creation checks.
-	if hr.OperationStatus == InProgress {
-		req.Context.Invocation = req.Context.Invocation + 1
-		req.Context.CallbackContext = hr.CallbackContext
-
-		uID, err := scheduler.NewUUID()
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
-			return rpy
+		case <-ctx.Done():
+			//handler failed to respond; shut it down.
+			elapsed := time.Since(st)
+			metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
+			panic("Handler failed to respond")
 		}
 
-		rn := fmt.Sprintf("reinvoke-handler-%s", uID)
-		tID := fmt.Sprintf("reinvoke-target-%s", uID)
+		// report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
+		//cbak.ReportProgress(req.BearerToken, hr.HandlerErrorCode, hr.OperationStatus, hr.ResourceModel, hr.Message)
 
-		// record the CloudWatchEvents objects for cleanup on the callback
-		req.Context.CloudWatchEventsRuleName = rn
-		req.Context.CloudWatchEventsTargetID = tID
-
-		rj, err := json.Marshal(req)
-
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), in.Req.Context.CallbackContext, 0, in.Req.Data.ResourceProperties)
-			return rpy
+		if !computeLocally {
+			break
 		}
 
-		sh.RescheduleAfterMinutes(lc.InvokedFunctionArn, hr.CallbackDelayMinutes, string(rj), time.Now(), uID, rn, tID)
 	}
-
-	// report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
-	//this.callbackAdapter.reportProgress(request.getBearerToken(),
-	//	handlerResponse.getErrorCode(),
-	//	handlerResponse.getStatus(),
-	//	handlerResponse.getResourceModel(),
-	//	handlerResponse.getMessage())
-	//}
-
-	// The wrapper will log any context to the configured CloudWatch log group
-	log.Printf("Call back context: %v", hr.CallbackContext)
 
 	return hr
 
 }
 
+//Managed scheduling of handler re-invocations.
+func scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) bool {
+
+	if hr.OperationStatus != InProgress {
+		// no reinvoke required
+		return false
+	}
+
+	req.Context.Invocation = req.Context.Invocation + 1
+
+	cbcx, err := json.Marshal(hr.CallbackContext)
+
+	if err != nil {
+		panic(err)
+	}
+
+	req.Context.CallbackContext = json.RawMessage(cbcx)
+
+	uID, err := scheduler.NewUUID()
+	if err != nil {
+		panic(err)
+	}
+
+	rn := fmt.Sprintf("reinvoke-handler-%s", uID)
+	tID := fmt.Sprintf("reinvoke-target-%s", uID)
+
+	// record the CloudWatchEvents objects for cleanup on the callback
+	req.Context.CloudWatchEventsRuleName = rn
+	req.Context.CloudWatchEventsTargetID = tID
+
+	rcx, err := json.Marshal(req.Context)
+
+	if err != nil {
+		panic(err)
+	}
+
+	//when a handler requests a sub-minute callback delay, and if the lambda
+	//invocation
+	//has enough runtime (with 20% buffer), we can reschedule from a thread wait
+	//otherwise we re-invoke through CloudWatchEvents which have a granularity of
+	//minutes.
+
+	deadline, _ := c.Deadline()
+	secondsUnitDeadline := time.Until(deadline).Seconds()
+
+	if hr.CallbackDelaySeconds < 60 && secondsUnitDeadline > float64(hr.CallbackDelaySeconds)*1.2 {
+
+		log.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", hr.CallbackDelaySeconds, string(rcx))
+
+		time.Sleep(time.Duration(hr.CallbackDelaySeconds) * time.Second)
+
+		return true
+	}
+
+	log.Printf("Scheduling re-invoke with Context {%s}", string(rcx))
+
+	rj, err := json.Marshal(req)
+
+	sch.RescheduleAfterMinutes(l.InvokedFunctionArn, hr.CallbackDelaySeconds, string(rj), time.Now(), uID, rn, tID)
+
+	return false
+}
+
+//Helper to method to invoke th CustomResouce handler function.
+func (c *CustomHandler) invoke(request *ResourceHandlerRequest, input *HandlerRequest) *ProgressEvent {
+	switch input.Action {
+	case create:
+
+		return c.CustomResource.CreateRequest(request, input.Context.CallbackContext)
+
+	case delete:
+
+		return c.CustomResource.DeleteRequest(request, input.Context.CallbackContext)
+
+	case list:
+
+		return c.CustomResource.ListRequest(request, input.Context.CallbackContext)
+
+	case read:
+
+		return c.CustomResource.ReadRequest(request, input.Context.CallbackContext)
+
+	case update:
+
+		return c.CustomResource.UpdateRequest(request, input.Context.CallbackContext)
+	}
+	//We should never reach this point; however, return a new error.
+
+	return nil
+
+}
+
 // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
-func (c *CustomHandler) checkReinvoke(context RequestContext, sh *scheduler.CloudWatchScheduler) error {
+func checkReinvoke(context RequestContext) {
 
 	if context.CloudWatchEventsRuleName != "" && context.CloudWatchEventsTargetID != "" {
 
-		if err := sh.CleanupCloudWatchEvents(context.CloudWatchEventsRuleName, context.CloudWatchEventsTargetID); err != nil {
+		if err := sch.CleanupCloudWatchEvents(context.CloudWatchEventsRuleName, context.CloudWatchEventsTargetID); err != nil {
 
-			return err
+			panic(err)
 		}
 	}
-
-	return nil
 }
 
 //Transform the the request into a resource handler.
 //Using reflection, finds the type of th custom resource,
 //Unmarshalls DesiredResource and PreviousResourceState, sets the field in the
 //CustomHandler and returns a ResourceHandlerRequest.
-func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerRequest, error) {
+func Transform(r HandlerRequest, handler *CustomHandler) *ResourceHandlerRequest {
 
 	// Custom resource struct.
 	v := reflect.ValueOf(handler.CustomResource)
@@ -229,8 +257,7 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 
 	//Check if the field is found and that it's a strut value.
 	if !dv.IsValid() || dv.Kind() != reflect.Struct {
-		err := errors.New("Unable to find DesiredResource in Config object")
-		return nil, err
+		panic("Unable to find DesiredResource in Config object")
 	}
 
 	// Custom resource PreviousResourceState struct.
@@ -238,8 +265,7 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 
 	//Check if the field is found and that it's a strut value.
 	if !pv.IsValid() || pv.Kind() != reflect.Struct {
-		err := errors.New("Unable to find PreviousResource in Config object")
-		return nil, err
+		panic("Unable to find PreviousResource in Config object")
 	}
 
 	//Create new resource.
@@ -248,94 +274,32 @@ func Transform(r HandlerRequest, handler *CustomHandler) (*ResourceHandlerReques
 	//Try to unmarshhal the into the strut field.
 	if r.Data.ResourceProperties != nil {
 		if err := json.Unmarshal([]byte(r.Data.ResourceProperties), dr.Interface()); err != nil {
-			return nil, err
+			panic(err)
 		}
 	}
 
-	//Set the resource
+	//Set the resource.
 	dv.Set(dr.Elem())
 
-	//create new resource
+	//Create new resource.
 	pr := reflect.New(pv.Type())
 
 	//Try to unmarshhal the into the strut field.
 	if r.Data.PreviousResourceProperties != nil {
 		if err := json.Unmarshal([]byte(r.Data.PreviousResourceProperties), pr.Interface()); err != nil {
-			return nil, err
+			panic(err)
 		}
 	}
 
-	//Set the resource
+	//Set the resource.
 	pv.Set(pr.Elem())
-
 	return &ResourceHandlerRequest{
 		AwsAccountID:        r.AwsAccountID,
 		NextToken:           r.NextToken,
 		Region:              r.Region,
 		ResourceType:        r.ResourceType,
 		ResourceTypeVersion: r.ResourceTypeVersion,
-	}, nil
-}
-
-//Helper to method to invoke th CustomResouce handler function.
-func (c *CustomHandler) invoke(request *ResourceHandlerRequest, input *HandlerRequest) (*ProgressEvent, error) {
-	switch input.Action {
-	case create:
-		r, err := c.CustomResource.CreateRequest(request, input.Context)
-
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), input.Context.CallbackContext, 0, input.Data.ResourceProperties)
-
-			return rpy, nil
-		}
-		return r, nil
-	case delete:
-		r, err := c.CustomResource.DeleteRequest(request, input.Context)
-
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), input.Context.CallbackContext, 0, input.Data.ResourceProperties)
-
-			return rpy, nil
-		}
-		return r, nil
-
-	case list:
-		r, err := c.CustomResource.ListRequest(request, input.Context)
-
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), input.Context.CallbackContext, 0, input.Data.ResourceProperties)
-
-			return rpy, nil
-		}
-		return r, nil
-
-	case read:
-		r, err := c.CustomResource.ReadRequest(request, input.Context)
-
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), input.Context.CallbackContext, 0, input.Data.ResourceProperties)
-
-			return rpy, nil
-		}
-		return r, nil
-
-	case update:
-		r, err := c.CustomResource.UpdateRequest(request, input.Context)
-
-		if err != nil {
-			rpy := buildReply(Failed, InvalidRequest, err.Error(), input.Context.CallbackContext, 0, input.Data.ResourceProperties)
-
-			return rpy, nil
-		}
-		return r, nil
-
 	}
-
-	//We should never reach this point; however, return a new error.
-	e := errors.New("failed to parse the Action")
-
-	return nil, e
-
 }
 
 //Valdiate the model against schemata.
@@ -358,12 +322,11 @@ func validateResourceProps(in json.RawMessage, action string) {
 		err := json.Compact(dst, []byte(in))
 
 		if err != nil {
-			log.Panic("Invalid resource properties object received")
+			panic("Invalid resource properties object received")
 		}
 
-		fmt.Println(dst)
 		if dst.String() == "{}" {
-			log.Panic("Invalid resource properties object received")
+			panic("Invalid resource properties object received")
 		}
 
 	}
@@ -398,20 +361,14 @@ func InjectCredentialsAndInvoke(req request.Request) error {
 	return nil
 }
 
-//SetproxyCreds sets the clients call credentials
-func SetproxyCreds(r HandlerRequest) {
-	proxyCreds = credentials.NewStaticCredentials(r.Data.CallerCredentials.AccessKeyID, r.Data.CallerCredentials.SecretAccessKey, r.Data.CallerCredentials.SessionToken)
-}
-
 //BuildReply: Helper method to return a a ProgressEvent.
-func buildReply(status string, code string, message string, context interface{}, minutes int, model interface{}) *ProgressEvent {
+func buildReply(status string, code string, message string, seconds int, model interface{}) *ProgressEvent {
 
 	p := ProgressEvent{
 		OperationStatus:      status,
 		HandlerErrorCode:     code,
 		Message:              message,
-		CallbackContext:      context,
-		CallbackDelayMinutes: minutes,
+		CallbackDelaySeconds: seconds,
 		ResourceModel:        model,
 	}
 

@@ -9,15 +9,15 @@ type CloudFormationCallbackAdapter struct {
 	Client cloudformationiface.CloudFormationAPI
 }
 
-//TODO : enable once available
-/*
-
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
 func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
 		Client: client,
 	}
 }
+
+//TODO : enable once available
+/*
 
 //ReportProgress reports the current status back to the Cloudformation service
 func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, errorCode, operationStatus string, resourceModel interface{}, statusMessage string) {

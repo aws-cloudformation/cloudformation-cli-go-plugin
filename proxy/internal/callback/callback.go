@@ -4,7 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
-//CloudFormationCallbackAdapter is used to schedule Cloudwatch Events.
+//CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
 type CloudFormationCallbackAdapter struct {
 	Client cloudformationiface.CloudFormationAPI
 }

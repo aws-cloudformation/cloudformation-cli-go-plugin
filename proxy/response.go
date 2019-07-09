@@ -7,7 +7,6 @@ type ProgressEvent struct {
 	OperationStatus string
 
 	//If OperationStatus is FAILED or IN_PROGRESS, an error code should be provided.
-
 	HandlerErrorCode string
 
 	//The handler can (and should) specify a contextual information message which

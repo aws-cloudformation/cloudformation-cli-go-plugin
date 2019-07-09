@@ -16,8 +16,6 @@ func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAd
 	}
 }
 
-//TODO : enable once available
-/*
 
 //ReportProgress reports the current status back to the Cloudformation service
 func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, errorCode, operationStatus string, resourceModel interface{}, statusMessage string) {
@@ -103,4 +101,3 @@ func TranslateOperationStatus(operationStatus string) string {
 
 }
 
-*/

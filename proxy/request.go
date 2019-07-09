@@ -6,11 +6,8 @@ import (
 
 //ResourceHandlerRequest represents a request set to the resource CRUD handlers.
 type ResourceHandlerRequest struct {
-	AwsAccountID        string
-	NextToken           string
-	Region              string
-	ResourceType        string
-	ResourceTypeVersion string
+	ClientRequestToken        string
+	LogicalResourceIdentifier string
 }
 
 //RequestData represents the data used to build the resource handler request.

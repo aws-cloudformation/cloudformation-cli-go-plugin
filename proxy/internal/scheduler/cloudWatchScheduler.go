@@ -52,7 +52,7 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 		return err
 	}
 
-	tr, err := c.Client.PutTargets(&cloudwatchevents.PutTargetsInput{
+	_, perr := c.Client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(rn),
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
@@ -63,11 +63,9 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 		},
 	})
 
-	if err != nil {
+	if perr != nil {
 		return err
 	}
-
-	log.Printf("PutTargets result : %v ", tr)
 
 	return nil
 }

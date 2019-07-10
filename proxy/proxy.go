@@ -78,7 +78,7 @@ func (p *Proxy) HandleLambdaEvent(ctx context.Context, event HandlerRequest) (r 
 
 	defer func(event HandlerRequest) {
 		if e := recover(); e != nil {
-			r = createProgressResponse(p.Panics(event, e), event.BearerToken)
+			r = createProgressResponse(p.panics(event, e), event.BearerToken)
 		}
 	}(event)
 
@@ -105,7 +105,7 @@ func (p *Proxy) HandleLambdaEvent(ctx context.Context, event HandlerRequest) (r 
 		panic("Region was not provided.")
 	}
 
-	res := p.ProcessInvocation(ctx, event)
+	res := p.processInvocation(ctx, event)
 
 	return createProgressResponse(res, event.BearerToken), nil
 

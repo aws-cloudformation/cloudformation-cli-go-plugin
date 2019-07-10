@@ -4,14 +4,24 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"reflect"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/callback"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/metric"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
 const (
@@ -53,34 +63,114 @@ type InvokeHandler interface {
 	UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent
 }
 
-// CustomHandler is a wrapper that handles execution of the custom resource.
-type CustomHandler struct {
-	CustomResource InvokeHandler
+type Proxy struct {
+	metpub         *metric.Publisher
+	sch            *scheduler.CloudWatchScheduler
+	cbak           *callback.CloudFormationCallbackAdapter
+	customResource InvokeHandler
+	proxyCreds     *credentials.Credentials
 }
 
-//New is a factory function that returns a pointer ot a new CustomHandler
-func New(input InvokeHandler) *CustomHandler {
-	return &CustomHandler{
-		CustomResource: input,
+//HandleLambdaEvent is the main entry point for the lambda function.
+// A response will be output on all paths, though CloudFormation will
+// not block on invoking the handlers, but rather listen for callbacks
+func (p *Proxy) HandleLambdaEvent(ctx context.Context, event HandlerRequest) (r HandlerResponse, e error) {
+
+	defer func(event HandlerRequest) {
+		if e := recover(); e != nil {
+			r = createProgressResponse(p.Panics(event, e), event.BearerToken)
+		}
+	}(event)
+
+	p.initialiseRuntime(event)
+
+	//Pre checks to ensure a stable request.
+	if (reflect.DeepEqual(event, HandlerRequest{})) {
+		panic("No request object received")
 	}
 
+	if event.ResponseEndpoint == "" {
+		panic("No callback endpoint received")
+	}
+
+	if event.BearerToken == "" {
+		panic("No BearerToken received")
+	}
+
+	if (reflect.DeepEqual(event.Data.PlatformCredentials, Credentials{})) {
+		panic("Missing required platform credentials")
+	}
+
+	if event.Region == "" {
+		panic("Region was not provided.")
+	}
+
+	res := p.ProcessInvocation(ctx, event)
+
+	return createProgressResponse(res, event.BearerToken), nil
+
+}
+
+func (p *Proxy) initialiseRuntime(req HandlerRequest) {
+
+	u := url.URL{
+		Scheme: "https",
+		Host:   req.ResponseEndpoint,
+	}
+
+	//Set the caller credentials
+	p.proxyCreds = setproxyCreds(req)
+
+	// If null, we are not running a test.
+	if p.cbak == nil {
+		//Create a Cloudformation AWS session.
+		cfsess, err := session.NewSession(&aws.Config{
+			Region:      aws.String(req.Region),
+			Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
+			Endpoint:    aws.String(u.String()),
+			MaxRetries:  aws.Int(16),
+		})
+
+		if err != nil {
+			panic(err)
+		}
+
+		p.cbak = callback.New(cloudformation.New(cfsess))
+	}
+
+	// If null, we are not running a test.
+	if p.metpub == nil || p.sch == nil {
+		//Create a Cloudwatch events and Cloudwatch AWS session.
+		sess, err := session.NewSession(&aws.Config{
+			Region:      aws.String(req.Region),
+			Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
+			Endpoint:    aws.String(u.String()),
+		})
+
+		if err != nil {
+			panic(err)
+		}
+		p.metpub = metric.New(cloudwatch.New(sess), req.ResourceType)
+		p.sch = scheduler.New(cloudwatchevents.New(sess))
+
+	}
 }
 
 //ProcessInvocation process the request information and invokes the handler.
-func (c *CustomHandler) ProcessInvocation(cx context.Context, req HandlerRequest) (r *ProgressEvent) {
+func (p *Proxy) ProcessInvocation(cx context.Context, req HandlerRequest) (r *ProgressEvent) {
 
 	hr := &ProgressEvent{}
 
-	//Set the lambda Context.
+	//Get the lambda Context.
 	lc, _ := lambdacontext.FromContext(cx)
 
 	//If Action.CREATE, Action.DELETE, or Action.UPDATE validate if the request has properties
-	validateResourceProps(req.Data.ResourceProperties, req.Action)
+	validateResourceProperties(req.Data.ResourceProperties, req.Action)
 
 	// transform the request object to pass to caller.
-	resHanReq := Transform(req, resor)
+	resHanReq := p.transform(req)
 
-	checkReinvoke(req.Context)
+	p.checkReinvoke(req.Context)
 
 	//valdiate()
 
@@ -103,10 +193,10 @@ func (c *CustomHandler) ProcessInvocation(cx context.Context, req HandlerRequest
 		// Ask the goroutine to do some work for us.
 		go func() {
 			//Publish invocation metric
-			metpub.PublishInvocationMetric(time.Now(), req.Action)
+			p.metpub.PublishInvocationMetric(time.Now(), req.Action)
 
 			// Report the work is done.
-			re := c.invoke(resHanReq, &req)
+			re := p.invoke(resHanReq, &req)
 
 			ch <- re
 		}()
@@ -115,14 +205,14 @@ func (c *CustomHandler) ProcessInvocation(cx context.Context, req HandlerRequest
 		select {
 		case d := <-ch:
 			elapsed := time.Since(st)
-			metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
-			computeLocally = scheduleReinvocation(cx, &req, d, lc)
+			p.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
+			computeLocally = p.scheduleReinvocation(cx, &req, d, lc)
 			hr = d
 
 		case <-ctx.Done():
 			//handler failed to respond; shut it down.
 			elapsed := time.Since(st)
-			metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
+			p.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
 			panic("Handler failed to respond")
 		}
 
@@ -139,8 +229,77 @@ func (c *CustomHandler) ProcessInvocation(cx context.Context, req HandlerRequest
 
 }
 
-//Managed scheduling of handler re-invocations.
-func scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) bool {
+//transform the the request into a resource handler.
+//Using reflection, finds the type of th custom resource,
+//Unmarshalls DesiredResource and PreviousResourceState, sets the field in the
+//CustomHandler and returns a ResourceHandlerRequest.
+func (p *Proxy) transform(r HandlerRequest) *ResourceHandlerRequest {
+
+	// Custom resource struct.
+	v := reflect.ValueOf(p.customResource)
+
+	// Custom resource DesiredResourceState struct.
+	dv := v.Elem().FieldByName("DesiredResourceState")
+
+	//Check if the field is found and that it's a strut value.
+	if !dv.IsValid() || dv.Kind() != reflect.Struct {
+		panic("Unable to find DesiredResource in Config object")
+	}
+
+	// Custom resource PreviousResourceState struct.
+	pv := v.Elem().FieldByName("PreviousResourceState")
+
+	//Check if the field is found and that it's a strut value.
+	if !pv.IsValid() || pv.Kind() != reflect.Struct {
+		panic("Unable to find PreviousResource in Config object")
+	}
+
+	//Create new resource.
+	dr := reflect.New(dv.Type())
+
+	//Try to unmarshhal the into the strut field.
+	if r.Data.ResourceProperties != nil {
+		if err := json.Unmarshal([]byte(r.Data.ResourceProperties), dr.Interface()); err != nil {
+			panic(err)
+		}
+	}
+	//Set the resource.
+	dv.Set(dr.Elem())
+
+	//Create new resource.
+	pr := reflect.New(pv.Type())
+
+	//Try to unmarshhal the into the strut field.
+	if r.Data.PreviousResourceProperties != nil {
+		if err := json.Unmarshal([]byte(r.Data.PreviousResourceProperties), pr.Interface()); err != nil {
+			panic(err)
+		}
+	}
+
+	//Set the resource.
+	pv.Set(pr.Elem())
+	return &ResourceHandlerRequest{
+		//AwsAccountID:        r.AwsAccountID,
+		//NextToken:           r.NextToken,
+		//Region:              r.Region,
+		//ResourceType:        r.ResourceType,
+		//ResourceTypeVersion: r.ResourceTypeVersion,
+	}
+}
+
+// If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
+func (p *Proxy) checkReinvoke(context RequestContext) {
+
+	if context.CloudWatchEventsRuleName != "" && context.CloudWatchEventsTargetID != "" {
+
+		if err := p.sch.CleanupCloudWatchEvents(context.CloudWatchEventsRuleName, context.CloudWatchEventsTargetID); err != nil {
+
+			panic(err)
+		}
+	}
+}
+
+func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) bool {
 
 	if hr.OperationStatus != InProgress {
 		// no reinvoke required
@@ -180,7 +339,6 @@ func scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEv
 	//has enough runtime (with 20% buffer), we can reschedule from a thread wait
 	//otherwise we re-invoke through CloudWatchEvents which have a granularity of
 	//minutes.
-
 	deadline, _ := c.Deadline()
 	secondsUnitDeadline := time.Until(deadline).Seconds()
 
@@ -197,139 +355,73 @@ func scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEv
 
 	rj, err := json.Marshal(req)
 
-	sch.RescheduleAfterMinutes(l.InvokedFunctionArn, hr.CallbackDelaySeconds, string(rj), time.Now(), uID, rn, tID)
+	p.sch.RescheduleAfterMinutes(l.InvokedFunctionArn, hr.CallbackDelaySeconds, string(rj), time.Now(), uID, rn, tID)
 
 	return false
 }
 
 //Helper to method to invoke th CustomResouce handler function.
-func (c *CustomHandler) invoke(request *ResourceHandlerRequest, input *HandlerRequest) *ProgressEvent {
+func (p *Proxy) invoke(request *ResourceHandlerRequest, input *HandlerRequest) *ProgressEvent {
+
 	switch input.Action {
 	case create:
-
-		return c.CustomResource.CreateRequest(request, input.Context.CallbackContext)
+		return p.customResource.CreateRequest(request, input.Context.CallbackContext)
 
 	case delete:
-
-		return c.CustomResource.DeleteRequest(request, input.Context.CallbackContext)
+		return p.customResource.DeleteRequest(request, input.Context.CallbackContext)
 
 	case list:
-
-		return c.CustomResource.ListRequest(request, input.Context.CallbackContext)
+		return p.customResource.ListRequest(request, input.Context.CallbackContext)
 
 	case read:
-
-		return c.CustomResource.ReadRequest(request, input.Context.CallbackContext)
+		return p.customResource.ReadRequest(request, input.Context.CallbackContext)
 
 	case update:
+		return p.customResource.UpdateRequest(request, input.Context.CallbackContext)
 
-		return c.CustomResource.UpdateRequest(request, input.Context.CallbackContext)
-	}
-	//We should never reach this point; however, return a new error.
-
-	return nil
-
-}
-
-// If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
-func checkReinvoke(context RequestContext) {
-
-	if context.CloudWatchEventsRuleName != "" && context.CloudWatchEventsTargetID != "" {
-
-		if err := sch.CleanupCloudWatchEvents(context.CloudWatchEventsRuleName, context.CloudWatchEventsTargetID); err != nil {
-
-			panic(err)
-		}
+	default:
+		return nil
 	}
 }
 
-//Transform the the request into a resource handler.
-//Using reflection, finds the type of th custom resource,
-//Unmarshalls DesiredResource and PreviousResourceState, sets the field in the
-//CustomHandler and returns a ResourceHandlerRequest.
-func Transform(r HandlerRequest, handler *CustomHandler) *ResourceHandlerRequest {
+// Panics recovers from panics and converts the panic to an error so it is
+// reported in Metrics and handled in Errors.
+func (p *Proxy) Panics(event HandlerRequest, r interface{}) *ProgressEvent {
 
-	// Custom resource struct.
-	v := reflect.ValueOf(handler.CustomResource)
+	var err error
 
-	// Custom resource DesiredResourceState struct.
-	dv := v.Elem().FieldByName("DesiredResourceState")
-
-	//Check if the field is found and that it's a strut value.
-	if !dv.IsValid() || dv.Kind() != reflect.Struct {
-		panic("Unable to find DesiredResource in Config object")
+	// find out exactly what the error was and set err
+	switch x := r.(type) {
+	case string:
+		err = errors.New(x)
+	case error:
+		err = x
+	default:
+		err = errors.New("Unknown panic")
 	}
 
-	// Custom resource PreviousResourceState struct.
-	pv := v.Elem().FieldByName("PreviousResourceState")
+	// Log the Go stack trace for this panic.
+	//log.Printf("%s :\n%s", event.Data.ResourceProperties, debug.Stack())
 
-	//Check if the field is found and that it's a strut value.
-	if !pv.IsValid() || pv.Kind() != reflect.Struct {
-		panic("Unable to find PreviousResource in Config object")
-	}
+	if (!reflect.DeepEqual(event.Data.PlatformCredentials, Credentials{})) {
 
-	//Create new resource.
-	dr := reflect.New(dv.Type())
-
-	//Try to unmarshhal the into the strut field.
-	if r.Data.ResourceProperties != nil {
-		if err := json.Unmarshal([]byte(r.Data.ResourceProperties), dr.Interface()); err != nil {
-			panic(err)
-		}
-	}
-
-	//Set the resource.
-	dv.Set(dr.Elem())
-
-	//Create new resource.
-	pr := reflect.New(pv.Type())
-
-	//Try to unmarshhal the into the strut field.
-	if r.Data.PreviousResourceProperties != nil {
-		if err := json.Unmarshal([]byte(r.Data.PreviousResourceProperties), pr.Interface()); err != nil {
-			panic(err)
-		}
-	}
-
-	//Set the resource.
-	pv.Set(pr.Elem())
-	return &ResourceHandlerRequest{
-		AwsAccountID:        r.AwsAccountID,
-		NextToken:           r.NextToken,
-		Region:              r.Region,
-		ResourceType:        r.ResourceType,
-		ResourceTypeVersion: r.ResourceTypeVersion,
-	}
-}
-
-//Valdiate the model against schemata.
-//// for CUD actions, validate incoming model - any error is a terminal failure on the invocation.
-func valdiate(request *RequestContext, action string) {
-	if action == "CREATE" || action == "DELETE" || action == "UPDATE" {
-
-		//Todo: make call to validation api
-
-	}
-}
-
-func validateResourceProps(in json.RawMessage, action string) {
-	//Action.CREATE, Action.DELETE, Action.UPDATE
-
-	if action == "CREATE" || action == "DELETE" || action == "UPDATE" {
-
-		dst := new(bytes.Buffer)
-
-		err := json.Compact(dst, []byte(in))
-
-		if err != nil {
-			panic("Invalid resource properties object received")
-		}
-
-		if dst.String() == "{}" {
-			panic("Invalid resource properties object received")
+		if perr := p.metpub.PublishExceptionMetric(time.Now(), event.Action, err); perr != nil {
+			log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 		}
 
 	}
+
+	//Return a a progress event.
+	hr := &ProgressEvent{
+		Message:              err.Error(),
+		OperationStatus:      Failed,
+		ResourceModel:        event.Data.ResourceProperties,
+		CallbackDelaySeconds: 0,
+		HandlerErrorCode:     InvalidRequest,
+	}
+
+	return hr
+
 }
 
 // InjectCredentialsAndInvoke consumes a "aws/request.Request" representing the
@@ -350,9 +442,9 @@ func validateResourceProps(in json.RawMessage, action string) {
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-func InjectCredentialsAndInvoke(req request.Request) error {
+func (p *Proxy) InjectCredentialsAndInvoke(req request.Request) error {
 
-	req.Config.Credentials = proxyCreds
+	req.Config.Credentials = p.proxyCreds
 	err := req.Send()
 	if err != nil {
 		return err
@@ -361,7 +453,51 @@ func InjectCredentialsAndInvoke(req request.Request) error {
 	return nil
 }
 
-//BuildReply: Helper method to return a a ProgressEvent.
+func setproxyCreds(r HandlerRequest) *credentials.Credentials {
+	return credentials.NewStaticCredentials(r.Data.CallerCredentials.AccessKeyID, r.Data.CallerCredentials.SecretAccessKey, r.Data.CallerCredentials.SessionToken)
+}
+
+func createProgressResponse(progressEvent *ProgressEvent, bearerToken string) HandlerResponse {
+
+	return HandlerResponse{
+		Message:         progressEvent.Message,
+		OperationStatus: progressEvent.OperationStatus,
+		ResourceModel:   progressEvent.ResourceModel,
+		BearerToken:     bearerToken,
+		ErrorCode:       progressEvent.HandlerErrorCode,
+	}
+
+}
+
+//Valdiate the model against schemata.
+func valdiateSchema(request *RequestContext, action string) {
+	if action == "CREATE" || action == "DELETE" || action == "UPDATE" {
+
+		//Todo: make call to validation api
+
+	}
+}
+
+func validateResourceProperties(in json.RawMessage, action string) {
+	//If Action.CREATE, Action.DELETE or Action.UPDATE, make sure that properties were passed in.
+
+	if action == "CREATE" || action == "DELETE" || action == "UPDATE" {
+
+		dst := new(bytes.Buffer)
+
+		err := json.Compact(dst, []byte(in))
+
+		if err != nil {
+			panic("Invalid resource properties object received")
+		}
+
+		if dst.String() == "{}" {
+			panic("Invalid resource properties object received")
+		}
+
+	}
+}
+
 func buildReply(status string, code string, message string, seconds int, model interface{}) *ProgressEvent {
 
 	p := ProgressEvent{

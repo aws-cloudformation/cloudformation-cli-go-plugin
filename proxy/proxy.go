@@ -157,7 +157,7 @@ func (p *Proxy) initialiseRuntime(req HandlerRequest) {
 }
 
 //ProcessInvocation process the request information and invokes the handler.
-func (p *Proxy) ProcessInvocation(cx context.Context, req HandlerRequest) (r *ProgressEvent) {
+func (p *Proxy) processInvocation(cx context.Context, req HandlerRequest) (r *ProgressEvent) {
 
 	hr := &ProgressEvent{}
 
@@ -386,7 +386,7 @@ func (p *Proxy) invoke(request *ResourceHandlerRequest, input *HandlerRequest) *
 
 // Panics recovers from panics and converts the panic to an error so it is
 // reported in Metrics and handled in Errors.
-func (p *Proxy) Panics(event HandlerRequest, r interface{}) *ProgressEvent {
+func (p *Proxy) panics(event HandlerRequest, r interface{}) *ProgressEvent {
 
 	var err error
 

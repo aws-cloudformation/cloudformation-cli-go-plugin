@@ -17,6 +17,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -40,19 +41,21 @@ const (
 )
 
 const (
-	InvalidRequest       = "InvalidRequest"
-	AccessDenied         = "AccessDenied"
-	InvalidCredentials   = "InvalidCredentials"
-	NoOperationToPerform = "NoOperationToPerform"
-	NotUpdatable         = "NotUpdatable"
-	NotFound             = "NotFound"
-	NotReady             = "NotRead"
-	Throttling           = "Throttling"
-	ServiceLimitExceeded = "ServiceLimitExceeded"
-	ServiceTimeout       = "ServiceTimeout"
-	ServiceException     = "ServiceException"
-	NetworkFailure       = "NetworkFailure"
-	InternalFailure      = "InternalFailure"
+	InvalidRequest          = "InvalidRequest"
+	AccessDenied            = "AccessDenied"
+	InvalidCredentials      = "InvalidCredentials"
+	NoOperationToPerform    = "NoOperationToPerform"
+	NotUpdatable            = "NotUpdatable"
+	NotFound                = "NotFound"
+	NotReady                = "NotRead"
+	Throttling              = "Throttling"
+	ServiceLimitExceeded    = "ServiceLimitExceeded"
+	ServiceTimeout          = "ServiceTimeout"
+	ServiceException        = "ServiceException"
+	NetworkFailure          = "NetworkFailure"
+	InternalFailure         = "InternalFailure"
+	AlreadyExists           = "AlreadyExists"
+	GeneralServiceException = "GeneralServiceException"
 )
 
 // InvokeHandler is an interface that the custom resource must implement.
@@ -64,18 +67,18 @@ type InvokeHandler interface {
 	UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error)
 }
 
-type Proxy struct {
+type Wrapper struct {
 	metpub         *metric.Publisher
 	sch            *scheduler.CloudWatchScheduler
 	cbak           *callback.CloudFormationCallbackAdapter
 	customResource InvokeHandler
-	proxyCreds     *credentials.Credentials
+	wrapperCreds   *credentials.Credentials
 	logger         *log.Logger
 }
 
 //initialiseRuntime initialises dependencies which are depending on credentials
 //passed at function invoke and not available during construction
-func (p *Proxy) initialiseRuntime(req HandlerRequest) {
+func (p *Wrapper) initialiseRuntime(req HandlerRequest) {
 
 	u := url.URL{
 		Scheme: "https",
@@ -83,7 +86,7 @@ func (p *Proxy) initialiseRuntime(req HandlerRequest) {
 	}
 
 	//Set the caller credentials
-	p.proxyCreds = setproxyCreds(req)
+	p.wrapperCreds = setWrapperCreds(req)
 
 	// If null, we are not running a test.
 	if p.cbak == nil {
@@ -123,20 +126,25 @@ func (p *Proxy) initialiseRuntime(req HandlerRequest) {
 //HandleLambdaEvent is the main entry point for the lambda function.
 // A response will be output on all paths, though CloudFormation will
 // not block on invoking the handlers, but rather listen for callbacks
-func (p *Proxy) HandleLambdaEvent(ctx context.Context, request HandlerRequest) (r HandlerResponse, e error) {
-	//Catch all panics, log the error, and the standard failure response.
-	//defer func(event HandlerRequest) {
-	//	if e := recover(); e != nil {
-	//		r = createProgressResponse(p.panics(event, e), event.BearerToken)
-	//	}
-	//}(event)
+func (p *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest) (lr HandlerResponse, e error) {
+
+	//Handle all panics from the resource handler, log the error and return failed.
+	defer func(event *HandlerRequest) {
+		if r := recover(); r != nil {
+			err := &errs.TerminalError{CustomerFacingErrorMessage: "Internal error"}
+
+			// Log the Go stack trace for this panic'd goroutine.
+			p.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "HandlerRequest panic", event.Action, event.ResourceType, r, debug.Stack()))
+			lr = createProgressResponse(DefaultFailureHandler(err, InternalFailure), event.BearerToken)
+			e = nil
+		}
+	}(&request)
 
 	hr, err := p.processInvocation(ctx, request)
 
 	if err != nil {
 		// Exceptions are wrapped as a consistent error response to the caller (i.e;
 		// CloudFormation)
-		//p.logger.Println(err.Error()) // for root causing - logs to LambdaLogger by default
 
 		hr = DefaultFailureHandler(err, InternalFailure)
 
@@ -171,7 +179,19 @@ func (p *Proxy) HandleLambdaEvent(ctx context.Context, request HandlerRequest) (
 }
 
 //ProcessInvocation process the request information and invokes the handler.
-func (p *Proxy) processInvocation(cx context.Context, req HandlerRequest) (r *ProgressEvent, e error) {
+func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr *ProgressEvent, e error) {
+
+	//Handle all panics from processInvocation, log the error and return a failed Wrapper event.
+	defer func(event *HandlerRequest) {
+		if r := recover(); r != nil {
+			err := &errs.TerminalError{CustomerFacingErrorMessage: "Internal error"}
+
+			// Log the Go stack trace for this panic'd goroutine.
+			p.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
+			pr = nil
+			e = err
+		}
+	}(&req)
 
 	//Pre checks to ensure a stable request.
 	if (reflect.DeepEqual(req, HandlerRequest{})) {
@@ -226,7 +246,6 @@ func (p *Proxy) processInvocation(cx context.Context, req HandlerRequest) (r *Pr
 
 		// Ask the goroutine to do some work for us.
 		go func() {
-			//Publish invocation metric
 			p.metpub.PublishInvocationMetric(time.Now(), req.Action)
 
 			// Report the work is done.
@@ -240,8 +259,7 @@ func (p *Proxy) processInvocation(cx context.Context, req HandlerRequest) (r *Pr
 		case d := <-ch:
 			elapsed := time.Since(st)
 			p.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
-			computeLocally = p.scheduleReinvocation(cx, &req, d, lc)
-			hr = d
+			hr, computeLocally = p.scheduleReinvocation(cx, &req, d, lc)
 
 		case <-ctx.Done():
 			//handler failed to respond; shut it down.
@@ -264,7 +282,7 @@ func (p *Proxy) processInvocation(cx context.Context, req HandlerRequest) (r *Pr
 }
 
 // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
-func (p *Proxy) checkReinvoke(context RequestContext) {
+func (p *Wrapper) checkReinvoke(context RequestContext) {
 
 	if context.CloudWatchEventsRuleName != "" && context.CloudWatchEventsTargetID != "" {
 
@@ -288,26 +306,32 @@ func validateResourceProperties(in json.RawMessage) error {
 	return nil
 }
 
-func setproxyCreds(r HandlerRequest) *credentials.Credentials {
+func setWrapperCreds(r HandlerRequest) *credentials.Credentials {
 	return credentials.NewStaticCredentials(r.Data.CallerCredentials.AccessKeyID, r.Data.CallerCredentials.SecretAccessKey, r.Data.CallerCredentials.SessionToken)
 }
 
-func (p *Proxy) logUnhandledError(errorDescription string, request *HandlerRequest, e error) {
+func (p *Wrapper) logUnhandledError(errorDescription string, request *HandlerRequest, e error) {
 	p.logger.Printf("%s in a %s action on a %s: %s\n%s", errorDescription, request.Action, request.ResourceType, e.Error(), debug.Stack())
 }
 
 //WrapInvocationAndHandleErrors invokes the handler implementation for the request, and handles certain classes of errors and correctly map those to
 //the appropriate HandlerErrorCode Also wraps the invocation in last-mile
 //timing metrics.
-func (p *Proxy) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, request *HandlerRequest) (progressEvent *ProgressEvent) {
+func (p *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, request *HandlerRequest) (progressEvent *ProgressEvent) {
 
-	//Handle all panics from the resource handler, log the error and return a failed proxy event.
-	//defer func(event HandlerRequest) {
-	//	if e := recover(); e != nil {
-	//		p.logUnhandledError("An unknown error occurred ", request, e)
-	//		progressEvent = createProgressResponse(p.panics(event, e), event.BearerToken)
-	//	}
-	//}(event)
+	//Handle all panics from the resource handler, log the error and return a failed Wrapper event.
+	defer func(event *HandlerRequest) {
+		if r := recover(); r != nil {
+			err := fmt.Errorf("%s in a %s action on a %s: %s\n%s", "Handler panic", event.Action, event.ResourceType, r, debug.Stack())
+
+			// Log the Go stack trace for this panic'd goroutine.
+			p.logger.Println(err.Error())
+			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
+				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+			}
+			progressEvent = DefaultFailureHandler(err, InternalFailure)
+		}
+	}(request)
 
 	var e *ProgressEvent
 	var err error
@@ -326,33 +350,47 @@ func (p *Proxy) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, req
 
 	case update:
 		e, err = p.customResource.UpdateRequest(input, request.Context.CallbackContext)
+	}
 
-	default:
-		return nil
+	if err == nil && e == nil {
+
+		err = &errs.TerminalError{CustomerFacingErrorMessage: "Handler returned null"}
 	}
 
 	if err != nil {
-		switch e := err.(type) {
+
+		if aerr, ok := err.(awserr.Error); ok {
+			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
+				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+			}
+			p.logUnhandledError("A downstream service error occurred", request, err)
+			return DefaultFailureHandler(aerr, GeneralServiceException)
+		}
+		switch err := err.(type) {
 		case *errs.ResourceAlreadyExistsError:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
-			p.logUnhandledError("An existing resource was found", request, e)
+			p.logUnhandledError("An existing resource was found", request, err)
+			return DefaultFailureHandler(err, AlreadyExists)
 		case *errs.ResourceNotFoundError:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
-			p.logUnhandledError("A requested resource was not found", request, e)
+			p.logUnhandledError("A requested resource was not found", request, err)
+			return DefaultFailureHandler(err, NotFound)
 		case *errs.TerminalError:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
-			p.logUnhandledError("A downstream service error occurred", request, e)
+			p.logUnhandledError(err.CustomerFacingErrorMessage, request, err)
+			return DefaultFailureHandler(err, InternalFailure)
 		default:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
-			p.logUnhandledError("An unknown error occurred ", request, e)
+			p.logUnhandledError("An unknown error occurred ", request, err)
+			return DefaultFailureHandler(err, InternalFailure)
 		}
 	}
 	return e
@@ -363,19 +401,19 @@ func createProgressResponse(progressEvent *ProgressEvent, bearerToken string) Ha
 	return HandlerResponse{
 		Message:         progressEvent.Message,
 		OperationStatus: progressEvent.OperationStatus,
-		//ResourceModel:   progressEvent.ResourceModel,
-		BearerToken: bearerToken,
-		ErrorCode:   progressEvent.HandlerErrorCode,
+		ResourceModel:   progressEvent.ResourceModel,
+		BearerToken:     bearerToken,
+		ErrorCode:       progressEvent.HandlerErrorCode,
 	}
 
 }
 
 //ScheduleReinvocation manages scheduling of handler re-invocations.
-func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) bool {
+func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) (handlerResult *ProgressEvent, result bool) {
 
 	if hr.OperationStatus != InProgress {
 		// no reinvoke required
-		return false
+		return hr, false
 	}
 
 	req.Context.Invocation = req.Context.Invocation + 1
@@ -387,7 +425,7 @@ func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr 
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
 		hr.HandlerErrorCode = "InternalFailure"
-		return false
+		return hr, false
 	}
 
 	req.Context.CallbackContext = json.RawMessage(cbcx)
@@ -398,7 +436,7 @@ func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr 
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
 		hr.HandlerErrorCode = "InternalFailure"
-		return false
+		return hr, false
 	}
 
 	rn := fmt.Sprintf("reinvoke-handler-%s", uID)
@@ -415,7 +453,7 @@ func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr 
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
 		hr.HandlerErrorCode = "InternalFailure"
-		return false
+		return hr, false
 	}
 
 	//when a handler requests a sub-minute callback delay, and if the lambda
@@ -432,7 +470,7 @@ func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr 
 
 		time.Sleep(time.Duration(hr.CallbackDelaySeconds) * time.Second)
 
-		return true
+		return hr, true
 	}
 
 	p.logger.Printf("Scheduling re-invoke with Context %s", string(rcx))
@@ -446,14 +484,14 @@ func (p *Proxy) scheduleReinvocation(c context.Context, req *HandlerRequest, hr 
 		hr.HandlerErrorCode = "InternalFailure"
 
 	}
-	return false
+	return hr, false
 }
 
 //transform the the request into a resource handler.
 //Using reflection, finds the type of th custom resource,
 //Unmarshalls DesiredResource and PreviousResourceState, sets the field in the
 //CustomHandler and returns a ResourceHandlerRequest.
-func (p *Proxy) transform(r HandlerRequest) *ResourceHandlerRequest {
+func (p *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 
 	// Custom resource struct.
 	v := reflect.ValueOf(p.customResource)
@@ -505,7 +543,7 @@ func (p *Proxy) transform(r HandlerRequest) *ResourceHandlerRequest {
 }
 
 //null-safe logger redirect
-func (p *Proxy) log(message string) {
+func (p *Wrapper) log(message string) {
 	if p.logger != nil {
 		p.logger.Println(message)
 	}
@@ -523,15 +561,15 @@ func (p *Proxy) log(message string) {
 //
 //    // Example sending a request using the GetBucketReplicationRequest method.
 //    req, resp := client.GetBucketReplicationRequest(params)
-//    err := proxy.InjectCredentialsAndInvoke(req)
+//    err := Wrapper.InjectCredentialsAndInvoke(req)
 //
 //    err := req.Send()
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-func (p *Proxy) InjectCredentialsAndInvoke(req request.Request) error {
+func (p *Wrapper) InjectCredentialsAndInvoke(req request.Request) error {
 
-	req.Config.Credentials = p.proxyCreds
+	req.Config.Credentials = p.wrapperCreds
 	err := req.Send()
 	if err != nil {
 		return err

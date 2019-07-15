@@ -7,7 +7,7 @@ import (
 //Start in the entry point of the lambda function.
 func Start(i InvokeHandler) {
 
-	h := Proxy{
+	h := Wrapper{
 		customResource: i,
 	}
 

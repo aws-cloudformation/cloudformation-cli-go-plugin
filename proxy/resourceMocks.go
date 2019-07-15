@@ -28,7 +28,7 @@ func (mc mockContext) Value(key interface{}) interface{} {
 	}
 }
 
-type tFunc func(cb json.RawMessage) *ProgressEvent
+type tFunc func(cb json.RawMessage) (*ProgressEvent, error)
 
 type MockCustomResource struct {
 	Property1 string `json:"property1"`
@@ -55,27 +55,27 @@ func NewMockResourceHandler(tr tFunc) *MockResourceHandler {
 
 }
 
-func (m *MockResourceHandler) CreateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent {
+func (m *MockResourceHandler) CreateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error) {
 
 	return m.TestFunction(callbackContext)
 }
 
-func (m *MockResourceHandler) DeleteRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent {
+func (m *MockResourceHandler) DeleteRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error) {
 
 	return m.TestFunction(callbackContext)
 }
 
-func (m *MockResourceHandler) ListRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent {
+func (m *MockResourceHandler) ListRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error) {
 
 	return m.TestFunction(callbackContext)
 }
 
-func (m *MockResourceHandler) ReadRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent {
+func (m *MockResourceHandler) ReadRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error) {
 
 	return m.TestFunction(callbackContext)
 }
 
-func (m *MockResourceHandler) UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) *ProgressEvent {
+func (m *MockResourceHandler) UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error) {
 
 	return m.TestFunction(callbackContext)
 }

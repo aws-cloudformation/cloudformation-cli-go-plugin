@@ -32,3 +32,23 @@ type ProgressEvent struct {
 	//The output resource instances populated by a LIST for synchronous results
 	ResourceModels []interface{}
 }
+
+func DefaultFailureHandler(e error, handlerErrorCode string) *ProgressEvent {
+
+	return &ProgressEvent{
+		OperationStatus:  FAILED,
+		HandlerErrorCode: handlerErrorCode,
+		Message:          e.Error(),
+	}
+}
+
+func Failed(model interface{}, cxt interface{}, code string, message string) *ProgressEvent {
+
+	return &ProgressEvent{
+		OperationStatus:  FAILED,
+		HandlerErrorCode: code,
+		Message:          message,
+		ResourceModel:    nil,
+		CallbackContext:  nil,
+	}
+}

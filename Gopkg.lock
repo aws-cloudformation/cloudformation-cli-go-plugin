@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:a616bcc866043223d00e68ff95baf868ba3b5f843996ff325f8cb8f12a0e81c2"
+  name = "github.com/ardanlabs/kit"
+  packages = ["log"]
+  pruneopts = "UT"
+  revision = "58fa5b2d0b1e7745f35c02bd6578bf64b9f9b2ec"
+
+[[projects]]
   digest = "1:019196f2ac870c197938d739cf0cdd4b78a39dc5c533021ed39899e390d34cd7"
   name = "github.com/aws/aws-lambda-go"
   packages = [
@@ -71,6 +79,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/ardanlabs/kit/log",
     "github.com/aws/aws-lambda-go/lambda",
     "github.com/aws/aws-lambda-go/lambdacontext",
     "github.com/aws/aws-sdk-go/aws",

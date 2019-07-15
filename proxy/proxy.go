@@ -67,6 +67,7 @@ type InvokeHandler interface {
 	UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*ProgressEvent, error)
 }
 
+//Wrapper contains the state off the Lambda function dependencies.
 type Wrapper struct {
 	metpub         *metric.Publisher
 	sch            *scheduler.CloudWatchScheduler
@@ -78,7 +79,7 @@ type Wrapper struct {
 
 //initialiseRuntime initialises dependencies which are depending on credentials
 //passed at function invoke and not available during construction
-func (p *Wrapper) initialiseRuntime(req HandlerRequest) {
+func (w *Wrapper) initialiseRuntime(req HandlerRequest) {
 
 	u := url.URL{
 		Scheme: "https",
@@ -86,7 +87,7 @@ func (p *Wrapper) initialiseRuntime(req HandlerRequest) {
 	}
 
 	//Set the caller credentials
-	p.wrapperCreds = setWrapperCreds(req)
+	w.wrapperCreds = setWrapperCreds(req)
 
 	// If null, we are not running a test.
 	if p.cbak == nil {
@@ -102,11 +103,11 @@ func (p *Wrapper) initialiseRuntime(req HandlerRequest) {
 			panic(err)
 		}
 
-		p.cbak = callback.New(cloudformation.New(cfsess))
+		w.cbak = callback.New(cloudformation.New(cfsess))
 	}
 
 	// If null, we are not running a test.
-	if p.metpub == nil || p.sch == nil {
+	if w.metpub == nil || p.sch == nil {
 		//Create a Cloudwatch events and Cloudwatch AWS session.
 		sess, err := session.NewSession(&aws.Config{
 			Region:      aws.String(req.Region),
@@ -117,8 +118,8 @@ func (p *Wrapper) initialiseRuntime(req HandlerRequest) {
 		if err != nil {
 			panic(err)
 		}
-		p.metpub = metric.New(cloudwatch.New(sess), req.ResourceType)
-		p.sch = scheduler.New(cloudwatchevents.New(sess))
+		w.metpub = metric.New(cloudwatch.New(sess), req.ResourceType)
+		w.sch = scheduler.New(cloudwatchevents.New(sess))
 
 	}
 }
@@ -126,7 +127,7 @@ func (p *Wrapper) initialiseRuntime(req HandlerRequest) {
 //HandleLambdaEvent is the main entry point for the lambda function.
 // A response will be output on all paths, though CloudFormation will
 // not block on invoking the handlers, but rather listen for callbacks
-func (p *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest) (lr HandlerResponse, e error) {
+func (w *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest) (lr HandlerResponse, e error) {
 
 	//Handle all panics from the resource handler, log the error and return failed.
 	defer func(event *HandlerRequest) {
@@ -134,13 +135,13 @@ func (p *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest)
 			err := &errs.TerminalError{CustomerFacingErrorMessage: "Internal error"}
 
 			// Log the Go stack trace for this panic'd goroutine.
-			p.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "HandlerRequest panic", event.Action, event.ResourceType, r, debug.Stack()))
+			w.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "HandlerRequest panic", event.Action, event.ResourceType, r, debug.Stack()))
 			lr = createProgressResponse(DefaultFailureHandler(err, InternalFailure), event.BearerToken)
 			e = nil
 		}
 	}(&request)
 
-	hr, err := p.processInvocation(ctx, request)
+	hr, err := w.processInvocation(ctx, request)
 
 	if err != nil {
 		// Exceptions are wrapped as a consistent error response to the caller (i.e;
@@ -152,12 +153,12 @@ func (p *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest)
 			if (reflect.DeepEqual(request.Data, RequestData{})) {
 				hr.ResourceModel = request.Data.ResourceProperties
 			}
-			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
+			if perr := w.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
 				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 
 		} else {
-			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
+			if perr := w.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
 				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 		}
@@ -178,8 +179,8 @@ func (p *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest)
 
 }
 
-//ProcessInvocation process the request information and invokes the handler.
-func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr *ProgressEvent, e error) {
+//processInvocation process the request information and invokes the handler.
+func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr *ProgressEvent, e error) {
 
 	//Handle all panics from processInvocation, log the error and return a failed Wrapper event.
 	defer func(event *HandlerRequest) {
@@ -187,7 +188,7 @@ func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 			err := &errs.TerminalError{CustomerFacingErrorMessage: "Internal error"}
 
 			// Log the Go stack trace for this panic'd goroutine.
-			p.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
+			w.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
 			pr = nil
 			e = err
 		}
@@ -216,17 +217,17 @@ func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		return nil, &errs.TerminalError{CustomerFacingErrorMessage: "Missing required platform credentials"}
 	}
 
-	p.initialiseRuntime(req)
+	w.initialiseRuntime(req)
 
 	hr := &ProgressEvent{}
 
-	//Get the lambda Context.
+	//Get and set the lambda Context.
 	lc, _ := lambdacontext.FromContext(cx)
 
 	// transform the request object to pass to caller.
-	resHanReq := p.transform(req)
+	resHanReq := w.transform(req)
 
-	p.checkReinvoke(req.Context)
+	w.checkReinvoke(req.Context)
 
 	// Set a duration.
 	//TODO: set Duration value to Constant
@@ -246,7 +247,7 @@ func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 
 		// Ask the goroutine to do some work for us.
 		go func() {
-			p.metpub.PublishInvocationMetric(time.Now(), req.Action)
+			w.metpub.PublishInvocationMetric(time.Now(), req.Action)
 
 			// Report the work is done.
 			re := p.wrapInvocationAndHandleErrors(resHanReq, &req)
@@ -258,18 +259,18 @@ func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		select {
 		case d := <-ch:
 			elapsed := time.Since(st)
-			p.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
+			w.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
 			hr, computeLocally = p.scheduleReinvocation(cx, &req, d, lc)
 
 		case <-ctx.Done():
 			//handler failed to respond; shut it down.
 			elapsed := time.Since(st)
-			p.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
+			w.metpub.PublishDurationMetric(time.Now(), req.Action, elapsed.Seconds()*1e3)
 			panic("Handler failed to respond")
 		}
 
-		// report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint
-		//cbak.ReportProgress(req.BearerToken, hr.HandlerErrorCode, hr.OperationStatus, hr.ResourceModel, hr.Message)
+		// Report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint.
+		cbak.ReportProgress(req.BearerToken, hr.HandlerErrorCode, hr.OperationStatus, hr.ResourceModel, hr.Message)
 
 		if !computeLocally {
 			break
@@ -282,11 +283,11 @@ func (p *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 }
 
 // If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
-func (p *Wrapper) checkReinvoke(context RequestContext) {
+func (w *Wrapper) checkReinvoke(context RequestContext) {
 
 	if context.CloudWatchEventsRuleName != "" && context.CloudWatchEventsTargetID != "" {
 
-		if err := p.sch.CleanupCloudWatchEvents(context.CloudWatchEventsRuleName, context.CloudWatchEventsTargetID); err != nil {
+		if err := w.sch.CleanupCloudWatchEvents(context.CloudWatchEventsRuleName, context.CloudWatchEventsTargetID); err != nil {
 
 			panic(err)
 		}
@@ -310,14 +311,14 @@ func setWrapperCreds(r HandlerRequest) *credentials.Credentials {
 	return credentials.NewStaticCredentials(r.Data.CallerCredentials.AccessKeyID, r.Data.CallerCredentials.SecretAccessKey, r.Data.CallerCredentials.SessionToken)
 }
 
-func (p *Wrapper) logUnhandledError(errorDescription string, request *HandlerRequest, e error) {
-	p.logger.Printf("%s in a %s action on a %s: %s\n%s", errorDescription, request.Action, request.ResourceType, e.Error(), debug.Stack())
+func (w *Wrapper) logUnhandledError(errorDescription string, request *HandlerRequest, e error) {
+	w.logger.Printf("%s in a %s action on a %s: %s\n%s", errorDescription, request.Action, request.ResourceType, e.Error(), debug.Stack())
 }
 
 //WrapInvocationAndHandleErrors invokes the handler implementation for the request, and handles certain classes of errors and correctly map those to
 //the appropriate HandlerErrorCode Also wraps the invocation in last-mile
 //timing metrics.
-func (p *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, request *HandlerRequest) (progressEvent *ProgressEvent) {
+func (w *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, request *HandlerRequest) (progressEvent *ProgressEvent) {
 
 	//Handle all panics from the resource handler, log the error and return a failed Wrapper event.
 	defer func(event *HandlerRequest) {
@@ -326,7 +327,7 @@ func (p *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, r
 
 			// Log the Go stack trace for this panic'd goroutine.
 			p.logger.Println(err.Error())
-			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
+			if perr := w.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
 				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			progressEvent = DefaultFailureHandler(err, InternalFailure)
@@ -337,19 +338,19 @@ func (p *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, r
 	var err error
 	switch request.Action {
 	case create:
-		e, err = p.customResource.CreateRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.CreateRequest(input, request.Context.CallbackContext)
 
 	case delete:
-		e, err = p.customResource.DeleteRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.DeleteRequest(input, request.Context.CallbackContext)
 
 	case list:
-		e, err = p.customResource.ListRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.ListRequest(input, request.Context.CallbackContext)
 
 	case read:
-		e, err = p.customResource.ReadRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.ReadRequest(input, request.Context.CallbackContext)
 
 	case update:
-		e, err = p.customResource.UpdateRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.UpdateRequest(input, request.Context.CallbackContext)
 	}
 
 	if err == nil && e == nil {
@@ -361,7 +362,7 @@ func (p *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, r
 
 		if aerr, ok := err.(awserr.Error); ok {
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			p.logUnhandledError("A downstream service error occurred", request, err)
 			return DefaultFailureHandler(aerr, GeneralServiceException)
@@ -369,25 +370,25 @@ func (p *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, r
 		switch err := err.(type) {
 		case *errs.ResourceAlreadyExistsError:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			p.logUnhandledError("An existing resource was found", request, err)
 			return DefaultFailureHandler(err, AlreadyExists)
 		case *errs.ResourceNotFoundError:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			p.logUnhandledError("A requested resource was not found", request, err)
 			return DefaultFailureHandler(err, NotFound)
 		case *errs.TerminalError:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			p.logUnhandledError(err.CustomerFacingErrorMessage, request, err)
 			return DefaultFailureHandler(err, InternalFailure)
 		default:
 			if perr := p.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				p.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			p.logUnhandledError("An unknown error occurred ", request, err)
 			return DefaultFailureHandler(err, InternalFailure)
@@ -408,8 +409,8 @@ func createProgressResponse(progressEvent *ProgressEvent, bearerToken string) Ha
 
 }
 
-//ScheduleReinvocation manages scheduling of handler re-invocations.
-func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) (handlerResult *ProgressEvent, result bool) {
+//scheduleReinvocation manages scheduling of handler re-invocations.
+func (w *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, hr *ProgressEvent, l *lambdacontext.LambdaContext) (handlerResult *ProgressEvent, result bool) {
 
 	if hr.OperationStatus != InProgress {
 		// no reinvoke required
@@ -421,7 +422,7 @@ func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, h
 	cbcx, err := json.Marshal(hr.CallbackContext)
 
 	if err != nil {
-		p.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
+		w.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
 		hr.HandlerErrorCode = "InternalFailure"
@@ -432,7 +433,7 @@ func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, h
 
 	uID, err := scheduler.NewUUID()
 	if err != nil {
-		p.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
+		w.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
 		hr.HandlerErrorCode = "InternalFailure"
@@ -442,23 +443,22 @@ func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, h
 	rn := fmt.Sprintf("reinvoke-handler-%s", uID)
 	tID := fmt.Sprintf("reinvoke-target-%s", uID)
 
-	// record the CloudWatchEvents objects for cleanup on the callback
+	//Record the CloudWatchEvents objects for cleanup on the callback.
 	req.Context.CloudWatchEventsRuleName = rn
 	req.Context.CloudWatchEventsTargetID = tID
 
 	rcx, err := json.Marshal(req.Context)
 
 	if err != nil {
-		p.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
+		w.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
 		hr.HandlerErrorCode = "InternalFailure"
 		return hr, false
 	}
 
-	//when a handler requests a sub-minute callback delay, and if the lambda
-	//invocation
-	//has enough runtime (with 20% buffer), we can reschedule from a thread wait
+	//When a handler requests a sub-minute callback delay, and if the lambda
+	//invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 	//otherwise we re-invoke through CloudWatchEvents which have a granularity of
 	//minutes.
 	deadline, _ := c.Deadline()
@@ -466,18 +466,18 @@ func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, h
 
 	if hr.CallbackDelaySeconds < 60 && secondsUnitDeadline > float64(hr.CallbackDelaySeconds)*1.2 {
 
-		p.logger.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", hr.CallbackDelaySeconds, string(rcx))
+		w.logger.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", hr.CallbackDelaySeconds, string(rcx))
 
 		time.Sleep(time.Duration(hr.CallbackDelaySeconds) * time.Second)
 
 		return hr, true
 	}
 
-	p.logger.Printf("Scheduling re-invoke with Context %s", string(rcx))
+	w.logger.Printf("Scheduling re-invoke with Context %s", string(rcx))
 
 	rj, err := json.Marshal(req)
 
-	if err := p.sch.RescheduleAfterMinutes(l.InvokedFunctionArn, hr.CallbackDelaySeconds, string(rj), time.Now(), uID, rn, tID); err != nil {
+	if err := w.sch.RescheduleAfterMinutes(l.InvokedFunctionArn, hr.CallbackDelaySeconds, string(rj), time.Now(), uID, rn, tID); err != nil {
 		p.logger.Printf("Failed to schedule re-invoke, caused by %s", err.Error())
 		hr.Message = err.Error()
 		hr.OperationStatus = "FAILED"
@@ -487,11 +487,11 @@ func (p *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, h
 	return hr, false
 }
 
-//transform the the request into a resource handler.
+//transform transformsthe the request into a resource handler.
 //Using reflection, finds the type of th custom resource,
-//Unmarshalls DesiredResource and PreviousResourceState, sets the field in the
+//Unmarshalls DesiredResource and PreviousResourceState and the CallBackContext, sets the field in the
 //CustomHandler and returns a ResourceHandlerRequest.
-func (p *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
+func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 
 	// Custom resource struct.
 	v := reflect.ValueOf(p.customResource)
@@ -542,10 +542,10 @@ func (p *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 	}
 }
 
-//null-safe logger redirect
-func (p *Wrapper) log(message string) {
-	if p.logger != nil {
-		p.logger.Println(message)
+//log is a null-safe logger redirect
+func (w *Wrapper) log(message string) {
+	if w.logger != nil {
+		w.logger.Println(message)
 	}
 }
 
@@ -567,7 +567,7 @@ func (p *Wrapper) log(message string) {
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-func (p *Wrapper) InjectCredentialsAndInvoke(req request.Request) error {
+func (w *Wrapper) InjectCredentialsAndInvoke(req request.Request) error {
 
 	req.Config.Credentials = p.wrapperCreds
 	err := req.Send()

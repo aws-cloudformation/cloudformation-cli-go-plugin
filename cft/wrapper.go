@@ -14,16 +14,12 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/errs"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/callback"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/metric"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/platform/injection/provider"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/scheduler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/proxy"
 	"github.com/aws/aws-lambda-go/lambdacontext"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
 //A list of vaild Cloudformation actions
@@ -50,55 +46,40 @@ type Wrapper struct {
 	sch            *scheduler.CloudWatchScheduler
 	cbak           *callback.CloudFormationCallbackAdapter
 	customResource InvokeHandler
-	wrapperCreds   *credentials.Credentials
+	creds          *credentials.Provider
 	logger         *log.Logger
 }
 
 //initialiseRuntime initialises dependencies which are depending on credentials
 //passed at function invoke and not available during construction
-func (w *Wrapper) initialiseRuntime(req HandlerRequest) {
+func (w *Wrapper) initialiseRuntime(creds credentials.Provider, u *url.URL) {
 
-	u := url.URL{
-		Scheme: "https",
-		Host:   req.ResponseEndpoint,
-	}
-
-	//Set the caller credentials
-	w.wrapperCreds = setWrapperCreds(req)
-
+	// initialisation skipped if these dependencies were set during injection (in
+	// test)
+	cp := provider.NewCloudFormationProvider(creds)
+	cp.SetCallbackEndpoint(u)
 	// If null, we are not running a test.
 	if w.cbak == nil {
-		//Create a Cloudformation AWS session.
-		cfsess, err := session.NewSession(&aws.Config{
-			Region:      aws.String(req.Region),
-			Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
-			Endpoint:    aws.String(u.String()),
-			MaxRetries:  aws.Int(16),
-		})
-
-		if err != nil {
-			panic(err)
-		}
-
-		w.cbak = callback.New(cloudformation.New(cfsess))
+		w.cbak = callback.New(cp)
 	}
+	/*
+		// If null, we are not running a test.
+		if w.metpub == nil || w.sch == nil {
+			//Create a Cloudwatch events and Cloudwatch AWS session.
+			sess, err := session.NewSession(&aws.Config{
+				Region:      aws.String(req.Region),
+				Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
+				Endpoint:    aws.String(u.String()),
+			})
 
-	// If null, we are not running a test.
-	if w.metpub == nil || w.sch == nil {
-		//Create a Cloudwatch events and Cloudwatch AWS session.
-		sess, err := session.NewSession(&aws.Config{
-			Region:      aws.String(req.Region),
-			Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
-			Endpoint:    aws.String(u.String()),
-		})
+			if err != nil {
+				panic(err)
+			}
+			w.metpub = metric.New(cloudwatch.New(sess), req.ResourceType)
+			w.sch = scheduler.New(cloudwatchevents.New(sess))
 
-		if err != nil {
-			panic(err)
 		}
-		w.metpub = metric.New(cloudwatch.New(sess), req.ResourceType)
-		w.sch = scheduler.New(cloudwatchevents.New(sess))
-
-	}
+	*/
 }
 
 //HandleLambdaEvent is the main entry point for the lambda function.
@@ -182,7 +163,14 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		return nil, &errs.TerminalError{CustomerFacingErrorMessage: "Missing required platform credentials"}
 	}
 
-	w.initialiseRuntime(req)
+	cred := provider.NewPlatformCredentialsProvider(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.AccessKeyID)
+
+	u := url.URL{
+		Scheme: "https",
+		Host:   req.ResponseEndpoint,
+	}
+
+	w.initialiseRuntime(cred, &u)
 
 	hr := &proxy.ProgressEvent{}
 

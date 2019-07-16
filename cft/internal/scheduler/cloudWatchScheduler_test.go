@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy/internal/scheduler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/scheduler"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )

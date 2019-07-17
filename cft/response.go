@@ -1,5 +1,6 @@
 package cft
 
+// A HandlerResponse describes the response of the handler.
 type HandlerResponse struct {
 	BearerToken       string            `json:"bearerToken"`
 	ErrorCode         string            `json:"errorCode"`

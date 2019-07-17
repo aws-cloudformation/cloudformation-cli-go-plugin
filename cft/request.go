@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 )
 
-//ResourceHandlerRequest represents a request set to the resource CRUD handlers.
+//ResourceHandlerRequest describes the request sent the resource CRUD handlers.
 type ResourceHandlerRequest struct {
 	ClientRequestToken        string
 	LogicalResourceIdentifier string
 }
 
-//RequestData represents the data used to build the resource handler request.
+//RequestData describes the data used to build the resource handler request.
 type RequestData struct {
 	LogicalResourceID          string                 `json:"logicalResourceId"`
-	ResourceProperties         json.RawMessage        `json:"ResourceProperties"`
-	PreviousResourceProperties json.RawMessage        `json:"PreviousResourceProperties"`
+	ResourceProperties         json.RawMessage        `json:"resourceProperties"`
+	PreviousResourceProperties json.RawMessage        `json:"previousResourceProperties"`
 	SystemTags                 map[string]interface{} `json:"systemTags"`
 	StackTags                  map[string]interface{} `json:"stackTags"`
 	PreviousStackTags          map[string]interface{} `json:"previousStackTags"`
@@ -22,14 +22,14 @@ type RequestData struct {
 	PlatformCredentials        Credentials            `json:"platformCredentials"`
 }
 
-//Credentials represents AWS specified provider credentials.
+//Credentials describes AWS specified provider credentials.
 type Credentials struct {
-	AccessKeyID     string `json: "AccessKeyId"`
-	SecretAccessKey string `json: secretAccessKey"`
-	SessionToken    string `json:  "sessionToken"`
+	AccessKeyID     string `json:"accessKeyId"`
+	SecretAccessKey string `json:"secretAccessKey"`
+	SessionToken    string `json:"sessionToken"`
 }
 
-//HandlerRequest represents the request made from the Cloudformation service.
+//HandlerRequest describes the request made from the Cloudformation service.
 type HandlerRequest struct {
 	//The AWS account ID
 	AwsAccountID string `json:"awsAccountId"`
@@ -55,7 +55,7 @@ type HandlerRequest struct {
 	StackID string `json:"stackId"`
 }
 
-// RequestContext represents the context of the current invocation.
+// RequestContext describes the context of the current invocation.
 type RequestContext struct {
 
 	//The number of times the handler has been invoked (including current)

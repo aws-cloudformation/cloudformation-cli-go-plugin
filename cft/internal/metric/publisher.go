@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/platform/injection/provider"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -28,16 +29,28 @@ const (
 
 // A Publisher represents an object that publishes metrics to AWS Cloudwatch.
 type Publisher struct {
-	Client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
-	Namespace string                        // custom resouces's namespace
+	cProvider *provider.CloudWatchProvider
+	client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
+	namespace string                        // custom resouces's namespace
 }
 
 // New creates a new Publisher.
-func New(client cloudwatchiface.CloudWatchAPI, nameSpace string) *Publisher {
+func New(cloudWatchProvider *provider.CloudWatchProvider) *Publisher {
 	return &Publisher{
-		Client:    client,
-		Namespace: nameSpace,
+		cProvider: cloudWatchProvider,
 	}
+}
+
+func (p *Publisher) RefreshClient() error {
+
+	pr, err := p.cProvider.Get()
+
+	if err != nil {
+		return err
+	}
+	p.client = pr
+
+	return nil
 }
 
 //PublishExceptionMetric publishes an exception metric.
@@ -45,7 +58,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e erro
 	dimensions := map[string]string{
 		DimensionKeyAcionType:     action,
 		DimensionKeyExceptionType: e.Error(),
-		DimensionKeyResouceType:   setResourceTypeName(p.Namespace),
+		DimensionKeyResouceType:   setResourceTypeName(p.namespace),
 	}
 
 	_, err := p.publishMetric(MetricNameHanderException, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
@@ -61,7 +74,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e erro
 func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error {
 	dimensions := map[string]string{
 		DimensionKeyAcionType:   action,
-		DimensionKeyResouceType: p.Namespace,
+		DimensionKeyResouceType: p.namespace,
 	}
 
 	_, err := p.publishMetric(MetricNameHanderInvocationCount, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
@@ -77,7 +90,7 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error
 func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) error {
 	dimensions := map[string]string{
 		DimensionKeyAcionType:   action,
-		DimensionKeyResouceType: p.Namespace,
+		DimensionKeyResouceType: p.namespace,
 	}
 
 	_, err := p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, secs, date)
@@ -112,11 +125,11 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	}
 
 	pi := cloudwatch.PutMetricDataInput{
-		Namespace:  aws.String(p.Namespace),
+		Namespace:  aws.String(p.namespace),
 		MetricData: md,
 	}
 
-	out, err := p.Client.PutMetricData(&pi)
+	out, err := p.client.PutMetricData(&pi)
 
 	if err != nil {
 
@@ -127,7 +140,7 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 }
 
 //SetResourceTypeName returns a type name by removing (::) and replaing with (/)
-func setResourceTypeName(t string) string {
+func (p *Publisher) SetResourceTypeName(t string) string {
 	strings.ReplaceAll(t, "::", "/")
-	return t
+	p.namespace = t
 }

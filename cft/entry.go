@@ -5,6 +5,7 @@ import (
 )
 
 //Start in the entry point of the lambda function.
+//(A type that implements InvokeHandler must be passed in.)
 func Start(i InvokeHandler) {
 
 	h := Wrapper{

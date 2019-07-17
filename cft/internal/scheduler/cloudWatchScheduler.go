@@ -24,25 +24,21 @@ func New(cloudWatchEventsProvider *provider.CloudWatchEventsProvider) *CloudWatc
 	}
 }
 
-func (s *CloudWatchScheduler) RefreshClient() error {
-
-	pr, err := s.cProvider.Get()
-
+func (c *CloudWatchScheduler) RefreshClient() error {
+	pr, err := c.cProvider.Get()
 	if err != nil {
 		return err
 	}
-	s.client = pr
+	c.client = pr
 
 	return nil
 }
 
 //RescheduleAfterMinutes schedules a re-invocation of the executing handler no less than 1 minute from now.
 func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int, callbackRequest string, t time.Time, uID string, rn string, tID string) error {
-
 	if minFromNow < 1 {
 		minFromNow = 1
 	}
-
 	if arn == "" {
 		e := "Arn is required."
 		return errors.New(e)
@@ -50,22 +46,17 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 
 	// generate a cron expression; minutes must be a positive integer
 	cr := GenerateOneTimeCronExpression(minFromNow, t)
-
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
-
 	pr, err := c.client.PutRule(&cloudwatchevents.PutRuleInput{
 
 		Name:               aws.String(rn),
 		ScheduleExpression: aws.String(cr),
 		State:              aws.String(cloudwatchevents.RuleStateEnabled),
 	})
-
 	log.Printf("Scheduling result: %v", pr)
-
 	if err != nil {
 		return err
 	}
-
 	_, perr := c.client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(rn),
 		Targets: []*cloudwatchevents.Target{
@@ -76,7 +67,6 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 			},
 		},
 	})
-
 	if perr != nil {
 		return err
 	}
@@ -87,32 +77,26 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.
 //After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
 func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName string, cloudWatchEventsTargetID string) error {
-
 	if cloudWatchEventsRuleName == "" {
 		e := "cloudWatchEventsRuleName is required."
 		return errors.New(e)
 	}
-
 	if cloudWatchEventsTargetID == "" {
 		e := "cloudWatchEventsTargetID is required."
 		return errors.New(e)
 	}
-
 	t, err := c.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
 		Ids: []*string{
 			aws.String(cloudWatchEventsTargetID),
 		},
 		Rule: aws.String(cloudWatchEventsRuleName),
 	})
-
 	if err != nil {
 		log.Printf("Error cleaning CloudWatchEvents Target (targetId=%s)", cloudWatchEventsTargetID)
 		return err
 	}
-
 	log.Printf("CloudWatchEvents Target (targetId=%s) removed", cloudWatchEventsTargetID)
 	log.Printf("CloudWatchEvents remove Target reponse: %s", t)
-
 	r, err := c.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
 		Name: aws.String(cloudWatchEventsRuleName),
 	})

@@ -1,5 +1,5 @@
 package resource
 
-//CallBackContext hold context information and return on INPROGRESS events
-type CallBackContext struct {
+//Context hold context information and return on INPROGRESS events
+type Context struct {
 }

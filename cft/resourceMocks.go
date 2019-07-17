@@ -29,26 +29,26 @@ func (mc mockContext) Value(key interface{}) interface{} {
 	}
 }
 
-type tFunc func(resource MockCustomResource) (*proxy.ProgressEvent, error)
+type tFunc func(resource mockCustomResource) (*proxy.ProgressEvent, error)
 
-type MockCustomResource struct {
+type mockCustomResource struct {
 	Property1 string `json:"property1"`
 	Property2 int    `json:"property2"`
 }
 
-type MockCallBackContext struct {
+type mockCallBackContext struct {
 	Count int
 }
 
-type MockResourceHandler struct {
-	DesiredResourceState  MockCustomResource
-	PreviousResourceState MockCustomResource
+type mockResourceHandler struct {
+	DesiredResourceState  mockCustomResource
+	PreviousResourceState mockCustomResource
 	TestFunction          tFunc
 }
 
-func NewMockResourceHandler(tr tFunc) *MockResourceHandler {
+func NewMockResourceHandler(tr tFunc) *mockResourceHandler {
 
-	h := MockResourceHandler{
+	h := mockResourceHandler{
 		TestFunction: tr,
 	}
 
@@ -56,27 +56,27 @@ func NewMockResourceHandler(tr tFunc) *MockResourceHandler {
 
 }
 
-func (m *MockResourceHandler) CreateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *mockResourceHandler) CreateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
 
 	return m.TestFunction(m.DesiredResourceState)
 }
 
-func (m *MockResourceHandler) DeleteRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *mockResourceHandler) DeleteRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
 
 	return m.TestFunction(m.DesiredResourceState)
 }
 
-func (m *MockResourceHandler) ListRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *mockResourceHandler) ListRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
 
 	return m.TestFunction(m.DesiredResourceState)
 }
 
-func (m *MockResourceHandler) ReadRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *mockResourceHandler) ReadRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
 
 	return m.TestFunction(m.DesiredResourceState)
 }
 
-func (m *MockResourceHandler) UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *mockResourceHandler) UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
 
 	return m.TestFunction(m.DesiredResourceState)
 }

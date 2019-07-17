@@ -1,11 +1,10 @@
-package scheduler_test
+package scheduler
 
 import (
 	"regexp"
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/scheduler"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
@@ -20,7 +19,7 @@ type MockedEvents struct {
 	TargetName string
 }
 
-func New() *MockedEvents {
+func NewMockEvents() *MockedEvents {
 	return &MockedEvents{}
 }
 
@@ -61,7 +60,7 @@ func TestNewUUID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Logf("\tTest: %d\tWhen checking %q for match status %v", i, tt.name, tt.want)
 			{
-				got, err := scheduler.NewUUID()
+				got, err := NewUUID()
 
 				if (err != nil) != tt.wantErr {
 					t.Errorf("\t%s\tShould be able to make the NewUUID call : %v", failed, err)
@@ -106,7 +105,7 @@ func TestGenerateOneTimeCronExpression(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Logf("\tTest: %d\tWhen checking %q for match status %v", i, tt.name, tt.want)
 			{
-				got := scheduler.GenerateOneTimeCronExpression(tt.args.minutesFromNow, tt.args.t)
+				got := GenerateOneTimeCronExpression(tt.args.minutesFromNow, tt.args.t)
 
 				if got == tt.want {
 					t.Logf("\t%s\tOneTimeCronExpression match should be (%v).", succeed, tt.want)
@@ -141,10 +140,10 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		WantRuleMatch      bool
 		WantTargetMatch    bool
 	}{
-		{"TestCloudWatchScheduler", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchSchedulerLessThen0", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchScheduler", fields{New()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchSchedulerARNMustHaveValue", fields{New()}, args{"", 56, cb, time.Now()}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchScheduler", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchScheduler", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchSchedulerARNMustHaveValue", fields{NewMockEvents()}, args{"", 56, cb, time.Now()}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
 	}
 
 	for i, tt := range tests {
@@ -152,8 +151,8 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 			e := tt.fields.Client.(*MockedEvents)
 			t.Logf("\tTest: %d\tWhen checking %q for error status %v", i, tt.name, tt.wantErr)
 			{
-				c := &scheduler.CloudWatchScheduler{
-					Client: tt.fields.Client,
+				c := &CloudWatchScheduler{
+					client: tt.fields.Client,
 				}
 				if err := c.RescheduleAfterMinutes(tt.args.arn, tt.args.minFromNow, cb, tt.args.t, "4754ac8a-623b-45fe-84bc-f5394118a8be", "reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be", "targetId=reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be"); (err != nil) != tt.wantErr {
 					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", failed, err)
@@ -216,9 +215,9 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 		WantRuleMatch      bool
 		WantTargetMatch    bool
 	}{
-		{"TestCloudWatchRemove", fields{New()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchRemoveBlankCloudWatchEventsRuleName", fields{New()}, args{"", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchRemoveBlankcloudWatchEventsTargetID", fields{New()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", ""}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchRemove", fields{NewMockEvents()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchRemoveBlankCloudWatchEventsRuleName", fields{NewMockEvents()}, args{"", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchRemoveBlankcloudWatchEventsTargetID", fields{NewMockEvents()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", ""}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
 	}
 	for i, tt := range tests {
 
@@ -226,8 +225,8 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 			e := tt.fields.Client.(*MockedEvents)
 			t.Logf("\tTest: %d\tWhen checking %q for error status %v", i, tt.name, tt.wantErr)
 			{
-				c := &scheduler.CloudWatchScheduler{
-					Client: tt.fields.Client,
+				c := &CloudWatchScheduler{
+					client: tt.fields.Client,
 				}
 				if err := c.CleanupCloudWatchEvents(tt.args.cloudWatchEventsRuleName, tt.args.cloudWatchEventsTargetID); (err != nil) != tt.wantErr {
 					t.Errorf("\t%s\tShould be able to make the cloudWatchEventsRuleName call : %v", failed, err)

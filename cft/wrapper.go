@@ -52,34 +52,33 @@ type Wrapper struct {
 
 //initialiseRuntime initialises dependencies which are depending on credentials
 //passed at function invoke and not available during construction
-func (w *Wrapper) initialiseRuntime(creds credentials.Provider, u *url.URL) {
+func (w *Wrapper) initialiseRuntime(creds *Credentials, u *url.URL) {
 
 	// initialisation skipped if these dependencies were set during injection (in
 	// test)
-	cp := provider.NewCloudFormationProvider(creds)
-	cp.SetCallbackEndpoint(u)
+	cp := provider.NewPlatformCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, creds.AccessKeyID)
+
+	cfp := provider.NewCloudFormationProvider(cp)
+
+	cfp.SetCallbackEndpoint(u)
 	// If null, we are not running a test.
 	if w.cbak == nil {
-		w.cbak = callback.New(cp)
+		w.cbak = callback.New(cfp)
+		w.cbak.RefreshClient()
 	}
-	/*
-		// If null, we are not running a test.
-		if w.metpub == nil || w.sch == nil {
-			//Create a Cloudwatch events and Cloudwatch AWS session.
-			sess, err := session.NewSession(&aws.Config{
-				Region:      aws.String(req.Region),
-				Credentials: credentials.NewStaticCredentials(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.SessionToken),
-				Endpoint:    aws.String(u.String()),
-			})
 
-			if err != nil {
-				panic(err)
-			}
-			w.metpub = metric.New(cloudwatch.New(sess), req.ResourceType)
-			w.sch = scheduler.New(cloudwatchevents.New(sess))
+	cwp := provider.NewCloudWatchProvider(cp)
 
-		}
-	*/
+	if w.metpub == nil {
+		w.metpub = metric.New(cwp)
+		w.metpub.RefreshClient()
+	}
+
+	cwe := provider.NewCloudWatchEventsProvider(cp)
+	if w.sch == nil {
+		w.sch = scheduler.New(cwe)
+		w.sch.RefreshClient()
+	}
 }
 
 //HandleLambdaEvent is the main entry point for the lambda function.
@@ -163,14 +162,14 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		return nil, &errs.TerminalError{CustomerFacingErrorMessage: "Missing required platform credentials"}
 	}
 
-	cred := provider.NewPlatformCredentialsProvider(req.Data.PlatformCredentials.AccessKeyID, req.Data.PlatformCredentials.SecretAccessKey, req.Data.PlatformCredentials.AccessKeyID)
+	cred := req.Data.PlatformCredentials
 
 	u := url.URL{
 		Scheme: "https",
 		Host:   req.ResponseEndpoint,
 	}
-
-	w.initialiseRuntime(cred, &u)
+	w.metpub.SetResourceTypeName(req.ResourceType)
+	w.initialiseRuntime(&cred, &u)
 
 	hr := &proxy.ProgressEvent{}
 
@@ -223,7 +222,7 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		}
 
 		// Report the progress status when in non-terminal state (i.e; InProgress) back to configured endpoint.
-		w.cbak.ReportProgress(req.BearerToken, hr.HandlerErrorCode, hr.OperationStatus, hr.ResourceModel, hr.Message)
+		//w.cbak.ReportProgress(req.BearerToken, hr.HandlerErrorCode, hr.OperationStatus, hr.ResourceModel, hr.Message)
 
 		if !computeLocally {
 			break

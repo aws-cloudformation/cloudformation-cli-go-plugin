@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/platform/injection/provider"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
@@ -12,14 +13,27 @@ import (
 
 //CloudWatchScheduler is used to schedule Cloudwatch Events.
 type CloudWatchScheduler struct {
-	Client cloudwatcheventsiface.CloudWatchEventsAPI
+	cProvider *provider.CloudWatchEventsProvider
+	client    cloudwatcheventsiface.CloudWatchEventsAPI
 }
 
 //New creates a CloudWatchScheduler and returns a pointer to the struct.
-func New(cl cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
+func New(cloudWatchEventsProvider *provider.CloudWatchEventsProvider) *CloudWatchScheduler {
 	return &CloudWatchScheduler{
-		Client: cl,
+		cProvider: cloudWatchEventsProvider,
 	}
+}
+
+func (s *CloudWatchScheduler) RefreshClient() error {
+
+	pr, err := s.cProvider.Get()
+
+	if err != nil {
+		return err
+	}
+	s.client = pr
+
+	return nil
 }
 
 //RescheduleAfterMinutes schedules a re-invocation of the executing handler no less than 1 minute from now.
@@ -39,7 +53,7 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
 
-	pr, err := c.Client.PutRule(&cloudwatchevents.PutRuleInput{
+	pr, err := c.client.PutRule(&cloudwatchevents.PutRuleInput{
 
 		Name:               aws.String(rn),
 		ScheduleExpression: aws.String(cr),
@@ -52,7 +66,7 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 		return err
 	}
 
-	_, perr := c.Client.PutTargets(&cloudwatchevents.PutTargetsInput{
+	_, perr := c.client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(rn),
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
@@ -84,7 +98,7 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 		return errors.New(e)
 	}
 
-	t, err := c.Client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
+	t, err := c.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
 		Ids: []*string{
 			aws.String(cloudWatchEventsTargetID),
 		},
@@ -99,7 +113,7 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 	log.Printf("CloudWatchEvents Target (targetId=%s) removed", cloudWatchEventsTargetID)
 	log.Printf("CloudWatchEvents remove Target reponse: %s", t)
 
-	r, err := c.Client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
+	r, err := c.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
 		Name: aws.String(cloudWatchEventsRuleName),
 	})
 	if err != nil {

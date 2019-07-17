@@ -1,23 +1,18 @@
 package callback
 
 import (
-	"encoding/json"
-	"log"
-
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cft/internal/platform/injection/provider"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 //CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
 type CloudFormationCallbackAdapter struct {
 	Client     cloudformationiface.CloudFormationAPI
-	cfProvider provider.CloudFormationProvider
+	cfProvider *provider.CloudFormationProvider
 }
 
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
-func New(cloudFormationProvider provider.CloudFormationProvider) *CloudFormationCallbackAdapter {
+func New(cloudFormationProvider *provider.CloudFormationProvider) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
 		cfProvider: cloudFormationProvider,
 	}
@@ -35,6 +30,7 @@ func (c *CloudFormationCallbackAdapter) RefreshClient() error {
 	return nil
 }
 
+/*
 //ReportProgress reports the current status back to the Cloudformation service
 func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, errorCode, operationStatus string, resourceModel interface{}, statusMessage string) {
 
@@ -120,3 +116,4 @@ func TranslateOperationStatus(operationStatus string) string {
 	}
 
 }
+*/

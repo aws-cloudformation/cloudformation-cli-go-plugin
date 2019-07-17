@@ -453,7 +453,7 @@ func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 
 	//Check if the field is found and that it's a strut value.
 	if !dv.IsValid() || dv.Kind() != reflect.Struct {
-		panic("Unable to find DesiredResource in Config object")
+		panic("Unable to find DesiredResource in customResource")
 	}
 
 	// Custom resource PreviousResourceState struct.
@@ -461,7 +461,15 @@ func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 
 	//Check if the field is found and that it's a strut value.
 	if !pv.IsValid() || pv.Kind() != reflect.Struct {
-		panic("Unable to find PreviousResource in Config object")
+		panic("Unable to find PreviousResource in customResource")
+	}
+
+	// Custom resource DesiredResourceState struct.
+	cv := v.Elem().FieldByName("CallbackContext")
+
+	//Check if the field is found and that it's a strut value.
+	if !cv.IsValid() || cv.Kind() != reflect.Struct {
+		panic("Unable to find CallbackContext in customResource")
 	}
 
 	//Create new resource.
@@ -486,8 +494,22 @@ func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 		}
 	}
 
-	//Set the resource.
+	//Set the customResource.
 	pv.Set(pr.Elem())
+
+	//Create new callBackContext.
+	cr := reflect.New(cv.Type())
+
+	//Try to unmarshhal the into the strut field.
+	if r.Data.PreviousResourceProperties != nil {
+		if err := json.Unmarshal([]byte(r.Data.PreviousResourceProperties), cr.Interface()); err != nil {
+			panic(err)
+		}
+	}
+
+	//Set the resource.
+	cv.Set(cr.Elem())
+
 	return &ResourceHandlerRequest{
 		ClientRequestToken:        r.BearerToken,
 		LogicalResourceIdentifier: r.Data.LogicalResourceID,

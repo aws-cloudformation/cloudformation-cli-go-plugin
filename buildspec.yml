@@ -1,0 +1,11 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+        python: 3.7
+        golang: 1.12
+    commands:
+      - pip install pre-commit
+  build:
+    commands:
+      - pre-commit run --all-files

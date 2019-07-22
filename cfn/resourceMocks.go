@@ -1,7 +1,6 @@
 package cfn
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/proxy"
@@ -30,10 +29,6 @@ func (mc mockContext) Value(key interface{}) interface{} {
 	}
 }
 
-//tFunc type is a testing function that is passed into the mockResource for testing.
-//The funcion simulates the response of a Invoker.
-type tFunc func(resource mockCustomResource) (*proxy.ProgressEvent, error)
-
 //mockCustomResource is a Mocked Custom Resource.
 type mockCustomResource struct {
 	Property1 string `json:"property1"`
@@ -44,6 +39,10 @@ type mockCustomResource struct {
 type MockCallBackContext struct {
 	Count int
 }
+
+//tFunc type is a testing function that is passed into the mockResource for testing.
+//The funcion simulates the response of a Invoker.
+type tFunc func(resource *mockCustomResource, callBack *MockCallBackContext) (*proxy.ProgressEvent, error)
 
 //MockResourceHandler describes a mocked version of the ResourceHandler object.
 //MockResourceHandler implements the invoker interface.
@@ -66,33 +65,33 @@ func NewMockResourceHandler(tr tFunc) *MockResourceHandler {
 }
 
 //CreateRequest is the handler function for the CloudFormation create event.
-func (m *MockResourceHandler) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *MockResourceHandler) CreateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error) {
 
-	return m.TestFunction(m.DesiredResourceState)
+	return m.TestFunction(&m.DesiredResourceState, &m.CallBackContext)
 }
 
 //DeleteRequest is the handler function for the CloudFormation delete event.
-func (m *MockResourceHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *MockResourceHandler) DeleteRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error) {
 
-	return m.TestFunction(m.DesiredResourceState)
+	return m.TestFunction(&m.DesiredResourceState, &m.CallBackContext)
 }
 
 //ListRequest is the handler function for the CloudFormation list event.
-func (m *MockResourceHandler) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *MockResourceHandler) ListRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error) {
 
-	return m.TestFunction(m.DesiredResourceState)
+	return m.TestFunction(&m.DesiredResourceState, &m.CallBackContext)
 }
 
 //ReadRequest is the handler function for the CloudFormation read event.
-func (m *MockResourceHandler) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *MockResourceHandler) ReadRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error) {
 
-	return m.TestFunction(m.DesiredResourceState)
+	return m.TestFunction(&m.DesiredResourceState, &m.CallBackContext)
 }
 
 //UpdateRequest is the handler function for the CloudFormation update event.
-func (m *MockResourceHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error) {
+func (m *MockResourceHandler) UpdateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error) {
 
-	return m.TestFunction(m.DesiredResourceState)
+	return m.TestFunction(&m.DesiredResourceState, &m.CallBackContext)
 }
 
 //MockHandlerResourceNoDesired is a Mocked Custom Resource.
@@ -120,31 +119,31 @@ func NewMockNoDesired(state *proxy.ProgressEvent, stateError error) *MockHandler
 }
 
 //CreateRequest is the handler function for the CloudFormation create event.
-func (m *MockHandlerNoDesired) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoDesired) CreateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //DeleteRequest is the handler function for the CloudFormation delete event.
-func (m *MockHandlerNoDesired) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoDesired) DeleteRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //ListRequest is the handler function for the CloudFormation list event.
-func (m *MockHandlerNoDesired) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoDesired) ListRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //ReadRequest is the handler function for the CloudFormation read event.
-func (m *MockHandlerNoDesired) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoDesired) ReadRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //UpdateRequest is the handler function for the CloudFormation update event.
-func (m *MockHandlerNoDesired) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoDesired) UpdateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
@@ -174,31 +173,31 @@ func NewMockNoPre(state *proxy.ProgressEvent, stateError error) *MockHandlerNoPr
 }
 
 //CreateRequest is the handler function for the CloudFormation create event.
-func (m *MockHandlerNoPre) CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoPre) CreateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //DeleteRequest is the handler function for the CloudFormation delete event.
-func (m *MockHandlerNoPre) DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoPre) DeleteRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //ListRequest is the handler function for the CloudFormation list event.
-func (m *MockHandlerNoPre) ListRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoPre) ListRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //ReadRequest is the handler function for the CloudFormation read event.
-func (m *MockHandlerNoPre) ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoPre) ReadRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }
 
 //UpdateRequest is the handler function for the CloudFormation update event.
-func (m *MockHandlerNoPre) UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) *proxy.ProgressEvent {
+func (m *MockHandlerNoPre) UpdateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) *proxy.ProgressEvent {
 
 	return m.ReturnState
 }

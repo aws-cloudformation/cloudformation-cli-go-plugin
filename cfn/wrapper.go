@@ -33,11 +33,11 @@ const (
 
 // InvokeHandler is an interface that the custom resource must implement.
 type InvokeHandler interface {
-	CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	ListRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
+	CreateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	DeleteRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	ListRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	ReadRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	UpdateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
 }
 
 //Wrapper contains the dependencies off the Lambda function.
@@ -282,19 +282,19 @@ func (w *Wrapper) wrapInvocationAndHandleErrors(input *proxy.ResourceHandlerRequ
 	var err error
 	switch request.Action {
 	case create:
-		e, err = w.customResource.CreateRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.CreateRequest(input, nil)
 
 	case delete:
-		e, err = w.customResource.DeleteRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.DeleteRequest(input, nil)
 
 	case list:
-		e, err = w.customResource.ListRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.ListRequest(input, nil)
 
 	case read:
-		e, err = w.customResource.ReadRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.ReadRequest(input, nil)
 
 	case update:
-		e, err = w.customResource.UpdateRequest(input, request.Context.CallbackContext)
+		e, err = w.customResource.UpdateRequest(input, nil)
 	}
 
 	if err == nil && e == nil {

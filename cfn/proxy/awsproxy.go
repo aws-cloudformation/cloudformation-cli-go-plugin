@@ -18,6 +18,8 @@ package proxy
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
+
+//AWSClientProxy is a place holder.
 type AWSClientProxy struct {
 }
 

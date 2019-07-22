@@ -40,6 +40,9 @@ func (c *CloudWatchScheduler) RefreshClient() error {
 
 //RescheduleAfterMinutes schedules a re-invocation of the executing handler no less than 1 minute from now.
 func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int, callbackRequest string, t time.Time, uID string, rn string, tID string) error {
+	if c.cProvider == nil {
+		return errors.New("Failed to retresh client")
+	}
 	if minFromNow < 1 {
 		minFromNow = 1
 	}
@@ -81,6 +84,9 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.
 //After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
 func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName string, cloudWatchEventsTargetID string) error {
+	if c.cProvider == nil {
+		return errors.New("Failed to retresh client")
+	}
 	if cloudWatchEventsRuleName == "" {
 		e := "cloudWatchEventsRuleName is required."
 		return errors.New(e)

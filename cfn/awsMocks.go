@@ -61,6 +61,7 @@ type MockedEvents struct {
 	CleanupCloudWatchEventsCount int
 	RuleName                     string
 	TargetName                   string
+	CallBackRequest              string
 }
 
 //NewMockedEvents is a factory function that returns a new MockedEvents.
@@ -77,6 +78,7 @@ func (m *MockedEvents) PutRule(in *cloudwatchevents.PutRuleInput) (*cloudwatchev
 //PutTargets mocks the PutTargets method.
 func (m *MockedEvents) PutTargets(in *cloudwatchevents.PutTargetsInput) (*cloudwatchevents.PutTargetsOutput, error) {
 
+	m.CallBackRequest = *in.Targets[0].Input
 	return nil, nil
 
 }

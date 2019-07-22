@@ -488,7 +488,8 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsInprogress(t *testing.T
 		t.Run(tt.name, func(t *testing.T) {
 
 			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
-				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: r, CallbackDelaySeconds: 120}, nil
+				c.Count++
+				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: r, CallbackDelaySeconds: 120, CallbackContext: c}, nil
 			}
 
 			re := NewMockResourceHandler(f)

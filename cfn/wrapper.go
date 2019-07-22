@@ -126,7 +126,7 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 			err := &errs.TerminalError{CustomerFacingErrorMessage: "Internal error"}
 
 			// Log the Go stack trace for this panic'd goroutine.
-			fmt.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
+			w.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
 			pr = proxy.DefaultFailureHandler(err, proxy.InternalFailure)
 			if perr := w.metpub.PublishExceptionMetric(time.Now(), event.Action, err); perr != nil {
 				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
@@ -273,7 +273,7 @@ func (w *Wrapper) wrapInvocationAndHandleErrors(input *proxy.ResourceHandlerRequ
 			// Log the Go stack trace for this panic'd goroutine.
 			w.logger.Println(err.Error())
 			if perr := w.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 			progressEvent = proxy.DefaultFailureHandler(err, proxy.InternalFailure)
 		}

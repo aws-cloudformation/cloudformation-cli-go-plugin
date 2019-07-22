@@ -4,6 +4,7 @@ import logging
 import shutil
 import os
 
+from rpdk.core.data_loaders import resource_stream
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.core.plugin_base import LanguagePlugin
 
@@ -13,16 +14,15 @@ from subprocess import call
 
 LOG = logging.getLogger(__name__)
 
-OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
+OPERATIONS = ("create", "read", "update", "delete", "list")
 EXECUTABLE = "cfn-cli"
 
 
 class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
-    NAME = "golang"
-    RUNTIME = "1.8"
-    ENTRY_POINT = "{}.LambdaInterceptor::InterceptRequest"
-    CODE_URI = "./bin/Release/netstandard2.0/ResourceProvider.dll"
+    RUNTIME = "go1.x"
+    ENTRY_POINT = "handler"
+    CODE_URI = "./bin"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -41,23 +41,29 @@ class GoLanguagePlugin(LanguagePlugin):
         LOG.debug("Init started")
 
         self._namespace_from_project(project)
+        project.runtime = self.RUNTIME
+        project.entrypoint = self.ENTRY_POINT.format(self.package_name)
+
+        # .gitignore
+        path = project.root / ".gitignore"
+        LOG.debug("Writing .gitignore: %s", path)
+        contents = resource_stream(__name__, "data/go.gitignore").read()
+        project.safewrite(path, contents)
 
         # project folder structure
         src = (project.root / "cmd"  / "resource")
         LOG.debug("Making source folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
-        
-        tst = (project.root / "cmd"  / "test" / "data")
-        LOG.debug("Making test folder structure: %s", tst)
-        tst.mkdir(parents=True, exist_ok=True)
-        
-        
+
+        inter = (project.root / "internal")
+        inter.mkdir(parents=True, exist_ok=True)
+
+
+        # Makefile    
         path = project.root / "Makefile"
         LOG.debug("Writing Makefile: %s", path)
         template = self.env.get_template("Makefile")
-        contents = template.render(
-            model_name=self.namespace[2].lower(),
-        )
+        contents = template.render()
         project.safewrite(path, contents)
         
         # CloudFormation/SAM template for handler lambda
@@ -68,7 +74,7 @@ class GoLanguagePlugin(LanguagePlugin):
         handler_params = {
             "Handler": project.entrypoint,
             "Runtime": project.runtime,
-            "CodeUri": self.CODE_URI.format(artifact_id),
+            "CodeUri": self.CODE_URI,
         }
         contents = template.render(
             resource_type=project.type_name,
@@ -84,17 +90,12 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
-        # Create request test data
-        path = project.root / "cmd"  / "test" / "data" / "create.request.json"
-        LOG.debug("Writing create sample request: %s", path)
-        template = self.env.get_template("create.request.json")
-        contents = template.render()
-        project.safewrite(path, contents)
+        LOG.debug("Writing handlers and tests")
+        self.init_handlers(project, src)
 
-        # Update request test data
-        path = project.root / "cmd"  / "test" / "data" / "update.request.json"
-        LOG.debug("Writing create sample request: %s", path)
-        template = self.env.get_template("update.request.json")
+        template = self.env.get_template("callback.go.tple")
+        LOG.debug("Writing Callback Context")
+        path = src / "{}.go".format("callbackContext")
         contents = template.render()
         project.safewrite(path, contents)
 
@@ -112,39 +113,40 @@ class GoLanguagePlugin(LanguagePlugin):
         
         LOG.debug("Init complete")
 
-    
+    def init_handlers(self, project, src):
+        LOG.debug("Writing stub handlers")
+        for operation in OPERATIONS:
+            if operation == "list":
+                template = self.env.get_template("StubListHandler.go.tple")
+            else:
+                template = self.env.get_template("StubHandler.go.tple")
+            path = src / "{}Handler.go".format(operation)
+            LOG.debug("%s handler: %s", operation, path)
+            contents = template.render(
+                model_name=self.namespace[2],
+                operation=operation,
+            )
+            project.safewrite(path, contents)
+
     def _get_generated_root(self, project):
         self._namespace_from_project(project)
         return project.root / "cmd"  /  "resource"
 
     def generate(self, project):
         LOG.debug("Generate started")
-
-        
+   
         self._namespace_from_project(project)
 
         objects = JsonSchemaFlattener(project.schema).flatten_schema()
 
-        generated_root = self._get_generated_root(project)
-        LOG.debug("Removing generated sources: %s", generated_root)
-        shutil.rmtree(generated_root, ignore_errors=True)
-        
         # project folder structure
-        src = (project.root / "cmd"  /  "resource")
-        LOG.debug("Making resource folder structure: %s", src)
-        src.mkdir(parents=True, exist_ok=True)
-
+        src = (project.root / "cmd"  / "resource")
+        
         model_resolver = CSharpModelResolver(objects, "Resource")
         models = model_resolver.resolve_models()
 
         LOG.debug("Writing %d models", len(models))
 
-        template = self.env.get_template("callback.go.tple")
-        for model_name, properties in models.items():
-            path = src / "{}.go".format("callbackContext")
-            contents = template.render()
-            project.overwrite(path, contents)
-        
         
         template = self.env.get_template("model.go.tple")
         for model_name, properties in models.items():
@@ -154,54 +156,6 @@ class GoLanguagePlugin(LanguagePlugin):
                 package_name=self.package_name,
                 model_name=self.namespace[2].capitalize(),
                 properties=properties,
-            )
-            project.overwrite(path, contents)
-        
-        myCmd = "gofmt -w {}".format(path)
-        call(myCmd, shell=True)
-
-        template = self.env.get_template("createHandler.go.tple")
-        for model_name, properties in models.items():
-            path = src / "{}.go".format("createHandler")
-            LOG.debug("%s model: %s", model_name, path)
-            contents = template.render(
-                model_name=self.namespace[2].capitalize(),
-            )
-            project.overwrite(path, contents)
-
-        template = self.env.get_template("deleteHandler.go.tple")
-        for model_name, properties in models.items():
-            path = src / "{}.go".format("deleteHandler")
-            LOG.debug("%s model: %s", model_name, path)
-            contents = template.render(
-                model_name=self.namespace[2].capitalize(),
-            )
-            project.overwrite(path, contents)
-        
-        template = self.env.get_template("readHandler.go.tple")
-        for model_name, properties in models.items():
-            path = src / "{}.go".format("readHandler")
-            LOG.debug("%s model: %s", model_name, path)
-            contents = template.render(
-                model_name=self.namespace[2].capitalize(),
-            )
-            project.overwrite(path, contents)
-
-        template = self.env.get_template("listHandler.go.tple")
-        for model_name, properties in models.items():
-            path = src / "{}.go".format("listHandler")
-            LOG.debug("%s model: %s", model_name, path)
-            contents = template.render(
-                model_name=self.namespace[2].capitalize(),
-            )
-            project.overwrite(path, contents)
-        
-        template = self.env.get_template("updateHandler.go.tple")
-        for model_name, properties in models.items():
-            path = src / "{}.go".format("updateHandler")
-            LOG.debug("%s model: %s", model_name, path)
-            contents = template.render(
-                model_name=self.namespace[2].capitalize(),
             )
             project.overwrite(path, contents)
         
@@ -219,6 +173,7 @@ class GoLanguagePlugin(LanguagePlugin):
         
         
         LOG.debug("Generate complete")
-
+       
     def package(self, project):
         pass
+        

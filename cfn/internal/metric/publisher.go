@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/internal/platform/injection/provider"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -27,20 +26,25 @@ const (
 	DimensionKeyResouceType = "ResourceType"
 )
 
+type serviceProvider interface {
+	Get() (cloudwatchiface.CloudWatchAPI, error)
+}
+
 // A Publisher represents an object that publishes metrics to AWS Cloudwatch.
 type Publisher struct {
-	cProvider *provider.CloudWatchProvider
+	cProvider serviceProvider
 	client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
 	namespace string                        // custom resouces's namespace
 }
 
 // New creates a new Publisher.
-func New(cloudWatchProvider *provider.CloudWatchProvider) *Publisher {
+func New(cloudWatchProvider serviceProvider) *Publisher {
 	return &Publisher{
 		cProvider: cloudWatchProvider,
 	}
 }
 
+//RefreshClient returns a new service session.
 func (p *Publisher) RefreshClient() error {
 
 	pr, err := p.cProvider.Get()

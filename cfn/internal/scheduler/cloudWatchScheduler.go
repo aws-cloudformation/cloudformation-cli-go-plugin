@@ -5,25 +5,29 @@ import (
 	"log"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/internal/platform/injection/provider"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
 
+type serviceProvider interface {
+	Get() (cloudwatcheventsiface.CloudWatchEventsAPI, error)
+}
+
 //CloudWatchScheduler is used to schedule Cloudwatch Events.
 type CloudWatchScheduler struct {
-	cProvider *provider.CloudWatchEventsProvider
+	cProvider serviceProvider
 	client    cloudwatcheventsiface.CloudWatchEventsAPI
 }
 
 //New creates a CloudWatchScheduler and returns a pointer to the struct.
-func New(cloudWatchEventsProvider *provider.CloudWatchEventsProvider) *CloudWatchScheduler {
+func New(cloudWatchEventsProvider serviceProvider) *CloudWatchScheduler {
 	return &CloudWatchScheduler{
 		cProvider: cloudWatchEventsProvider,
 	}
 }
 
+//RefreshClient returns a new service session.
 func (c *CloudWatchScheduler) RefreshClient() error {
 	pr, err := c.cProvider.Get()
 	if err != nil {

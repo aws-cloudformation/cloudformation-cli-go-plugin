@@ -1,4 +1,4 @@
-package cft
+package cfn
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 const succeed = "\u2713"
 const failed = "\u2717"
 
-//Helper function to load the request data from file.
+//loadData is a helper function that creates a HandlerRequest form a  data from file.
 func loadData(theRequest *HandlerRequest, path string) *HandlerRequest {
 
 	dat, err := ioutil.ReadFile(path)
@@ -36,7 +36,7 @@ func loadData(theRequest *HandlerRequest, path string) *HandlerRequest {
 
 }
 
-//Test lambda handler for invalid request. All request should cause a panic and return a fail response.
+//Test lambda handler for invalid request. All request should return a fail response.
 func TestInvokeHandlerinvalidRequestReturnFailure(t *testing.T) {
 	var empty interface{}
 
@@ -119,23 +119,24 @@ func TestInvokeHandlerinvalidRequestReturnFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource MockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
 				return tt.args.pr, tt.args.prError
 			}
 
 			re := NewMockResourceHandler(f)
 			var buf bytes.Buffer
 
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
 			p := Wrapper{
 				customResource: re,
-				sch:            scheduler.New(NewmockedEvents()),
-				metpub:         metric.New(NewMockedMetrics(), emptyResourceProperties.ResourceType),
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
-			m := p.metpub.Client.(*MockedMetrics)
-			e := p.sch.Client.(*MockedEvents)
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -216,53 +217,54 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsSuccess(t *testing.T) {
 		{"Create: Returns Success", args{context.Background(), *createRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"Delete: Returns Success", args{context.Background(), *deleteRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"List: Returns Success", args{context.Background(), *listRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"Read: Returns Success", args{context.Background(), *readRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"Update: Returns Success", args{context.Background(), *updateRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource MockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
 				return &proxy.ProgressEvent{OperationStatus: proxy.Complete, ResourceModel: resource}, nil
 			}
 
 			re := NewMockResourceHandler(f)
 			var buf bytes.Buffer
 
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
 			p := Wrapper{
 				customResource: re,
-				sch:            scheduler.New(NewmockedEvents()),
-				metpub:         metric.New(NewMockedMetrics(), tt.args.event.ResourceType),
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
-			m := p.metpub.Client.(*MockedMetrics)
-			e := p.sch.Client.(*MockedEvents)
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -347,23 +349,24 @@ func TestCustomHandlerProcessInvocationNoLambdaContextReturnsFailed(t *testing.T
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource MockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
 				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: resource, CallbackDelaySeconds: 120}, nil
 			}
 
 			re := NewMockResourceHandler(f)
 			var buf bytes.Buffer
 
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
 			p := Wrapper{
 				customResource: re,
-				sch:            scheduler.New(NewmockedEvents()),
-				metpub:         metric.New(NewMockedMetrics(), tt.args.event.ResourceType),
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
-			m := p.metpub.Client.(*MockedMetrics)
-			e := p.sch.Client.(*MockedEvents)
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -445,53 +448,54 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsInprogress(t *testing.T
 		{"Create: Returns Success", args{mockContext{}, *createRequest}, HandlerResponse{
 			OperationStatus: proxy.InProgress,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 1, 0},
 
 		{"Delete: Returns Success", args{mockContext{}, *deleteRequest}, HandlerResponse{
 			OperationStatus: proxy.InProgress,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 1, 0},
 
 		{"List: Returns Success", args{mockContext{}, *listRequest}, HandlerResponse{
 			OperationStatus: proxy.InProgress,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 1, 0},
 
 		{"Read: Returns Success", args{mockContext{}, *readRequest}, HandlerResponse{
 			OperationStatus: proxy.InProgress,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 1, 0},
 
 		{"Update: Returns Success", args{mockContext{}, *updateRequest}, HandlerResponse{
 			OperationStatus: proxy.InProgress,
 			BearerToken:     "123456",
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 1, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource MockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
 				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: resource, CallbackDelaySeconds: 120}, nil
 			}
 
 			re := NewMockResourceHandler(f)
 			var buf bytes.Buffer
 
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
 			p := Wrapper{
 				customResource: re,
-				sch:            scheduler.New(NewmockedEvents()),
-				metpub:         metric.New(NewMockedMetrics(), tt.args.event.ResourceType),
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
-			m := p.metpub.Client.(*MockedMetrics)
-			e := p.sch.Client.(*MockedEvents)
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -575,7 +579,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"Delete: Returns Failure", args{context.Background(), *deleteRequest}, HandlerResponse{
@@ -583,7 +587,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"List: Returns Failure", args{context.Background(), *listRequest}, HandlerResponse{
@@ -591,7 +595,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"Read: Returns Failure", args{context.Background(), *readRequest}, HandlerResponse{
@@ -599,7 +603,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
 		{"Update: Returns Failure", args{context.Background(), *updateRequest}, HandlerResponse{
@@ -607,29 +611,30 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   MockCustomResource{Property1: "abc", Property2: 123},
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource MockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
 				return &proxy.ProgressEvent{OperationStatus: proxy.FAILED, ResourceModel: resource, HandlerErrorCode: proxy.InternalFailure, Message: "Custom Fault"}, nil
 			}
 
 			re := NewMockResourceHandler(f)
 			var buf bytes.Buffer
 
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
 			p := Wrapper{
 				customResource: re,
-				sch:            scheduler.New(NewmockedEvents()),
-				metpub:         metric.New(NewMockedMetrics(), tt.args.event.ResourceType),
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
-			m := p.metpub.Client.(*MockedMetrics)
-			e := p.sch.Client.(*MockedEvents)
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -746,23 +751,24 @@ func TestCustomHandlerProcessInvocatioNullResponseReturnsFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource MockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
 				return nil, nil
 			}
 
 			re := NewMockResourceHandler(f)
 			var buf bytes.Buffer
 
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
 			p := Wrapper{
 				customResource: re,
-				sch:            scheduler.New(NewmockedEvents()),
-				metpub:         metric.New(NewMockedMetrics(), tt.args.event.ResourceType),
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
-			m := p.metpub.Client.(*MockedMetrics)
-			e := p.sch.Client.(*MockedEvents)
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {

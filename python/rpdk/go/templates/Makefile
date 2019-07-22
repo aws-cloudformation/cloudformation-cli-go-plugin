@@ -1,7 +1,7 @@
 .PHONY: build clean deploy
 
 build:
-	uluru-cli generate
+	cfn-cli generate
 	dep ensure -v
 	env GOOS=linux go build -ldflags="-s -w" -o bin/handler cmd/main.go
 

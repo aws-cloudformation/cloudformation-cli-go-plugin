@@ -4,12 +4,6 @@ import (
 	"encoding/json"
 )
 
-//ResourceHandlerRequest describes the request sent the resource CRUD handlers.
-type ResourceHandlerRequest struct {
-	ClientRequestToken        string
-	LogicalResourceIdentifier string
-}
-
 //RequestData describes the data used to build the resource handler request.
 type RequestData struct {
 	LogicalResourceID          string                 `json:"logicalResourceId"`

@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
 
 // CloudWatchProvider is a set of credentials which are set by the lambda request,
@@ -22,7 +23,7 @@ func NewCloudWatchProvider(credentialsProvider credentials.Provider) *CloudWatch
 }
 
 //Get returns a new CloudWatch service sesson.
-func (c *CloudWatchProvider) Get() (*cloudwatch.CloudWatch, error) {
+func (c *CloudWatchProvider) Get() (cloudwatchiface.CloudWatchAPI, error) {
 
 	// Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
 	// Exceptions.

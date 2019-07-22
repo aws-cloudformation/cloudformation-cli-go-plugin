@@ -33,11 +33,11 @@ const (
 
 // InvokeHandler is an interface that the custom resource must implement.
 type InvokeHandler interface {
-	CreateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	DeleteRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	ListRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	ReadRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
-	UpdateRequest(request *ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
+	CreateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
+	DeleteRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
+	ListRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
+	ReadRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
+	UpdateRequest(request *proxy.ResourceHandlerRequest, callbackContext json.RawMessage) (*proxy.ProgressEvent, error)
 }
 
 //Wrapper contains the dependencies off the Lambda function.
@@ -48,6 +48,7 @@ type Wrapper struct {
 	customResource InvokeHandler
 	creds          *credentials.Provider
 	logger         *log.Logger
+	ContextType    reflect.Type
 }
 
 //initialiseRuntime initialises dependencies which are depending on credentials
@@ -211,6 +212,20 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		if !computeLocally {
 			break
 		}
+
+		//Rebuild the CallContext.
+		v := reflect.ValueOf(w.customResource)
+
+		// Custom resource DesiredResourceState struct.
+		cv := v.Elem().FieldByName("CallbackContext")
+
+		//Check if the field is found and that it's a strut value.
+		if !cv.IsValid() || cv.Kind() != reflect.Struct {
+			panic("Unable to find CallbackContext in customResource")
+		}
+
+		cv.Set(reflect.ValueOf(hr.CallbackContext))
+
 	}
 
 	return hr, nil
@@ -245,7 +260,7 @@ func (w *Wrapper) logUnhandledError(errorDescription string, request *HandlerReq
 //WrapInvocationAndHandleErrors invokes the handler implementation for the request, and handles certain classes of errors and correctly map those to
 //the appropriate HandlerErrorCode Also wraps the invocation in last-mile
 //timing metrics.
-func (w *Wrapper) wrapInvocationAndHandleErrors(input *ResourceHandlerRequest, request *HandlerRequest) (progressEvent *proxy.ProgressEvent) {
+func (w *Wrapper) wrapInvocationAndHandleErrors(input *proxy.ResourceHandlerRequest, request *HandlerRequest) (progressEvent *proxy.ProgressEvent) {
 
 	//Handle all panics from the resource handler, log the error and return a failed Wrapper event.
 	defer func(event *HandlerRequest) {
@@ -406,7 +421,7 @@ func (w *Wrapper) scheduleReinvocation(c context.Context, req *HandlerRequest, h
 //Using reflection, finds the type of th custom resource,
 //Unmarshalls DesiredResource and PreviousResourceState and the CallBackContext, sets the field in the
 //CustomHandler and returns a ResourceHandlerRequest.
-func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
+func (w *Wrapper) transform(r HandlerRequest) *proxy.ResourceHandlerRequest {
 
 	// Custom resource struct.
 	v := reflect.ValueOf(w.customResource)
@@ -463,6 +478,11 @@ func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 	//Create new callBackContext.
 	cr := reflect.New(cv.Type())
 
+	//Set the CallBackContext type in wrapper so that it can be used to rebuild the context
+	//when the CallbackDelaySeconds is < 60 seconds.
+
+	w.ContextType = cv.Type()
+
 	//Try to unmarshhal the into the strut field.
 	if r.Data.PreviousResourceProperties != nil {
 		if err := json.Unmarshal([]byte(r.Data.PreviousResourceProperties), cr.Interface()); err != nil {
@@ -470,10 +490,10 @@ func (w *Wrapper) transform(r HandlerRequest) *ResourceHandlerRequest {
 		}
 	}
 
-	//Set the resource.
+	//Set the callBackContext.
 	cv.Set(cr.Elem())
 
-	return &ResourceHandlerRequest{
+	return &proxy.ResourceHandlerRequest{
 		ClientRequestToken:        r.BearerToken,
 		LogicalResourceIdentifier: r.Data.LogicalResourceID,
 	}

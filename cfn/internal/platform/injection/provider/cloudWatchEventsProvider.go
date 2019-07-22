@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
 
 // CloudWatchEventsProvider is a set of credentials which are set by the lambda request,
@@ -22,7 +23,7 @@ func NewCloudWatchEventsProvider(credentialsProvider credentials.Provider) *Clou
 }
 
 //Get returns a new CloudWatchEvents service sesson.
-func (c *CloudWatchEventsProvider) Get() (*cloudwatchevents.CloudWatchEvents, error) {
+func (c *CloudWatchEventsProvider) Get() (cloudwatcheventsiface.CloudWatchEventsAPI, error) {
 
 	// Default Retry Condition of Retry Policy retries on Throttling and ClockSkew
 	// Exceptions.

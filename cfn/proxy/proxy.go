@@ -93,6 +93,12 @@ type ProgressEvent struct {
 	ResourceModels []interface{}
 }
 
+//ResourceHandlerRequest describes the request sent the resource CRUD handlers.
+type ResourceHandlerRequest struct {
+	ClientRequestToken        string
+	LogicalResourceIdentifier string
+}
+
 //DefaultFailureHandler is a convenience method for constructing a FAILED response.
 func DefaultFailureHandler(e error, handlerErrorCode string) *ProgressEvent {
 

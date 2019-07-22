@@ -139,7 +139,6 @@ func TestInvokeHandlerinvalidRequestReturnFailure(t *testing.T) {
 
 			p.sch.RefreshClient()
 			p.metpub.RefreshClient()
-			//p.cbak.RefreshClient()
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn"
 	"{{ path }}"
 )
 
@@ -21,6 +21,6 @@ func main() {
 
 	r := resource.New()
 
-	proxy.Start(r)
+	cfn.Start(r)
 
 }

@@ -10,11 +10,11 @@ import (
 //main is the entry point of the applicaton.
 //**Starts the serice proxy. The type passed to the Start function must implement the InvokerHandler interface.
 //type InvokeHandler interface {
-//	CreateRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-//	DeleteRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-//	ListRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-//	ReadRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
-//	UpdateRequest(request *ResourceHandlerRequest, context RequestContext) (*ProgressEvent, error)
+    //CreateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	//DeleteRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	//ListRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	//ReadRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
+	//UpdateRequest(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error)
 //}
 //
 func main() {

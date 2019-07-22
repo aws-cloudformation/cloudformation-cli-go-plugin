@@ -106,14 +106,14 @@ func TestInvokeHandlerinvalidRequestReturnFailure(t *testing.T) {
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   empty,
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 1, 0, 0, 0, 0},
 		{"Create Resource: Returns Missing required platform credentials Error", args{context.Background(), *withoutPlatformCredentialsRequest, nil, nil}, HandlerResponse{
 			Message:         "Missing required platform credentials",
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			ErrorCode:       proxy.InternalFailure,
-			ResourceModel:   empty,
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 1, 0, 0, 0, 0},
 	}
 	for _, tt := range tests {
@@ -137,6 +137,9 @@ func TestInvokeHandlerinvalidRequestReturnFailure(t *testing.T) {
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
+			//p.cbak.RefreshClient()
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -214,31 +217,31 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsSuccess(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"Create: Returns Success", args{context.Background(), *createRequest}, HandlerResponse{
+		{"Create: Returns Success", args{mockContext{}, *createRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"Delete: Returns Success", args{context.Background(), *deleteRequest}, HandlerResponse{
+		{"Delete: Returns Success", args{mockContext{}, *deleteRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"List: Returns Success", args{context.Background(), *listRequest}, HandlerResponse{
+		{"List: Returns Success", args{mockContext{}, *listRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"Read: Returns Success", args{context.Background(), *readRequest}, HandlerResponse{
+		{"Read: Returns Success", args{mockContext{}, *readRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"Update: Returns Success", args{context.Background(), *updateRequest}, HandlerResponse{
+		{"Update: Returns Success", args{mockContext{}, *updateRequest}, HandlerResponse{
 			OperationStatus: proxy.Complete,
 			BearerToken:     "123456",
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
@@ -264,6 +267,9 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsSuccess(t *testing.T) {
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
+
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
 
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
@@ -366,6 +372,9 @@ func TestCustomHandlerProcessInvocationNoLambdaContextReturnsFailed(t *testing.T
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
+
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
 
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
@@ -496,6 +505,9 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsInprogress(t *testing.T
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
 
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
+
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
 			if err != nil {
@@ -574,7 +586,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"Create: Returns Failure", args{context.Background(), *createRequest}, HandlerResponse{
+		{"Create: Returns Failure", args{mockContext{}, *createRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
@@ -582,7 +594,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"Delete: Returns Failure", args{context.Background(), *deleteRequest}, HandlerResponse{
+		{"Delete: Returns Failure", args{mockContext{}, *deleteRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
@@ -590,7 +602,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"List: Returns Failure", args{context.Background(), *listRequest}, HandlerResponse{
+		{"List: Returns Failure", args{mockContext{}, *listRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
@@ -598,7 +610,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"Read: Returns Failure", args{context.Background(), *readRequest}, HandlerResponse{
+		{"Read: Returns Failure", args{mockContext{}, *readRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
@@ -606,7 +618,7 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
 		}, false, 0, 1, 1, 0, 0},
 
-		{"Update: Returns Failure", args{context.Background(), *updateRequest}, HandlerResponse{
+		{"Update: Returns Failure", args{mockContext{}, *updateRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Custom Fault",
@@ -634,6 +646,9 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
+
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
 
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 
@@ -713,35 +728,35 @@ func TestCustomHandlerProcessInvocatioNullResponseReturnsFailure(t *testing.T) {
 		wantrescheduleAfterMinutesCount    int
 		wantcleanupCloudWatchEvents        int
 	}{
-		{"Create: Returns Failure", args{context.Background(), *createRequest}, HandlerResponse{
+		{"Create: Returns Failure", args{mockContext{}, *createRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Handler returned null",
 			ErrorCode:       proxy.InternalFailure,
 		}, false, 1, 1, 1, 0, 0},
 
-		{"Delete: Returns Failure", args{context.Background(), *deleteRequest}, HandlerResponse{
+		{"Delete: Returns Failure", args{mockContext{}, *deleteRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Handler returned null",
 			ErrorCode:       proxy.InternalFailure,
 		}, false, 1, 1, 1, 0, 0},
 
-		{"List: Returns Failure", args{context.Background(), *listRequest}, HandlerResponse{
+		{"List: Returns Failure", args{mockContext{}, *listRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Handler returned null",
 			ErrorCode:       proxy.InternalFailure,
 		}, false, 1, 1, 1, 0, 0},
 
-		{"Read: Returns Failure", args{context.Background(), *readRequest}, HandlerResponse{
+		{"Read: Returns Failure", args{mockContext{}, *readRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Handler returned null",
 			ErrorCode:       proxy.InternalFailure,
 		}, false, 1, 1, 1, 0, 0},
 
-		{"Update: Returns Failure", args{context.Background(), *updateRequest}, HandlerResponse{
+		{"Update: Returns Failure", args{mockContext{}, *updateRequest}, HandlerResponse{
 			OperationStatus: proxy.FAILED,
 			BearerToken:     "123456",
 			Message:         "Handler returned null",
@@ -768,6 +783,9 @@ func TestCustomHandlerProcessInvocatioNullResponseReturnsFailure(t *testing.T) {
 				cbak:           nil,
 				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
 			}
+
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
 
 			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
 

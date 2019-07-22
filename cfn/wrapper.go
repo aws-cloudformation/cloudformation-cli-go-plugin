@@ -100,17 +100,17 @@ func (w *Wrapper) HandleLambdaEvent(ctx context.Context, request HandlerRequest)
 		hr = proxy.DefaultFailureHandler(err, proxy.InternalFailure)
 		w.logger.Println(fmt.Sprintf("%s in a %s action on a %s: n%s", "HandlerRequest panic", request.Action, request.ResourceType, debug.Stack()))
 
-		if (reflect.DeepEqual(request, HandlerRequest{})) {
-			if (reflect.DeepEqual(request.Data, RequestData{})) {
+		if (!reflect.DeepEqual(request, HandlerRequest{})) {
+			if (!reflect.DeepEqual(request.Data, RequestData{})) {
 				hr.ResourceModel = request.Data.ResourceProperties
 			}
 			if perr := w.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 
 		} else {
 			if perr := w.metpub.PublishExceptionMetric(time.Now(), request.Action, err); perr != nil {
-				log.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
 			}
 		}
 	}
@@ -126,9 +126,12 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 			err := &errs.TerminalError{CustomerFacingErrorMessage: "Internal error"}
 
 			// Log the Go stack trace for this panic'd goroutine.
-			w.logger.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
-			pr = nil
-			e = err
+			fmt.Println(fmt.Sprintf("%s in a %s action on a %s: %s\n%s", "processInvocation panic", event.Action, event.ResourceType, r, debug.Stack()))
+			pr = proxy.DefaultFailureHandler(err, proxy.InternalFailure)
+			if perr := w.metpub.PublishExceptionMetric(time.Now(), event.Action, err); perr != nil {
+				w.logger.Printf("%s : %s", "Publish error metric failed ", perr.Error())
+			}
+			e = nil
 		}
 	}(&req)
 
@@ -217,7 +220,7 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 		v := reflect.ValueOf(w.customResource)
 
 		// Custom resource DesiredResourceState struct.
-		cv := v.Elem().FieldByName("CallbackContext")
+		cv := v.Elem().FieldByName("CallBackContext")
 
 		//Check if the field is found and that it's a strut value.
 		if !cv.IsValid() || cv.Kind() != reflect.Struct {
@@ -443,7 +446,7 @@ func (w *Wrapper) transform(r HandlerRequest) *proxy.ResourceHandlerRequest {
 	}
 
 	// Custom resource DesiredResourceState struct.
-	cv := v.Elem().FieldByName("CallbackContext")
+	cv := v.Elem().FieldByName("CallBackContext")
 
 	//Check if the field is found and that it's a strut value.
 	if !cv.IsValid() || cv.Kind() != reflect.Struct {

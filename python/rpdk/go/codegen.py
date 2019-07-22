@@ -14,7 +14,7 @@ from subprocess import call
 LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
-EXECUTABLE = "uluru-cli"
+EXECUTABLE = "cfn-cli"
 
 
 class GoLanguagePlugin(LanguagePlugin):
@@ -61,11 +61,26 @@ class GoLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
         
         # CloudFormation/SAM template for handler lambda
-        path = project.root / "template.yaml"
+        path = project.root / "template.yml"
         LOG.debug("Writing SAM template: %s", path)
-        template = self.env.get_template("Handler.yaml")
+        template = self.env.get_template("template.yml")
+
+        handler_params = {
+            "Handler": project.entrypoint,
+            "Runtime": project.runtime,
+            "CodeUri": self.CODE_URI.format(artifact_id),
+        }
         contents = template.render(
             resource_type=project.type_name,
+            functions={
+                "TypeFunction": handler_params,
+                "TestEntrypoint": {
+                    **handler_params,
+                    "Handler": handler_params["Handler"].replace(
+                        "handleRequest", "testEntrypoint"
+                    ),
+                },
+            },
         )
         project.safewrite(path, contents)
 

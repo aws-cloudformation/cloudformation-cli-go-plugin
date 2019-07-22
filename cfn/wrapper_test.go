@@ -119,7 +119,7 @@ func TestInvokeHandlerinvalidRequestReturnFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
 				return tt.args.pr, tt.args.prError
 			}
 
@@ -250,8 +250,8 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsSuccess(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
-				return &proxy.ProgressEvent{OperationStatus: proxy.Complete, ResourceModel: resource}, nil
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
+				return &proxy.ProgressEvent{OperationStatus: proxy.Complete, ResourceModel: r}, nil
 			}
 
 			re := NewMockResourceHandler(f)
@@ -355,8 +355,8 @@ func TestCustomHandlerProcessInvocationNoLambdaContextReturnsFailed(t *testing.T
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
-				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: resource, CallbackDelaySeconds: 120}, nil
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
+				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: r, CallbackDelaySeconds: 120}, nil
 			}
 
 			re := NewMockResourceHandler(f)
@@ -487,8 +487,8 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsInprogress(t *testing.T
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
-				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: resource, CallbackDelaySeconds: 120}, nil
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
+				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: r, CallbackDelaySeconds: 120}, nil
 			}
 
 			re := NewMockResourceHandler(f)
@@ -563,6 +563,142 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsInprogress(t *testing.T
 
 }
 
+func TestCustomHandlerProcessInvocationComputeLocalReturnsSuccess(t *testing.T) {
+
+	createRequest := loadData(&HandlerRequest{}, "tests/data/create.request.json")
+	deleteRequest := loadData(&HandlerRequest{}, "tests/data/delete.request.json")
+	listRequest := loadData(&HandlerRequest{}, "tests/data/list.request.json")
+	readRequest := loadData(&HandlerRequest{}, "tests/data/read.request.json")
+	updateRequest := loadData(&HandlerRequest{}, "tests/data/update.request.json")
+
+	type args struct {
+		ctx   context.Context
+		event HandlerRequest
+	}
+	tests := []struct {
+		name                               string
+		args                               args
+		want                               HandlerResponse
+		wantErr                            bool
+		wantHandlerExceptionCount          int
+		wantHandlerInvocationCount         int
+		wantHandlerInvocationDurationCount int
+		wantrescheduleAfterMinutesCount    int
+		wantcleanupCloudWatchEvents        int
+	}{
+		{"Create: Returns Success", args{mockContext{}, *createRequest}, HandlerResponse{
+			OperationStatus: proxy.Complete,
+			BearerToken:     "123456",
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
+		}, false, 0, 6, 6, 0, 0},
+
+		{"Delete: Returns Success", args{mockContext{}, *deleteRequest}, HandlerResponse{
+			OperationStatus: proxy.Complete,
+			BearerToken:     "123456",
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
+		}, false, 0, 6, 6, 0, 0},
+
+		{"List: Returns Success", args{mockContext{}, *listRequest}, HandlerResponse{
+			OperationStatus: proxy.Complete,
+			BearerToken:     "123456",
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
+		}, false, 0, 6, 6, 0, 0},
+
+		{"Read: Returns Success", args{mockContext{}, *readRequest}, HandlerResponse{
+			OperationStatus: proxy.Complete,
+			BearerToken:     "123456",
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
+		}, false, 0, 6, 6, 0, 0},
+
+		{"Update: Returns Success", args{mockContext{}, *updateRequest}, HandlerResponse{
+			OperationStatus: proxy.Complete,
+			BearerToken:     "123456",
+			ResourceModel:   mockCustomResource{Property1: "abc", Property2: 123},
+		}, false, 0, 6, 6, 0, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
+				if c.Count == 5 {
+					return &proxy.ProgressEvent{OperationStatus: proxy.Complete, ResourceModel: r}, nil
+				}
+
+				c.Count++
+				return &proxy.ProgressEvent{OperationStatus: proxy.InProgress, ResourceModel: r, CallbackDelaySeconds: 1, CallbackContext: *c}, nil
+			}
+
+			re := NewMockResourceHandler(f)
+			var buf bytes.Buffer
+
+			e := NewMockedEvents()
+			m := NewMockedMetrics()
+
+			p := Wrapper{
+				customResource: re,
+				sch:            scheduler.New(NewMockCloudWatchEventsProvider(e)),
+				metpub:         metric.New(NewMockCloudWatchProvider(m)),
+				cbak:           nil,
+				logger:         log.New(&buf, "INFO: ", log.Lshortfile),
+			}
+
+			p.sch.RefreshClient()
+			p.metpub.RefreshClient()
+
+			got, err := p.HandleLambdaEvent(tt.args.ctx, tt.args.event)
+
+			if err != nil {
+				panic(err)
+			}
+
+			if m.HandlerExceptionCount == tt.wantHandlerExceptionCount {
+				t.Logf("\t%s\tHandlerException metric should be invoked (%v) times.", succeed, tt.wantHandlerExceptionCount)
+			} else {
+				t.Errorf("\t%s\tHandlerException metric should be invoked (%v) times : %v", failed, tt.wantHandlerExceptionCount, m.HandlerExceptionCount)
+			}
+
+			if m.HandlerInvocationCount == tt.wantHandlerInvocationCount {
+				t.Logf("\t%s\tHandlerInvocation metric should be invoked (%v) times.", succeed, tt.wantHandlerInvocationCount)
+			} else {
+				t.Errorf("\t%s\tHandlerInvocation metric should be invoked (%v) times : %v", failed, tt.wantHandlerInvocationCount, m.HandlerInvocationCount)
+			}
+
+			if m.HandlerInvocationDurationCount == tt.wantHandlerInvocationDurationCount {
+				t.Logf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times.", succeed, tt.wantHandlerInvocationDurationCount)
+			} else {
+				t.Errorf("\t%s\tHandlerInvocationDuration metric should be invoked (%v) times : %v", failed, tt.wantHandlerInvocationDurationCount, m.HandlerInvocationDurationCount)
+			}
+
+			if e.RescheduleAfterMinutesCount == tt.wantrescheduleAfterMinutesCount {
+				t.Logf("\t%s\tRescheduleAfterMinutesCount method should be invoked (%v) times.", succeed, tt.wantrescheduleAfterMinutesCount)
+			} else {
+				t.Errorf("\t%s\tRescheduleAfterMinutesCount method should be invoked (%v) times : %v", failed, tt.wantrescheduleAfterMinutesCount, e.RescheduleAfterMinutesCount)
+			}
+
+			if e.CleanupCloudWatchEventsCount == tt.wantcleanupCloudWatchEvents {
+				t.Logf("\t%s\tCleanupCloudWatchEventsCount metric should be invoked (%v) times.", succeed, tt.wantcleanupCloudWatchEvents)
+			} else {
+				t.Errorf("\t%s\tCleanupCloudWatchEventsCount should be invoked (%v) times : %v", failed, tt.wantcleanupCloudWatchEvents, e.CleanupCloudWatchEventsCount)
+			}
+
+			if got.OperationStatus == tt.want.OperationStatus {
+				t.Logf("\t%s\tShould receive a %s status code.", succeed, tt.want.OperationStatus)
+			} else {
+				t.Errorf("\t%s\tShould receive a %s status code : %v", failed, tt.want.OperationStatus, got.OperationStatus)
+			}
+
+			gotResult, _ := json.MarshalIndent(got, "", "  ")
+			wantResult, _ := json.MarshalIndent(tt.want, "", "  ")
+			if reflect.DeepEqual(gotResult, wantResult) {
+				t.Logf("\t%s\tHandler Response should match.", string(succeed))
+			} else {
+				t.Errorf("\t%s\tHandler Response should match \nGot:\n%v\nWant:\n%v", failed, string(gotResult), string(wantResult))
+			}
+
+		})
+	}
+
+}
 func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 
 	createRequest := loadData(&HandlerRequest{}, "tests/data/create.request.json")
@@ -629,8 +765,8 @@ func TestCustomHandlerProcessInvocationsynchronousReturnsFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
-				return &proxy.ProgressEvent{OperationStatus: proxy.FAILED, ResourceModel: resource, HandlerErrorCode: proxy.InternalFailure, Message: "Custom Fault"}, nil
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
+				return &proxy.ProgressEvent{OperationStatus: proxy.FAILED, ResourceModel: r, HandlerErrorCode: proxy.InternalFailure, Message: "Custom Fault"}, nil
 			}
 
 			re := NewMockResourceHandler(f)
@@ -766,7 +902,7 @@ func TestCustomHandlerProcessInvocatioNullResponseReturnsFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			var f tFunc = func(resource mockCustomResource) (*proxy.ProgressEvent, error) {
+			var f tFunc = func(r *mockCustomResource, c *MockCallBackContext) (*proxy.ProgressEvent, error) {
 				return nil, nil
 			}
 

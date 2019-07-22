@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
-//A list of vaild Cloudformation actions.
+//Vaild Cloudformation actions.
 const (
 	create = "CREATE"
 	delete = "DELETE"
@@ -51,8 +51,7 @@ type Wrapper struct {
 	ContextType    reflect.Type
 }
 
-//initialiseRuntime initialises dependencies which are depending on credentials
-//passed at function invoke and not available during construction
+//initialiseRuntime initialises the dependencies.
 func (w *Wrapper) initialiseRuntime(creds *Credentials, u *url.URL) {
 
 	// initialisation skipped if these dependencies were set during injection (in
@@ -170,7 +169,6 @@ func (w *Wrapper) processInvocation(cx context.Context, req HandlerRequest) (pr 
 	w.checkReinvoke(req.Context)
 
 	// Set a duration.
-	//TODO: set Duration value to Constant
 	duration := 60 * time.Second
 	computeLocally := true
 	for {

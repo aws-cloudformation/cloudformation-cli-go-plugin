@@ -6,7 +6,7 @@ class ModelResolverError(Exception):
     pass
 
 
-class CSharpModelResolver:
+class GOModelResolver:
     """This class takes in a flattened schema map (output of the JsonSchemaFlattener),
     and builds a full set of Go types.
     """
@@ -55,11 +55,11 @@ class CSharpModelResolver:
             class_name = self._ref_to_class_map[ref_path]
             model_property_map = {}
             for prop_name, prop_schema in sub_schema["properties"].items():
-                model_property_map[prop_name] = self._csharp_property_type(prop_schema)
+                model_property_map[prop_name] = self._go_property_type(prop_schema)
             models[class_name] = model_property_map
         return models
 
-    def _csharp_property_type(self, property_schema):
+    def _go_property_type(self, property_schema):
         """Return the Go type for a flattened schema.
         If the schema is a ref, the class is determined from the ref_to_class_map
         """
@@ -73,10 +73,10 @@ class CSharpModelResolver:
         json_type = property_schema.get("type", "object")
 
         if json_type == "array":
-            return self._csharp_array_type(property_schema)
+            return self._go_array_type(property_schema)
 
         if json_type == "object":
-            return self._csharp_object_type(property_schema)
+            return self._go_object_type(property_schema)
 
         primitive_types_map = {
             "string": "string",
@@ -87,7 +87,7 @@ class CSharpModelResolver:
 
         return primitive_types_map[json_type]
 
-    def _csharp_array_type(self, property_schema):
+    def _go_array_type(self, property_schema):
         """For an array type, we create a Go slice.
         """
         try:
@@ -95,12 +95,12 @@ class CSharpModelResolver:
         except KeyError:
             array_items_class_name = "interface{}"
         else:
-            array_items_class_name = self._csharp_property_type(items)
+            array_items_class_name = self._go_property_type(items)
 
         return "[]{}".format(array_items_class_name)
 
-    def _csharp_object_type(self, property_schema):
-        """Resolves an array type schema to a C# class.  An object type will
+    def _go_object_type(self, property_schema):
+        """Resolves an array type schema to a Go type.  An object type will
         always be a Dictionary<String, V>
         * If patternProperties is defined, V is determined by the schema for the
         pattern. We do not care about the pattern itself, since that is only used
@@ -117,7 +117,7 @@ class CSharpModelResolver:
         else:
             if len(pattern_properties) != 1:
                 return "Dictionary<string, object>"  # bad schema definition
-            pattern_properties_class_name = self._csharp_property_type(
+            pattern_properties_class_name = self._go_property_type(
                 pattern_properties[0][1]
             )
             return "Dictionary<string, {}>".format(pattern_properties_class_name)
@@ -147,7 +147,7 @@ def base_class_from_ref(ref_path):
     >>> base_class_from_ref(())   # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    csharp.model_resolver.ModelResolverError:
+    go.model_resolver.ModelResolverError:
     Could not create a valid class from schema at '#'
     """
     parent_keywords = ("properties", "definitions")

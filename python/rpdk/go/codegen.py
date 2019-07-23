@@ -8,7 +8,7 @@ from rpdk.core.data_loaders import resource_stream
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.core.plugin_base import LanguagePlugin
 
-from .model_resolver import CSharpModelResolver
+from .model_resolver import GOModelResolver
 from .utils import safe_reserved
 from subprocess import call
 

@@ -4,3 +4,9 @@
 
 # our logs
 rpdk.log
+
+#compiled file
+bin/
+
+#vender
+vender/

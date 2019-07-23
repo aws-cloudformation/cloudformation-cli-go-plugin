@@ -22,7 +22,7 @@ class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "go1.x"
     ENTRY_POINT = "handler"
-    CODE_URI = "./bin"
+    CODE_URI = "bin/"
 
     def __init__(self):
         self.env = self._setup_jinja_env(

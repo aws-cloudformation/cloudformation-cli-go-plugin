@@ -142,7 +142,7 @@ class GoLanguagePlugin(LanguagePlugin):
         # project folder structure
         src = (project.root / "cmd"  / "resource")
         
-        model_resolver = CSharpModelResolver(objects, "Resource")
+        model_resolver = GOModelResolver(objects, "Resource")
         models = model_resolver.resolve_models()
 
         LOG.debug("Writing %d models", len(models))

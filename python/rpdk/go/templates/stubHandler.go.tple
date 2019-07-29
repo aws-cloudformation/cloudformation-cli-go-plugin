@@ -17,6 +17,6 @@ func (r *{{ model_name|uppercase_first_letter }}) {{operation|uppercase_first_le
 		OperationStatus:      proxy.Complete,
 		Message:              "Complete",
 		CallbackDelaySeconds: 0,
-		
+
 	},nil
 }

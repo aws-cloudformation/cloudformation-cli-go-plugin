@@ -59,13 +59,13 @@ class GoLanguagePlugin(LanguagePlugin):
         inter.mkdir(parents=True, exist_ok=True)
 
 
-        # Makefile    
+        # Makefile
         path = project.root / "Makefile"
         LOG.debug("Writing Makefile: %s", path)
         template = self.env.get_template("Makefile")
         contents = template.render()
         project.safewrite(path, contents)
-        
+
         # CloudFormation/SAM template for handler lambda
         path = project.root / "template.yml"
         LOG.debug("Writing SAM template: %s", path)
@@ -110,7 +110,7 @@ class GoLanguagePlugin(LanguagePlugin):
             files="generated.go and main.go"
         )
         project.safewrite(path, contents)
-        
+
         LOG.debug("Init complete")
 
     def init_handlers(self, project, src):
@@ -134,20 +134,20 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def generate(self, project):
         LOG.debug("Generate started")
-   
+
         self._namespace_from_project(project)
 
         objects = JsonSchemaFlattener(project.schema).flatten_schema()
 
         # project folder structure
         src = (project.root / "cmd"  / "resource")
-        
+
         model_resolver = GOModelResolver(objects, "Resource")
         models = model_resolver.resolve_models()
 
         LOG.debug("Writing %d models", len(models))
 
-        
+
         template = self.env.get_template("model.go.tple")
         for model_name, properties in models.items():
             path = src / "{}.go".format("generated")
@@ -158,7 +158,7 @@ class GoLanguagePlugin(LanguagePlugin):
                 properties=properties,
             )
             project.overwrite(path, contents)
-        
+
         path = project.root / "cmd"  / "main.go"
         parts = os.path.split(path)
         LOG.debug("Writing project: %s", path)
@@ -170,10 +170,9 @@ class GoLanguagePlugin(LanguagePlugin):
             path=parts[1] + '/resource'
         )
         project.overwrite(path, contents)
-        
-        
+
+
         LOG.debug("Generate complete")
-       
+
     def package(self, project):
         pass
-        

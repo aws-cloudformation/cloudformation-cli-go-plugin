@@ -51,16 +51,6 @@ class GoLanguagePlugin(LanguagePlugin):
         tst.mkdir(parents=True, exist_ok=True)
         
         
-        path = project.root / "cmd"  / self.namespace[2].lower() / "main.go"
-        LOG.debug("Writing project: %s", path)
-        template = self.env.get_template("main.go")
-        contents = template.render(
-            model_name=self.namespace[2],
-            path=project.root / "cmd"  / self.namespace[2].lower() / "resource",
-        )
-        project.safewrite(path, contents)
-
-        
         path = project.root / "Makefile"
         LOG.debug("Writing Makefile: %s", path)
         template = self.env.get_template("Makefile")
@@ -77,40 +67,7 @@ class GoLanguagePlugin(LanguagePlugin):
             resource_type=project.type_name,
         )
         project.safewrite(path, contents)
-        '''
-        LOG.debug("Writing stub handlers")
-        template = self.env.get_template("StubHandler.cs")
-
-        for operation in OPERATIONS:
-            path = src / "{}Handler.cs".format(operation)
-            LOG.debug("%s handler: %s", operation, path)
-            contents = template.render(
-                package_name=self.package_name,
-                operation=operation,
-                model_name="ResourceModel",
-            )
-            project.safewrite(path, contents)
-
-        path = src / "Configuration.cs"
-        LOG.debug("Writing configuration: %s", path)
-        template = self.env.get_template("StubConfiguration.cs")
-        contents = template.render(
-            package_name=self.package_name, schema_file_name=project.schema_filename
-        )
-        project.safewrite(path, contents)
-
-        path = project.root / "README.md"
-        LOG.debug("Writing README: %s", path)eneccccbiekdcjvngjnceegtbeibtbjbgdbjkvuvctre
-
-        template = self.env.get_template("README.md")
-        contents = template.render(
-            type_name=project.type_name,
-            schema_path=project.schema_path,
-            executable=EXECUTABLE,
-            generated_root=self._get_generated_root(project)
-        )
-        project.safewrite(path, contents)
-      '''
+        
         LOG.debug("Init complete")
 
     
@@ -142,17 +99,26 @@ class GoLanguagePlugin(LanguagePlugin):
 
         template = self.env.get_template("Model.go")
         for model_name, properties in models.items():
-            path = src / "{}.go".format(model_name)
+            path = src / "{}.go".format(model_name.lower())
             LOG.debug("%s model: %s", model_name, path)
             contents = template.render(
                 package_name=self.package_name,
-                model_name=model_name,
+                model_name=self.namespace[2].capitalize(),
                 properties=properties,
             )
             project.overwrite(path, contents)
-        LOG.debug("Format type")
-        myCmd = "gofmt -w {}".format(path)
-        os.system(myCmd)
+        
+        path = project.root / "cmd"  / self.namespace[2].lower() / "main.go"
+        parts = os.path.split(path)
+        LOG.debug("Writing project: %s", path)
+        template = self.env.get_template("main.go")
+        gopath='{}/src/'.format(os.environ['GOPATH'])
+        parts = parts[0].split(gopath)
+        contents = template.render(
+            model_name=self.namespace[2],
+            path=parts[1] + '/resource'
+        )
+        project.overwrite(path, contents)
         
         '''
         path = src / "HandlerWrapper.cs"

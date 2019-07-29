@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/proxy"
-	{{ path }}
+	"{{ path }}"
 )
 
 func main() {

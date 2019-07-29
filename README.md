@@ -36,8 +36,4 @@ This plugin create a sample golang project and requires golang 1.8 or above and 
 License
 -------
 
-<<<<<<< HEAD
 This library is licensed under the Apache 2.0 License.
-=======
-This library is licensed under the Apache 2.0 License.
->>>>>>> 2a6b715176eb91b801b88eab4354a8a0df54e99e

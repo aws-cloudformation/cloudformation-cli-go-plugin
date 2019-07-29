@@ -28,6 +28,8 @@ wheels/
 *.code-workspace
 .project
 bin/
+Pipfile
+Pipfile.lock
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

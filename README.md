@@ -1,6 +1,6 @@
 ## AWS CloudFormation RPDK Go Plugin
 
-The CloudFormation Provider Development Toolkit Go Plugin allows you to autogenerate Golang code based on an input schema.
+The CloudFormation Provider Development Toolkit Go Plugin allows you to autogenerate Go code based on an input schema.
 
 ## License
 

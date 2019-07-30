@@ -173,8 +173,8 @@ class GoLanguagePlugin(LanguagePlugin):
 
         # run format the code
         LOG.debug("Formatting project: %s", src)
-        check_output(["gofmt", "-w", project.root])        
-        
+        check_output(["gofmt", "-w", project.root])
+
         LOG.debug("Generate complete")
 
     def package(self, project):

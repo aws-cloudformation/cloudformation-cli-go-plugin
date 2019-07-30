@@ -10,7 +10,7 @@ from rpdk.core.plugin_base import LanguagePlugin
 
 from .model_resolver import GOModelResolver
 from .utils import safe_reserved
-from subprocess import call
+from subprocess import check_output
 
 LOG = logging.getLogger(__name__)
 
@@ -171,7 +171,10 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
-
+        # run format the code
+        LOG.debug("Formatting project: %s", src)
+        check_output(["gofmt", "-w", project.root])        
+        
         LOG.debug("Generate complete")
 
     def package(self, project):

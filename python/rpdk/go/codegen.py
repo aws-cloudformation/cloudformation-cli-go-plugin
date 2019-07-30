@@ -171,7 +171,7 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
-        # run format the code
+        # format the code
         LOG.debug("Formatting project: %s", src)
         check_output(["gofmt", "-w", project.root])
 

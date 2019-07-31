@@ -172,7 +172,7 @@ class GoLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
 
         # format the code
-        LOG.debug("Formatting project: %s", src)
+        LOG.debug("Formatting directory: %s", project.root)
         check_output(["gofmt", "-w", project.root])
 
         LOG.debug("Generate complete")

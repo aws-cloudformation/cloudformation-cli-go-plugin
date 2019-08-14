@@ -3,47 +3,137 @@ package cfn
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
 const (
-	invalidRequestErrorCode string = "InvalidRequest"
+	InvalidRequestError  string = "InvalidRequest"
+	ServiceInternalError string = "ServiceInternal"
+	ValidationError      string = "Validation"
 )
 
-// Builder ...
+// BuilderFn is a convenience type for the builder callback.
+// It enables the creation of resource types without being tied
+// to a specific resource struct.
+type BuilderFn func() interface{}
+
+// Builder enables the creation of resource structs whenever
+// they are required.
 type Builder interface {
+	// BuilderCallback stores the creation function
+	//
+	// Example:
+	// 	type (r *Resource) BuilderCallback(func() interface{} {
+	//		return new(Resource)
+	//	})
+	BuilderCallback(BuilderFn)
+
+	// Build will execute the stored callback function
 	Build() interface{}
 }
 
-// BuilderCallbackFn ...
-type BuilderCallbackFn func() interface{}
-
-// Handlers ...
+// Handlers represents the actions from the AWS CloudFormation service
+//
+// Each action maps directly to a CloudFormation action. Every action is
+// expected to return a response and/or an error.
+//
+// A valid error condition would be met if the resource operation failed or
+// an API is no longer available.
 type Handlers interface {
-	Builder
+	// Implement the `Builder` interface to allow the RPDK to create structs that match the resource.
+	//
+	// This interface is called during the hydration of the event lifecycle.
+	// Builder
 
-	Create(ctx context.Context, request Request)
-	Read(ctx context.Context, request Request)
-	Update(ctx context.Context, request Request)
-	Delete(ctx context.Context, request Request)
-	List(ctx context.Context, request Request)
+	// Create action
+	Create(ctx context.Context, request Request) (Response, error)
+
+	// Read action
+	Read(ctx context.Context, request Request) (Response, error)
+
+	// Update action
+	Update(ctx context.Context, request Request) (Response, error)
+
+	// Delete action
+	Delete(ctx context.Context, request Request) (Response, error)
+
+	// List action
+	List(ctx context.Context, request Request) (Response, error)
 }
 
-type Body struct {
-	AWSAccountID        string
-	ResponseEndpoint    string
-	BearerToken         string
+// Event base structure, it will be internal to the RPDK.
+//
+// @todo Consider moving to an internal pkg
+type Event struct {
+	Action              action.Action
+	AWSAccountID        string `validate:"min=12"`
+	BearerToken         string `validate:"nonzero"`
+	Context             *RequestContext
 	NextToken           string
-	Region              string
-	ResourceType        string
-	ResourceTypeVersion string
-	Context             context.Context
-	Data                string
-	StackID             string
+	Region              string `validate:"nonzero"`
+	RequestData         *RequestData
+	ResourceType        string `validate:"nonzero"`
+	ResourceTypeVersion float32
+	ResponseEndpoint    string `validate:"nonzero"`
+	StackID             string `validate:"nonzero"`
+} // may need to manually unmarshal?
+
+// RequestData is internal to the RPDK. It contains a number of fields that are for
+// internal use only.
+//
+// @todo Consider moving to an internal pkg
+type RequestData struct {
+	CallerCredentials          *credentials.Credentials
+	LogicalResourceID          string
+	PlatformCredentials        *credentials.Credentials
+	PreviousResourceProperties json.RawMessage
+	PreviousStackTags          Tags
+	ProviderCredentials        *credentials.Credentials
+	ProviderLogGroupName       string
+	ResourceProperties         json.RawMessage
+	StackTags                  Tags
+	SystemTags                 Tags
+}
+
+// RequestContext handles elements such as reties and long running creations.
+//
+// @todo Consider moving to an internal pkg
+type RequestContext struct {
+	CallbackContext          map[string]string
+	CloudWatchEventsRuleName string
+	CloudWatchEventsTargetID string
+	Invocation               int32
+}
+
+// Tags are store as key/value pairs.
+type Tags map[string]string
+
+// EventFunc ...
+type EventFunc func(ctx context.Context, event Event) (Response, error)
+
+// HandlerFunc ...
+type HandlerFunc func(ctx context.Context, request Request) (Response, error)
+
+// Request will be passed to actions with customer related data, such as resource states
+type Request interface {
+	Action() action.Action
+	PreviousResourceProperties(v interface{}) error
+	ResourceProperties(v interface{}) error
+	LogicalResourceID() string
+	BearerToken() string
+	ResponseEndpoint() string
+}
+
+// Response ...
+type Response interface {
+	json.Marshaler
 }
 
 // Router decides which handler should be invoked based on the action
@@ -64,38 +154,63 @@ func Router(a action.Action, h Handlers) (HandlerFunc, error) {
 		return h.List, nil
 	default:
 		// No action matched, we should fail and return an invalidRequestErrorCode
-		return nil, cfnerr.New(invalidRequestErrorCode, "No action/invalid action specified", nil)
+		return nil, cfnerr.New(InvalidRequestError, "No action/invalid action specified", nil)
 	}
 }
 
-// HandlerFunc type
-type HandlerFunc func(ctx context.Context, request Request)
+func ValidateEvent(event *Event) error {
+	errs := []error{}
 
-// Request ...
-type Request interface {
-	json.Unmarshaler
+	if len(event.BearerToken) == 0 {
+		errs = append(errs, errors.New("Bearer Token is empty"))
+	}
 
-	Action() action.Action
-}
+	if len(event.ResponseEndpoint) == 0 {
+		errs = append(errs, errors.New("Response Endpoint is empty"))
+	}
 
-// Response ...
-type Response interface {
-	json.Marshaler
+	if len(event.ResourceType) == 0 {
+		errs = append(errs, errors.New("Resource Type not specified"))
+	}
+
+	if len(errs) > 0 {
+		return cfnerr.NewBatchError(ValidationError, "Failed Vailidation", errs)
+	}
+
+	return nil
 }
 
 // Handler is the entry point to all invocations of a custom resource
-func Handler(h Handlers) HandlerFunc {
-	return func(ctx context.Context, request Request) {
-		handlerFn, err := Router(request.Action(), h)
+func Handler(h Handlers) EventFunc {
+	return func(ctx context.Context, event Event) (Response, error) {
+		handlerFn, err := Router(event.Action, h)
 		if err != nil {
-			// return a failure output
+			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+			return handler.NewFailedResponse(cfnErr), cfnErr
 		}
 
-		handlerFn(ctx, request)
+		// @todo validate input - based on spec?
+
+		request := handler.NewRequest(
+			event.Action,
+			event.RequestData.PreviousResourceProperties,
+			event.RequestData.ResourceProperties,
+			event.RequestData.LogicalResourceID,
+			event.BearerToken,
+			event.ResponseEndpoint,
+		)
+
+		resp, err := handlerFn(ctx, request)
+		if err != nil {
+			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+			return handler.NewFailedResponse(cfnErr), err
+		}
+
+		return resp, nil
 	}
 }
 
 // Start ...
-func Start(h HandlerFunc) {
+func Start(h EventFunc) {
 	lambda.Start(h)
 }

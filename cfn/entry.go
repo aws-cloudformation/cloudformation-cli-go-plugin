@@ -53,19 +53,19 @@ type Handlers interface {
 	// Builder
 
 	// Create action
-	Create(ctx context.Context, request Request) (Response, error)
+	Create(request Request) (Response, error)
 
 	// Read action
-	Read(ctx context.Context, request Request) (Response, error)
+	Read(request Request) (Response, error)
 
 	// Update action
-	Update(ctx context.Context, request Request) (Response, error)
+	Update(request Request) (Response, error)
 
 	// Delete action
-	Delete(ctx context.Context, request Request) (Response, error)
+	Delete(request Request) (Response, error)
 
 	// List action
-	List(ctx context.Context, request Request) (Response, error)
+	List(request Request) (Response, error)
 }
 
 // Event base structure, it will be internal to the RPDK.
@@ -119,7 +119,7 @@ type Tags map[string]string
 type EventFunc func(ctx context.Context, event Event) (Response, error)
 
 // HandlerFunc ...
-type HandlerFunc func(ctx context.Context, request Request) (Response, error)
+type HandlerFunc func(request Request) (Response, error)
 
 // Request will be passed to actions with customer related data, such as resource states
 type Request interface {
@@ -200,7 +200,7 @@ func Handler(h Handlers) EventFunc {
 			event.ResponseEndpoint,
 		)
 
-		resp, err := handlerFn(ctx, request)
+		resp, err := handlerFn(request)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			return handler.NewFailedResponse(cfnErr), err

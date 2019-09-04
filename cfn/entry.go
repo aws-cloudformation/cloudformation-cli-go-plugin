@@ -12,6 +12,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+
+	"gopkg.in/validator.v2"
 )
 
 const (
@@ -155,28 +157,15 @@ func Router(a action.Action, h Handlers) (HandlerFunc, error) {
 	case action.List:
 		return h.List, nil
 	default:
-		// No action matched, we should fail and return an invalidRequestErrorCode
+		// No action matched, we should fail and return an InvalidRequestErrorCode
 		return nil, cfnerr.New(InvalidRequestError, "No action/invalid action specified", nil)
 	}
 }
 
+// ValidateEvent ...
 func ValidateEvent(event *Event) error {
-	errs := []error{}
-
-	if len(event.BearerToken) == 0 {
-		errs = append(errs, errors.New("Bearer Token is empty"))
-	}
-
-	if len(event.ResponseEndpoint) == 0 {
-		errs = append(errs, errors.New("Response Endpoint is empty"))
-	}
-
-	if len(event.ResourceType) == 0 {
-		errs = append(errs, errors.New("Resource Type not specified"))
-	}
-
-	if len(errs) > 0 {
-		return cfnerr.NewBatchError(ValidationError, "Failed Vailidation", errs)
+	if err := validator.Validate(event); err != nil {
+		return cfnerr.New(ValidationError, "Failed Validation", err)
 	}
 
 	return nil

@@ -75,9 +75,9 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action Action, e erro
 }
 
 //PublishInvocationMetric publishes an invocation metric.
-func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error {
+func (p *Publisher) PublishInvocationMetric(date time.Time, action Action) error {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:   action,
+		DimensionKeyAcionType:   action.String(),
 		DimensionKeyResouceType: p.namespace,
 	}
 
@@ -91,9 +91,9 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error
 }
 
 //PublishDurationMetric publishes an duration metric.
-func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) error {
+func (p *Publisher) PublishDurationMetric(date time.Time, action Action, secs float64) error {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:   action,
+		DimensionKeyAcionType:   action.String(),
 		DimensionKeyResouceType: p.namespace,
 	}
 

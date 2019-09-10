@@ -58,9 +58,9 @@ func (p *Publisher) RefreshClient() error {
 }
 
 //PublishExceptionMetric publishes an exception metric.
-func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e error) error {
+func (p *Publisher) PublishExceptionMetric(date time.Time, action Action, e error) error {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:     action,
+		DimensionKeyAcionType:     action.String(),
 		DimensionKeyExceptionType: e.Error(),
 		DimensionKeyResouceType:   p.SetResourceTypeName(p.namespace),
 	}

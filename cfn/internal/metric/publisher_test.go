@@ -63,7 +63,7 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 	}
 	type args struct {
 		date   time.Time
-		action string
+		action Action
 		e      error
 	}
 	tests := []struct {
@@ -79,10 +79,10 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 		wantUnit                      string
 		wantValue                     float64
 	}{
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "CREATE", errors.New("failed to create resource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "CREATE", errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "UPDATE", errors.New("failed to create resource")}, "HandlerException", false, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "UPDATE", errors.New("failed to create resource")}, "HandlerException", true, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Create, errors.New("failed to create resource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Create, errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Update, errors.New("failed to create resource")}, "HandlerException", false, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Update, errors.New("failed to create resource")}, "HandlerException", true, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

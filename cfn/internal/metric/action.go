@@ -1,4 +1,4 @@
-package action
+package metric
 
 import (
 	"strings"
@@ -24,6 +24,7 @@ func (c Action) String() string {
 	return actions[c]
 }
 
+//Convert a string to an Action
 func Convert(s string) Action {
 	action := strings.ToUpper(s)
 

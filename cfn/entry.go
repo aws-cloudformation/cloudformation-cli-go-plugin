@@ -19,6 +19,7 @@ import (
 const (
 	InvalidRequestError  string        = "InvalidRequest"
 	ServiceInternalError string        = "ServiceInternal"
+	UnmarshalingError    string        = "UnmarshalingError"
 	ValidationError      string        = "Validation"
 	Timeout              time.Duration = 60 * time.Second
 )
@@ -99,11 +100,34 @@ type RequestData struct {
 	PlatformCredentials        *credentials.Credentials
 	PreviousResourceProperties json.RawMessage
 	PreviousStackTags          Tags
-	ProviderCredentials        *credentials.Credentials
 	ProviderLogGroupName       string
 	ResourceProperties         json.RawMessage
 	StackTags                  Tags
 	SystemTags                 Tags
+}
+
+func (rd *RequestData) UnmarshalJSON(b []byte) error {
+	var d struct {
+		CallerCredentials          map[string]string
+		LogicalResourceID          string
+		PlatformCredentials        map[string]string
+		PreviousResourceProperties json.RawMessage
+		PreviousStackTags          Tags
+		ProviderLogGroupName       string
+		ResourceProperties         json.RawMessage
+		StackTags                  Tags
+		SystemTags                 Tags
+	}
+
+	if err := json.Unmarshal(b, &d); err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
+	}
+
+	rd.LogicalResourceID = d.LogicalResourceID
+	rd.ProviderLogGroupName = d.ProviderLogGroupName
+	rd.PreviousResourceProperties = d.PreviousResourceProperties
+
+	return nil
 }
 
 // RequestContext handles elements such as reties and long running creations.
@@ -127,12 +151,10 @@ type HandlerFunc func(request Request) (Response, error)
 
 // Request will be passed to actions with customer related data, such as resource states
 type Request interface {
-	Action() action.Action
 	PreviousResourceProperties(v interface{}) error
 	ResourceProperties(v interface{}) error
 	LogicalResourceID() string
 	BearerToken() string
-	ResponseEndpoint() string
 }
 
 // Response ...
@@ -183,12 +205,10 @@ func Handler(h Handlers) EventFunc {
 		// @todo validate input - based on spec?
 
 		request := handler.NewRequest(
-			event.Action,
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
 			event.RequestData.LogicalResourceID,
 			event.BearerToken,
-			event.ResponseEndpoint,
 		)
 
 		resp, err := Invoke(handlerFn, request)

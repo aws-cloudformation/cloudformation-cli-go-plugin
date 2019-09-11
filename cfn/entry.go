@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
@@ -14,9 +15,10 @@ import (
 )
 
 const (
-	InvalidRequestError  string = "InvalidRequest"
-	ServiceInternalError string = "ServiceInternal"
-	ValidationError      string = "Validation"
+	InvalidRequestError  string        = "InvalidRequest"
+	ServiceInternalError string        = "ServiceInternal"
+	ValidationError      string        = "Validation"
+	Timeout              time.Duration = 60 * time.Second
 )
 
 // BuilderFn is a convenience type for the builder callback.
@@ -200,7 +202,7 @@ func Handler(h Handlers) EventFunc {
 			event.ResponseEndpoint,
 		)
 
-		resp, err := handlerFn(request)
+		resp, err := Invoke(handlerFn, request)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			return handler.NewFailedResponse(cfnErr), err
@@ -208,6 +210,52 @@ func Handler(h Handlers) EventFunc {
 
 		return resp, nil
 	}
+}
+
+//Invoke handles the invocation of the handerFn.
+func Invoke(handlerFn HandlerFunc, request handler.NewRequest) (Response, error) {
+	for {
+		// Create a context that is both manually cancellable and will signal
+		// a cancel at the specified duration.
+		ctx, cancel := context.WithTimeout(context.Background(), Timeout)
+		//We always defer a cancel.
+		defer cancel()
+
+		// Create a channel to received a signal that work is done.
+		ch := make(chan Response, 1)
+
+		// Create a channel to received error.
+		cherror := make(chan error, 1)
+
+		// Ask the goroutine to do some work for us.
+		go func() {
+			// Report the work is done.
+			resp, err := handlerFn(request)
+
+			if err != nil {
+				cherror <- err
+			}
+
+			ch <- resp
+		}()
+
+		// Wait for the work to finish. If it takes too long move on. If the function returns an error, signal the error channel.
+		select {
+		case e := <-cherror:
+			//The handler returned an error.
+			return nil, e
+
+		case d := <-ch:
+			//Return the response from the handler.
+			return d, nil
+
+		case <-ctx.Done():
+			//handler failed to respond.
+			return nil, errors.New("Handler failed to respond")
+		}
+
+	}
+
 }
 
 // Start ...

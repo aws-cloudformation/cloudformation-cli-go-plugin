@@ -42,12 +42,15 @@ func Convert(s string) Action {
 		}
 	}
 
-	return 0
+	return Unknown
 }
 
 const (
+	// Unknown ...
+	Unknown Action = iota
+
 	// Create ...
-	Create Action = iota + 1
+	Create
 
 	// Read ...
 	Read

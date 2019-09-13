@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
 )
 
 type Props struct {
@@ -43,45 +44,87 @@ func TestNewRequest(t *testing.T) {
 
 	})
 
-	t.Run("Invalid Body", func(t *testing.T) {
-		req := NewRequest([]byte(``), []byte(``), "foo", "123")
+	t.Run("ResourceProps", func(t *testing.T) {
+		t.Run("Invalid Body", func(t *testing.T) {
+			req := NewRequest([]byte(``), []byte(``), "foo", "123")
 
-		invalid := struct {
-			Color int `json:"color"`
-		}{}
+			invalid := struct {
+				Color int `json:"color"`
+			}{}
 
-		err := req.ResourceProperties(&invalid)
-		if err == nil {
-			t.Fatalf("Didn't throw an error")
-		}
+			err := req.ResourceProperties(&invalid)
+			if err == nil {
+				t.Fatalf("Didn't throw an error")
+			}
 
-		cfnErr := err.(cfnerr.Error)
-		if cfnErr.Code() != BodyEmptyError {
-			t.Fatalf("Wrong error returned: %v", err)
-		}
+			cfnErr := err.(cfnerr.Error)
+			if cfnErr.Code() != BodyEmptyError {
+				t.Fatalf("Wrong error returned: %v", err)
+			}
+		})
+
+		t.Run("Invalid Marshal", func(t *testing.T) {
+			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo", "123")
+
+			invalid := struct {
+				Color int `json:"color"`
+			}{}
+
+			err := req.ResourceProperties(&invalid)
+			if err == nil {
+				t.Fatalf("Didn't throw an error")
+			}
+
+			cfnErr := err.(cfnerr.Error)
+			if cfnErr.Code() != MarshalingError {
+				t.Fatalf("Wrong error returned: %v", err)
+			}
+		})
 	})
 
-	t.Run("Invalid Marshal", func(t *testing.T) {
-		req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo", "123")
+	t.Run("PreviousResourceProps", func(t *testing.T) {
+		t.Run("Invalid Body", func(t *testing.T) {
+			req := NewRequest([]byte(``), []byte(``), "foo", "123")
 
-		invalid := struct {
-			Color int `json:"color"`
-		}{}
+			invalid := struct {
+				Color int `json:"color"`
+			}{}
 
-		err := req.ResourceProperties(&invalid)
-		if err == nil {
-			t.Fatalf("Didn't throw an error")
-		}
+			err := req.PreviousResourceProperties(&invalid)
+			if err == nil {
+				t.Fatalf("Didn't throw an error")
+			}
 
-		cfnErr := err.(cfnerr.Error)
-		if cfnErr.Code() != MarshalingError {
-			t.Fatalf("Wrong error returned: %v", err)
-		}
+			cfnErr := err.(cfnerr.Error)
+			if cfnErr.Code() != BodyEmptyError {
+				t.Fatalf("Wrong error returned: %v", err)
+			}
+		})
+
+		t.Run("Invalid Marshal", func(t *testing.T) {
+			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo", "123")
+
+			invalid := struct {
+				Color int `json:"color"`
+			}{}
+
+			err := req.PreviousResourceProperties(&invalid)
+			if err == nil {
+				t.Fatalf("Didn't throw an error")
+			}
+
+			cfnErr := err.(cfnerr.Error)
+			if cfnErr.Code() != MarshalingError {
+				t.Fatalf("Wrong error returned: %v", err)
+			}
+		})
 	})
 }
 
 func TestNewResponse(t *testing.T) {
-	// noop
+	t.Run("New Response", func(t *testing.T) {
+		NewResponse()
+	})
 }
 
 func TestNewFailedResponse(t *testing.T) {
@@ -97,5 +140,10 @@ func TestNewFailedResponse(t *testing.T) {
 		if resp.Message() != "SomeFailure: Some internal failure" {
 			t.Fatalf("Wrong message: %v", resp.Message())
 		}
+
+		if resp.OperationStatus() != operationstatus.Failed {
+			t.Fatalf("Wrong operationstatus: %v", resp.OperationStatus())
+		}
 	})
+
 }

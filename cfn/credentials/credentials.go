@@ -7,8 +7,8 @@ import (
 // CloudFormationCredentialsProviderName ...
 const CloudFormationCredentialsProviderName = "CloudFormationCredentialsProvider"
 
-// New ...
-func New(accessKeyID string, secretAccessKey string, sessionToken string) credentials.Provider {
+// NewProvider ...
+func NewProvider(accessKeyID string, secretAccessKey string, sessionToken string) credentials.Provider {
 	return &CloudFormationCredentialsProvider{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
@@ -35,9 +35,9 @@ func (c *CloudFormationCredentialsProvider) Retrieve() (credentials.Value, error
 	c.retrieved = false
 
 	value := credentials.Value{
-		AccessKeyID:     "123",
-		SecretAccessKey: "123",
-		SessionToken:    "123",
+		AccessKeyID:     c.AccessKeyID,
+		SecretAccessKey: c.SecretAccessKey,
+		SessionToken:    c.SessionToken,
 		ProviderName:    CloudFormationCredentialsProviderName,
 	}
 

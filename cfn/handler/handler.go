@@ -76,19 +76,31 @@ func NewResponse() *Response {
 // NewFailedResponse ...
 func NewFailedResponse(err error) *Response {
 	return &Response{
-		OperationStatus: operationstatus.Failed,
-		ErrorCode:       err,
-		Message:         err.Error(),
+		operationStatus: operationstatus.Failed,
+		errorCode:       err,
+		message:         err.Error(),
 	}
 }
 
 // Response ...
 type Response struct {
-	Message         string
-	OperationStatus operationstatus.Status
+	message         string
+	operationStatus operationstatus.Status
 	ResourceModel   string
 	BearerToken     string
-	ErrorCode       error
+	errorCode       error
+}
+
+func (r *Response) Message() string {
+	return r.message
+}
+
+func (r *Response) OperationStatus() operationstatus.Status {
+	return r.operationStatus
+}
+
+func (r *Response) Error() error {
+	return r.errorCode
 }
 
 // MarshalJSON ...

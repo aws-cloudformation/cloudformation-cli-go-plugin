@@ -2,40 +2,35 @@ package scheduler
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
 
-type serviceProvider interface {
-	Get() (cloudwatcheventsiface.CloudWatchEventsAPI, error)
-}
-
 //CloudWatchScheduler is used to schedule Cloudwatch Events.
 type CloudWatchScheduler struct {
-	cProvider serviceProvider
-	client    cloudwatcheventsiface.CloudWatchEventsAPI
+	client cloudwatcheventsiface.CloudWatchEventsAPI
 }
 
 //New creates a CloudWatchScheduler and returns a pointer to the struct.
-func New(cloudWatchEventsProvider serviceProvider) *CloudWatchScheduler {
+func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 	return &CloudWatchScheduler{
-		cProvider: cloudWatchEventsProvider,
+		client: sess,
 	}
 }
 
 //RescheduleAfterMinutes schedules a re-invocation of the executing handler no less than 1 minute from now.
 func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int, callbackRequest string, t time.Time, uID string, rn string, tID string) error {
-	if c.cProvider == nil {
-		return errors.New("Failed to retresh client")
-	}
+
 	if minFromNow < 1 {
 		minFromNow = 1
 	}
-	if arn == "" {
+	if len(arn) == 0 {
 		e := "Arn is required."
 		return errors.New(e)
 	}
@@ -73,16 +68,12 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.
 //After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
 func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName string, cloudWatchEventsTargetID string) error {
-	if c.cProvider == nil {
-		return errors.New("Failed to retresh client")
+
+	if len(cloudWatchEventsRuleName) == 0 {
+		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsRuleName is required"))
 	}
-	if cloudWatchEventsRuleName == "" {
-		e := "cloudWatchEventsRuleName is required."
-		return errors.New(e)
-	}
-	if cloudWatchEventsTargetID == "" {
-		e := "cloudWatchEventsTargetID is required."
-		return errors.New(e)
+	if len(cloudWatchEventsTargetID) == 0 {
+		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsTargetID is required"))
 	}
 	t, err := c.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
 		Ids: []*string{
@@ -91,8 +82,9 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 		Rule: aws.String(cloudWatchEventsRuleName),
 	})
 	if err != nil {
-		log.Printf("Error cleaning CloudWatchEvents Target (targetId=%s)", cloudWatchEventsTargetID)
-		return err
+		es := fmt.Sprintf("Error cleaning CloudWatchEvents Target (targetId=%s)", cloudWatchEventsTargetID)
+		log.Println(es)
+		return cfnerr.New(ServiceInternalError, es, err)
 	}
 	log.Printf("CloudWatchEvents Target (targetId=%s) removed", cloudWatchEventsTargetID)
 	log.Printf("CloudWatchEvents remove Target reponse: %s", t)
@@ -100,8 +92,9 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 		Name: aws.String(cloudWatchEventsRuleName),
 	})
 	if err != nil {
-		log.Printf("Error cleaning CloudWatchEvents (ruleName=%s)", cloudWatchEventsRuleName)
-		return err
+		es := fmt.Sprintf("Error cleaning CloudWatchEvents (ruleName=%s)", cloudWatchEventsRuleName)
+		log.Println(es)
+		return cfnerr.New(ServiceInternalError, es, err)
 	}
 	log.Printf("CloudWatchEvents (ruleName=%s) removed", cloudWatchEventsRuleName)
 	log.Printf("CloudWatchEvents remove Rule reponse reponse: %s", r)

@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+const (
+	InvalidRequestError  string = "InvalidRequest"
+	ServiceInternalError string = "ServiceInternal"
+	ValidationError      string = "Validation"
+)
+
 //GenerateOneTimeCronExpression a cron(..) expression for a single instance at Now+minutesFromNow
 func GenerateOneTimeCronExpression(minutesFromNow int, t time.Time) string {
 	a := t.Add(time.Minute * time.Duration(minutesFromNow))

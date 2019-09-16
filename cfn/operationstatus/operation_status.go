@@ -33,17 +33,17 @@ func Convert(s string) Status {
 	}
 
 	for i, v := range statuses {
-		if status == v {
+		if status == strings.ToUpper(v) {
 			return Status(i)
 		}
 	}
 
-	return 0
+	return Unknown
 }
 
 const (
-	// Create ...
-	Create Status = iota + 1
+	// Unknown ...
+	Unknown Status = iota
 
 	// InProgress ...
 	InProgress

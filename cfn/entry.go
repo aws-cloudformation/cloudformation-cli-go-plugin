@@ -12,11 +12,14 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+
+	"gopkg.in/validator.v2"
 )
 
 const (
 	InvalidRequestError  string        = "InvalidRequest"
 	ServiceInternalError string        = "ServiceInternal"
+	UnmarshalingError    string        = "UnmarshalingError"
 	ValidationError      string        = "Validation"
 	Timeout              time.Duration = 60 * time.Second
 )
@@ -97,11 +100,34 @@ type RequestData struct {
 	PlatformCredentials        *credentials.Credentials
 	PreviousResourceProperties json.RawMessage
 	PreviousStackTags          Tags
-	ProviderCredentials        *credentials.Credentials
 	ProviderLogGroupName       string
 	ResourceProperties         json.RawMessage
 	StackTags                  Tags
 	SystemTags                 Tags
+}
+
+func (rd *RequestData) UnmarshalJSON(b []byte) error {
+	var d struct {
+		CallerCredentials          map[string]string
+		LogicalResourceID          string
+		PlatformCredentials        map[string]string
+		PreviousResourceProperties json.RawMessage
+		PreviousStackTags          Tags
+		ProviderLogGroupName       string
+		ResourceProperties         json.RawMessage
+		StackTags                  Tags
+		SystemTags                 Tags
+	}
+
+	if err := json.Unmarshal(b, &d); err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
+	}
+
+	rd.LogicalResourceID = d.LogicalResourceID
+	rd.ProviderLogGroupName = d.ProviderLogGroupName
+	rd.PreviousResourceProperties = d.PreviousResourceProperties
+
+	return nil
 }
 
 // RequestContext handles elements such as reties and long running creations.
@@ -125,12 +151,10 @@ type HandlerFunc func(request Request) (Response, error)
 
 // Request will be passed to actions with customer related data, such as resource states
 type Request interface {
-	Action() action.Action
 	PreviousResourceProperties(v interface{}) error
 	ResourceProperties(v interface{}) error
 	LogicalResourceID() string
 	BearerToken() string
-	ResponseEndpoint() string
 }
 
 // Response ...
@@ -155,28 +179,15 @@ func Router(a action.Action, h Handlers) (HandlerFunc, error) {
 	case action.List:
 		return h.List, nil
 	default:
-		// No action matched, we should fail and return an invalidRequestErrorCode
+		// No action matched, we should fail and return an InvalidRequestErrorCode
 		return nil, cfnerr.New(InvalidRequestError, "No action/invalid action specified", nil)
 	}
 }
 
+// ValidateEvent ...
 func ValidateEvent(event *Event) error {
-	errs := []error{}
-
-	if len(event.BearerToken) == 0 {
-		errs = append(errs, errors.New("Bearer Token is empty"))
-	}
-
-	if len(event.ResponseEndpoint) == 0 {
-		errs = append(errs, errors.New("Response Endpoint is empty"))
-	}
-
-	if len(event.ResourceType) == 0 {
-		errs = append(errs, errors.New("Resource Type not specified"))
-	}
-
-	if len(errs) > 0 {
-		return cfnerr.NewBatchError(ValidationError, "Failed Vailidation", errs)
+	if err := validator.Validate(event); err != nil {
+		return cfnerr.New(ValidationError, "Failed Validation", err)
 	}
 
 	return nil
@@ -194,12 +205,10 @@ func Handler(h Handlers) EventFunc {
 		// @todo validate input - based on spec?
 
 		request := handler.NewRequest(
-			event.Action,
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
 			event.RequestData.LogicalResourceID,
 			event.BearerToken,
-			event.ResponseEndpoint,
 		)
 
 		resp, err := Invoke(handlerFn, request)

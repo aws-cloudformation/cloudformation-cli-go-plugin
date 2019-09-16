@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
 )
@@ -14,14 +13,12 @@ const (
 )
 
 // NewRequest ...
-func NewRequest(a action.Action, previousBody json.RawMessage, body json.RawMessage, logicalResourceID string, bearerToken string, endpoint string) *Request {
+func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string, bearerToken string) *Request {
 	req := &Request{
-		action:                         a,
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
 		logicalResourceID:              logicalResourceID,
 		bearerToken:                    bearerToken,
-		responseEndpoint:               endpoint,
 	}
 
 	return req
@@ -29,17 +26,10 @@ func NewRequest(a action.Action, previousBody json.RawMessage, body json.RawMess
 
 // Request ...
 type Request struct {
-	action                         action.Action
 	previousResourcePropertiesBody json.RawMessage
 	resourcePropertiesBody         json.RawMessage
 	logicalResourceID              string
 	bearerToken                    string
-	responseEndpoint               string
-}
-
-// Action returns the action to be performed
-func (r *Request) Action() action.Action {
-	return r.action
 }
 
 // PreviousResourceProperties ...
@@ -78,11 +68,6 @@ func (r *Request) BearerToken() string {
 	return r.bearerToken
 }
 
-// ResponseEndpoint ...
-func (r *Request) ResponseEndpoint() string {
-	return r.responseEndpoint
-}
-
 // NewResponse ...
 func NewResponse() *Response {
 	return &Response{}
@@ -91,19 +76,31 @@ func NewResponse() *Response {
 // NewFailedResponse ...
 func NewFailedResponse(err error) *Response {
 	return &Response{
-		OperationStatus: operationstatus.Failed,
-		ErrorCode:       err,
-		Message:         err.Error(),
+		operationStatus: operationstatus.Failed,
+		errorCode:       err,
+		message:         err.Error(),
 	}
 }
 
 // Response ...
 type Response struct {
-	Message         string
-	OperationStatus operationstatus.Status
+	message         string
+	operationStatus operationstatus.Status
 	ResourceModel   string
 	BearerToken     string
-	ErrorCode       error
+	errorCode       error
+}
+
+func (r *Response) Message() string {
+	return r.message
+}
+
+func (r *Response) OperationStatus() operationstatus.Status {
+	return r.operationStatus
+}
+
+func (r *Response) Error() error {
+	return r.errorCode
 }
 
 // MarshalJSON ...

@@ -123,17 +123,16 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 					client: tt.fields.Client,
 				}
 				cp, err := c.Reschedule(tt.args.ctx, tt.args.secFromNow, tt.args.callbackContext)
-				if err != nil && !tt.wantErr {
+				if err != nil && tt.wantErr {
 
-					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", Failed, err)
+					t.Logf("\t%s\tShould be able to make the RescheduleAfterMinutes call.", Succeed)
 					return
 				}
-				t.Logf("\t%s\tShould be able to make the RescheduleAfterMinutes call.", Succeed)
 
-				if cp == tt.computeLocal {
+				if cp.ComputeLocal == tt.computeLocal {
 					t.Logf("\t%s\tCompute Local should be (%v).", Succeed, tt.computeLocal)
 				} else {
-					t.Errorf("\t%s\tCompute Local should be (%v). : Value:%v", Failed, tt.computeLocal, cp)
+					t.Errorf("\t%s\tCompute Local should be (%v). : Value:%v", Failed, tt.computeLocal, cp.ComputeLocal)
 					return
 				}
 

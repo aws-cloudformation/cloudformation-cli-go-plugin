@@ -20,6 +20,15 @@ const (
 	TargentPrepend string = "reinvoke-target-%s"
 )
 
+type CloudWatchSchedulerResults struct {
+	//Denotes if the computation was done locally.
+	ComputeLocal bool
+	//The Cloudwatch target ID.
+	Target string
+	//The Cloudwatch tandler ID.
+	Handler string
+}
+
 //CloudWatchScheduler is used to schedule Cloudwatch Events.
 type CloudWatchScheduler struct {
 	client cloudwatcheventsiface.CloudWatchEventsAPI
@@ -36,8 +45,7 @@ func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 //invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
-//Returns if re-invoke locally.
-func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (bool, error) {
+func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*CloudWatchSchedulerResults, error) {
 
 	lc, _ := lambdacontext.FromContext(lambdaCtx)
 
@@ -46,16 +54,16 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 
 	if secsFromNow <= 0 {
 		err := errors.New("Scheduled seconds must be greater than 0")
-		return false, cfnerr.New(ServiceInternalError, "Scheduled seconds must be greater than 0", err)
+		return nil, cfnerr.New(ServiceInternalError, "Scheduled seconds must be greater than 0", err)
 	}
 
 	uID, err := uuid.NewUUID()
 
 	if err != nil {
-		return false, cfnerr.New(ServiceInternalError, "uuid error", err)
+		return nil, cfnerr.New(ServiceInternalError, "uuid error", err)
 	}
 
-	rn := fmt.Sprintf(HandlerPrepend, uID)
+	hID := fmt.Sprintf(HandlerPrepend, uID)
 	tID := fmt.Sprintf(TargentPrepend, uID)
 
 	if secsFromNow < 60 && secondsUnitDeadline > float64(secsFromNow)*1.2 {
@@ -64,7 +72,7 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 
 		time.Sleep(time.Duration(secsFromNow) * time.Second)
 
-		return true, nil
+		return &CloudWatchSchedulerResults{ComputeLocal: true, Handler: hID, Target: tID}, nil
 	}
 
 	//re-invoke through CloudWatchEvents no less than 1 minute from now.
@@ -76,16 +84,16 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
 	_, rerr := c.client.PutRule(&cloudwatchevents.PutRuleInput{
 
-		Name:               aws.String(rn),
+		Name:               aws.String(hID),
 		ScheduleExpression: aws.String(cr),
 		State:              aws.String(cloudwatchevents.RuleStateEnabled),
 	})
 
 	if rerr != nil {
-		return false, cfnerr.New(ServiceInternalError, "Schedule error", rerr)
+		return nil, cfnerr.New(ServiceInternalError, "Schedule error", rerr)
 	}
 	_, perr := c.client.PutTargets(&cloudwatchevents.PutTargetsInput{
-		Rule: aws.String(rn),
+		Rule: aws.String(hID),
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
 				Arn:   aws.String(lc.InvokedFunctionArn),
@@ -95,10 +103,10 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 		},
 	})
 	if perr != nil {
-		return false, cfnerr.New(ServiceInternalError, "Schedule error", err)
+		return nil, cfnerr.New(ServiceInternalError, "Schedule error", err)
 	}
 
-	return false, nil
+	return &CloudWatchSchedulerResults{ComputeLocal: false, Handler: hID, Target: tID}, nil
 }
 
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.

@@ -33,6 +33,7 @@ func (c Status) String() string {
 	return statuses[c]
 }
 
+//Convert string to Status
 func Convert(s string) Status {
 	status := strings.ToUpper(s)
 

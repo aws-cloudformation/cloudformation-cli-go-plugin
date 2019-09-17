@@ -119,7 +119,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 			e := tt.fields.Client.(*MockedEvents)
 			t.Logf("\tTest: %d\tWhen checking %q for error status %v", i, tt.name, tt.wantErr)
 			{
-				c := &CloudWatchScheduler{
+				c := &Scheduler{
 					client: tt.fields.Client,
 				}
 				cp, err := c.Reschedule(tt.args.ctx, tt.args.secFromNow, tt.args.callbackContext)
@@ -203,7 +203,7 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 			e := tt.fields.Client.(*MockedEvents)
 			t.Logf("\tTest: %d\tWhen checking %q for error status %v", i, tt.name, tt.wantErr)
 			{
-				c := &CloudWatchScheduler{
+				c := &Scheduler{
 					client: tt.fields.Client,
 				}
 				if err := c.CleanupCloudWatchEvents(tt.args.cloudWatchEventsRuleName, tt.args.cloudWatchEventsTargetID); (err != nil) != tt.wantErr {

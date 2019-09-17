@@ -20,6 +20,7 @@ const (
 	TargentPrepend string = "reinvoke-target-%s"
 )
 
+//SchedulerResult is the return results.
 type SchedulerResult struct {
 	//Denotes if the computation was done locally.
 	ComputeLocal bool
@@ -29,15 +30,15 @@ type SchedulerResult struct {
 	Handler string
 }
 
-//CloudWatchScheduler is used to schedule Cloudwatch Events.
-type CloudWatchScheduler struct {
+//Scheduler is used to schedule Cloudwatch Events.
+type Scheduler struct {
 	client cloudwatcheventsiface.CloudWatchEventsAPI
 }
 
 //New creates a CloudWatchScheduler and returns a pointer to the struct.
-func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
-	return &CloudWatchScheduler{
-		client: sess,
+func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
+	return &Scheduler{
+		client: client,
 	}
 }
 
@@ -45,7 +46,7 @@ func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 //invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
-func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*SchedulerResult, error) {
+func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*SchedulerResult, error) {
 
 	lc, _ := lambdacontext.FromContext(lambdaCtx)
 
@@ -82,7 +83,7 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 
 	cr := GenerateOneTimeCronExpression(secsFromNow, time.Now())
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
-	_, rerr := c.client.PutRule(&cloudwatchevents.PutRuleInput{
+	_, rerr := s.client.PutRule(&cloudwatchevents.PutRuleInput{
 
 		Name:               aws.String(hID),
 		ScheduleExpression: aws.String(cr),
@@ -92,7 +93,7 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 	if rerr != nil {
 		return nil, cfnerr.New(ServiceInternalError, "Schedule error", rerr)
 	}
-	_, perr := c.client.PutTargets(&cloudwatchevents.PutTargetsInput{
+	_, perr := s.client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(hID),
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
@@ -111,7 +112,7 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.
 //After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
-func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName string, cloudWatchEventsTargetID string) error {
+func (s *Scheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName string, cloudWatchEventsTargetID string) error {
 
 	if len(cloudWatchEventsRuleName) == 0 {
 		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsRuleName is required"))
@@ -119,7 +120,7 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 	if len(cloudWatchEventsTargetID) == 0 {
 		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsTargetID is required"))
 	}
-	_, err := c.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
+	_, err := s.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
 		Ids: []*string{
 			aws.String(cloudWatchEventsTargetID),
 		},
@@ -132,7 +133,7 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 	}
 	log.Printf("CloudWatchEvents Target (targetId=%s) removed", cloudWatchEventsTargetID)
 
-	_, rerr := c.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
+	_, rerr := s.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
 		Name: aws.String(cloudWatchEventsRuleName),
 	})
 	if rerr != nil {

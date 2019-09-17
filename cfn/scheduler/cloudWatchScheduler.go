@@ -1,12 +1,14 @@
 package scheduler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
@@ -34,13 +36,13 @@ func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 //invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
-//Returns if re-invoke through CloudWatchEvents.
-func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRequest string, deadline time.Time) (bool, error) {
+//Returns if re-invoke locally.
+func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (bool, error) {
 
-	if len(arn) == 0 {
-		err := errors.New("Arn is required")
-		return false, cfnerr.New(ServiceInternalError, "Arn is required", err)
-	}
+	lc, _ := lambdacontext.FromContext(lambdaCtx)
+
+	deadline, _ := lambdaCtx.Deadline()
+	secondsUnitDeadline := time.Until(deadline).Seconds()
 
 	if secsFromNow <= 0 {
 		err := errors.New("Scheduled seconds must be greater than 0")
@@ -56,9 +58,7 @@ func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRe
 	rn := fmt.Sprintf(HandlerPrepend, uID)
 	tID := fmt.Sprintf(TargentPrepend, uID)
 
-	ds := time.Until(deadline).Seconds()
-
-	if secsFromNow < 60 && ds > float64(secsFromNow)*1.2 {
+	if secsFromNow < 60 && secondsUnitDeadline > float64(secsFromNow)*1.2 {
 
 		log.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", secsFromNow, string(callbackRequest))
 
@@ -88,7 +88,7 @@ func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRe
 		Rule: aws.String(rn),
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
-				Arn:   aws.String(arn),
+				Arn:   aws.String(lc.InvokedFunctionArn),
 				Id:    aws.String(tID),
 				Input: aws.String(string(callbackRequest)),
 			},

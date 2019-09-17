@@ -44,48 +44,6 @@ func (m *MockedEvents) RemoveTargets(in *cloudwatchevents.RemoveTargetsInput) (*
 	return nil, nil
 }
 
-func TestNewUUID(t *testing.T) {
-	tests := []struct {
-		name    string
-		want    bool
-		wantErr bool
-	}{
-		{"TestCreateNewUUID", true, false},
-		{"TestCreateNewUUID", true, false},
-		{"TestCreateNewUUID", true, false},
-		{"TestCreateNewUUID", true, false},
-		{"TestCreateNewUUID", true, false},
-	}
-	for i, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("\tTest: %d\tWhen checking %q for match status %v", i, tt.name, tt.want)
-			{
-				got, err := NewUUID()
-
-				if (err != nil) != tt.wantErr {
-					t.Errorf("\t%s\tShould be able to make the NewUUID call : %v", failed, err)
-					return
-				}
-				t.Logf("\t%s\tShould be able to make the NewUUID call.", succeed)
-
-				matched, err := regexp.Match(`([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, []byte(got))
-
-				if (err != nil) != tt.wantErr {
-					t.Errorf("\t%s\tShould be able to make the Match call : %v", failed, err)
-					return
-				}
-				t.Logf("\t%s\tShould be able to make the Matchcall.", succeed)
-
-				if matched == tt.want {
-					t.Logf("\t%s\tUUID match should be (%v).", succeed, tt.want)
-				} else {
-					t.Errorf("\t%s\tUUID match should be (%v). : %v", failed, tt.want, matched)
-				}
-			}
-		})
-	}
-}
-
 func TestGenerateOneTimeCronExpression(t *testing.T) {
 	type args struct {
 		minutesFromNow int
@@ -128,7 +86,8 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		arn             string
 		minFromNow      int
 		callbackContext string
-		t               time.Time
+		time            time.Time
+		deadline        time.Time
 	}
 	tests := []struct {
 		name               string
@@ -139,11 +98,12 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		WantRegxTargetName string
 		WantRuleMatch      bool
 		WantTargetMatch    bool
+		computeLocal       bool
 	}{
-		{"TestCloudWatchScheduler", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchScheduler", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 56, cb, time.Now()}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchSchedulerARNMustHaveValue", fields{NewMockEvents()}, args{"", 56, cb, time.Now()}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchScheduler56SecsComputeLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now(), time.Now().Add(time.Second * time.Duration(1000))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, true},
+		{"TestCloudWatchScheduler56SecsComputeNotLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now(), time.Now().Add(time.Second * time.Duration(16))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
+		{"TestCloudWatchSchedulerARNMustHaveValue", fields{NewMockEvents()}, args{"", 15, cb, time.Now(), time.Now().Add(time.Second * time.Duration(16))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
+		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -87, cb, time.Now(), time.Now().Add(time.Second * time.Duration(1000))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
 	}
 
 	for i, tt := range tests {
@@ -154,12 +114,22 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 				c := &CloudWatchScheduler{
 					client: tt.fields.Client,
 				}
-				if err := c.RescheduleAfterMinutes(tt.args.arn, tt.args.minFromNow, cb, tt.args.t, "4754ac8a-623b-45fe-84bc-f5394118a8be", "reinvoke-handler-4754ac8a-623b-45fe-84bc-f5394118a8be", "targetId=reinvoke-target-4754ac8a-623b-45fe-84bc-f5394118a8be"); (err != nil) != tt.wantErr {
+				cp, err := c.Reschedule(tt.args.arn, tt.args.minFromNow, cb, tt.args.time, tt.args.deadline)
+				if err != nil && !tt.wantErr {
+
 					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", failed, err)
 					return
 				}
 				t.Logf("\t%s\tShould be able to make the RescheduleAfterMinutes call.", succeed)
-				if tt.wantErr == false {
+
+				if cp == tt.computeLocal {
+					t.Logf("\t%s\tCompute Local should be (%v).", succeed, tt.computeLocal)
+				} else {
+					t.Errorf("\t%s\tCompute Local should be (%v). : Value:%v", failed, tt.computeLocal, cp)
+					return
+				}
+
+				if tt.wantErr == false && !tt.computeLocal {
 
 					matchedRule, err := regexp.Match(tt.WantRegxRuleName, []byte(e.RuleName))
 

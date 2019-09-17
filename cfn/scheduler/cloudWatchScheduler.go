@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
+	"github.com/google/uuid"
 )
 
 //CloudWatchScheduler is used to schedule Cloudwatch Events.
@@ -24,19 +25,50 @@ func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 	}
 }
 
-//RescheduleAfterMinutes schedules a re-invocation of the executing handler no less than 1 minute from now.
-func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int, callbackRequest string, t time.Time, uID string, rn string, tID string) error {
+//Reschedule when a handler requests a sub-minute callback delay, and if the lambda
+//invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
+//otherwise we re-invoke through CloudWatchEvents which have a granularity of
+//minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
+//Returns if re-invoke through CloudWatchEvents.
+func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRequest string, currentTime time.Time, deadline time.Time) (bool, error) {
 
-	if minFromNow < 1 {
-		minFromNow = 1
-	}
 	if len(arn) == 0 {
-		e := "Arn is required."
-		return errors.New(e)
+		err := errors.New("Arn is required")
+		return false, cfnerr.New(ServiceInternalError, "Arn is required", err)
+	}
+
+	if secsFromNow <= 0 {
+		err := errors.New("Scheduled seconds must be greater than 0")
+		return false, cfnerr.New(ServiceInternalError, "Scheduled seconds must be greater than 0", err)
+	}
+
+	uID, err := uuid.NewUUID()
+
+	if err != nil {
+		return false, cfnerr.New(ServiceInternalError, "uuid error", err)
+	}
+
+	rn := fmt.Sprintf("reinvoke-handler-%s", uID)
+	tID := fmt.Sprintf("reinvoke-target-%s", uID)
+
+	ds := time.Until(deadline).Seconds()
+
+	if secsFromNow < 60 && ds > float64(secsFromNow)*1.2 {
+
+		log.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", secsFromNow, string(callbackRequest))
+
+		time.Sleep(time.Duration(secsFromNow) * time.Second)
+
+		return true, nil
+	}
+
+	//re-invoke through CloudWatchEvents no less than 1 minute from now.
+	if secsFromNow < 60 {
+		secsFromNow = 60
 	}
 
 	// generate a cron expression; minutes must be a positive integer
-	cr := GenerateOneTimeCronExpression(minFromNow, t)
+	cr := GenerateOneTimeCronExpression(secsFromNow, currentTime)
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
 	pr, err := c.client.PutRule(&cloudwatchevents.PutRuleInput{
 
@@ -46,7 +78,7 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 	})
 	log.Printf("Scheduling result: %v", pr)
 	if err != nil {
-		return err
+		return false, cfnerr.New(ServiceInternalError, "Schedule error", err)
 	}
 	_, perr := c.client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(rn),
@@ -59,10 +91,10 @@ func (c *CloudWatchScheduler) RescheduleAfterMinutes(arn string, minFromNow int,
 		},
 	})
 	if perr != nil {
-		return err
+		return false, cfnerr.New(ServiceInternalError, "Schedule error", err)
 	}
 
-	return nil
+	return false, nil
 }
 
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.
@@ -75,7 +107,7 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 	if len(cloudWatchEventsTargetID) == 0 {
 		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsTargetID is required"))
 	}
-	t, err := c.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
+	_, err := c.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
 		Ids: []*string{
 			aws.String(cloudWatchEventsTargetID),
 		},
@@ -87,17 +119,16 @@ func (c *CloudWatchScheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName s
 		return cfnerr.New(ServiceInternalError, es, err)
 	}
 	log.Printf("CloudWatchEvents Target (targetId=%s) removed", cloudWatchEventsTargetID)
-	log.Printf("CloudWatchEvents remove Target reponse: %s", t)
-	r, err := c.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
+
+	_, rerr := c.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
 		Name: aws.String(cloudWatchEventsRuleName),
 	})
-	if err != nil {
+	if rerr != nil {
 		es := fmt.Sprintf("Error cleaning CloudWatchEvents (ruleName=%s)", cloudWatchEventsRuleName)
 		log.Println(es)
-		return cfnerr.New(ServiceInternalError, es, err)
+		return cfnerr.New(ServiceInternalError, es, rerr)
 	}
-	log.Printf("CloudWatchEvents (ruleName=%s) removed", cloudWatchEventsRuleName)
-	log.Printf("CloudWatchEvents remove Rule reponse reponse: %s", r)
+	log.Printf("CloudWatchEvents Rule (ruleName=%s) removed", cloudWatchEventsRuleName)
 
 	return nil
 }

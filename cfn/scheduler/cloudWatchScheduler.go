@@ -20,7 +20,7 @@ const (
 	TargentPrepend string = "reinvoke-target-%s"
 )
 
-type CloudWatchSchedulerResults struct {
+type SchedulerResult struct {
 	//Denotes if the computation was done locally.
 	ComputeLocal bool
 	//The Cloudwatch target ID.
@@ -45,7 +45,7 @@ func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 //invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
-func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*CloudWatchSchedulerResults, error) {
+func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*SchedulerResult, error) {
 
 	lc, _ := lambdacontext.FromContext(lambdaCtx)
 
@@ -72,7 +72,7 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 
 		time.Sleep(time.Duration(secsFromNow) * time.Second)
 
-		return &CloudWatchSchedulerResults{ComputeLocal: true, Handler: hID, Target: tID}, nil
+		return &SchedulerResult{ComputeLocal: true, Handler: hID, Target: tID}, nil
 	}
 
 	//re-invoke through CloudWatchEvents no less than 1 minute from now.
@@ -106,7 +106,7 @@ func (c *CloudWatchScheduler) Reschedule(lambdaCtx context.Context, secsFromNow 
 		return nil, cfnerr.New(ServiceInternalError, "Schedule error", err)
 	}
 
-	return &CloudWatchSchedulerResults{ComputeLocal: false, Handler: hID, Target: tID}, nil
+	return &SchedulerResult{ComputeLocal: false, Handler: hID, Target: tID}, nil
 }
 
 //CleanupCloudWatchEvents is used to clean up Cloudwatch Events.

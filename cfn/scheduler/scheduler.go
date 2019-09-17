@@ -90,14 +90,14 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 
 	cr := GenerateOneTimeCronExpression(secsFromNow, time.Now())
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uuid)
-	_, err := s.client.PutRule(&cloudwatchevents.PutRuleInput{
+	_, rerr := s.client.PutRule(&cloudwatchevents.PutRuleInput{
 
 		Name:               aws.String(handlerID),
 		ScheduleExpression: aws.String(cr),
 		State:              aws.String(cloudwatchevents.RuleStateEnabled),
 	})
 
-	if err != nil {
+	if rerr != nil {
 		return nil, cfnerr.New(ServiceInternalError, "Schedule error", rerr)
 	}
 	_, perr := s.client.PutTargets(&cloudwatchevents.PutTargetsInput{

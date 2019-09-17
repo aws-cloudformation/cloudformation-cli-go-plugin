@@ -123,7 +123,8 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 					client: tt.fields.Client,
 				}
 				cp, err := c.Reschedule(tt.args.ctx, tt.args.secFromNow, tt.args.callbackContext)
-				if err != nil && tt.wantErr {
+				if err != nil &&
+					tt.wantErr {
 
 					t.Logf("\t%s\tShould be able to make the RescheduleAfterMinutes call.", Succeed)
 					return

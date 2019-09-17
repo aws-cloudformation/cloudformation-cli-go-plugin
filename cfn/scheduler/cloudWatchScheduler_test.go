@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"regexp"
 	"testing"
 	"time"
@@ -83,10 +84,9 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		Client cloudwatcheventsiface.CloudWatchEventsAPI
 	}
 	type args struct {
-		arn             string
-		minFromNow      int
+		ctx             context.Context
+		secFromNow      int
 		callbackContext string
-		deadline        time.Time
 	}
 	tests := []struct {
 		name               string
@@ -113,7 +113,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 				c := &CloudWatchScheduler{
 					client: tt.fields.Client,
 				}
-				cp, err := c.Reschedule(tt.args.arn, tt.args.minFromNow, cb, tt.args.deadline)
+				cp, err := c.Reschedule(tt.args.arn, tt.args.secFromNow, cb, tt.args.deadline)
 				if err != nil && !tt.wantErr {
 
 					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", failed, err)

@@ -222,7 +222,7 @@ func Handler(h Handlers) EventFunc {
 }
 
 //Invoke handles the invocation of the handerFn.
-func Invoke(handlerFn HandlerFunc, request handler.NewRequest) (Response, error) {
+func Invoke(handlerFn HandlerFunc, request *handler.Request) (Response, error) {
 	for {
 		// Create a context that is both manually cancellable and will signal
 		// a cancel at the specified duration.

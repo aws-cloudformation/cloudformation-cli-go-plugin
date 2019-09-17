@@ -67,7 +67,6 @@ func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRe
 		secsFromNow = 60
 	}
 
-	// generate a cron expression; minutes must be a positive integer
 	cr := GenerateOneTimeCronExpression(secsFromNow, time.Now())
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
 	_, rerr := c.client.PutRule(&cloudwatchevents.PutRuleInput{

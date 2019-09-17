@@ -86,7 +86,6 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		arn             string
 		minFromNow      int
 		callbackContext string
-		time            time.Time
 		deadline        time.Time
 	}
 	tests := []struct {
@@ -100,10 +99,10 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		WantTargetMatch    bool
 		computeLocal       bool
 	}{
-		{"TestCloudWatchScheduler56SecsComputeLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now(), time.Now().Add(time.Second * time.Duration(1000))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, true},
-		{"TestCloudWatchScheduler56SecsComputeNotLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now(), time.Now().Add(time.Second * time.Duration(16))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
-		{"TestCloudWatchSchedulerARNMustHaveValue", fields{NewMockEvents()}, args{"", 15, cb, time.Now(), time.Now().Add(time.Second * time.Duration(16))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
-		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -87, cb, time.Now(), time.Now().Add(time.Second * time.Duration(1000))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
+		{"TestCloudWatchScheduler56SecsComputeLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now().Add(time.Second * time.Duration(1000))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, true},
+		{"TestCloudWatchScheduler56SecsComputeNotLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now().Add(time.Second * time.Duration(16))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
+		{"TestCloudWatchSchedulerARNMustHaveValue", fields{NewMockEvents()}, args{"", 15, cb, time.Now().Add(time.Second * time.Duration(16))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
+		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -87, cb, time.Now().Add(time.Second * time.Duration(1000))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
 	}
 
 	for i, tt := range tests {
@@ -114,7 +113,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 				c := &CloudWatchScheduler{
 					client: tt.fields.Client,
 				}
-				cp, err := c.Reschedule(tt.args.arn, tt.args.minFromNow, cb, tt.args.time, tt.args.deadline)
+				cp, err := c.Reschedule(tt.args.arn, tt.args.minFromNow, cb, tt.args.deadline)
 				if err != nil && !tt.wantErr {
 
 					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", failed, err)

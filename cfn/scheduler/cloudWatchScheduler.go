@@ -30,7 +30,7 @@ func New(sess cloudwatcheventsiface.CloudWatchEventsAPI) *CloudWatchScheduler {
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
 //Returns if re-invoke through CloudWatchEvents.
-func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRequest string, currentTime time.Time, deadline time.Time) (bool, error) {
+func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRequest string, deadline time.Time) (bool, error) {
 
 	if len(arn) == 0 {
 		err := errors.New("Arn is required")
@@ -68,17 +68,17 @@ func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRe
 	}
 
 	// generate a cron expression; minutes must be a positive integer
-	cr := GenerateOneTimeCronExpression(secsFromNow, currentTime)
+	cr := GenerateOneTimeCronExpression(secsFromNow, time.Now())
 	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uID)
-	pr, err := c.client.PutRule(&cloudwatchevents.PutRuleInput{
+	_, rerr := c.client.PutRule(&cloudwatchevents.PutRuleInput{
 
 		Name:               aws.String(rn),
 		ScheduleExpression: aws.String(cr),
 		State:              aws.String(cloudwatchevents.RuleStateEnabled),
 	})
-	log.Printf("Scheduling result: %v", pr)
-	if err != nil {
-		return false, cfnerr.New(ServiceInternalError, "Schedule error", err)
+
+	if rerr != nil {
+		return false, cfnerr.New(ServiceInternalError, "Schedule error", rerr)
 	}
 	_, perr := c.client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(rn),

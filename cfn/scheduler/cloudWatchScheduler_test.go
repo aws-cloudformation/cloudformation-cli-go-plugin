@@ -206,7 +206,7 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 				c := &Scheduler{
 					client: tt.fields.Client,
 				}
-				if err := c.CleanupCloudWatchEvents(tt.args.cloudWatchEventsRuleName, tt.args.cloudWatchEventsTargetID); (err != nil) != tt.wantErr {
+				if err := c.CleanupEvents(tt.args.cloudWatchEventsRuleName, tt.args.cloudWatchEventsTargetID); (err != nil) != tt.wantErr {
 					t.Errorf("\t%s\tShould be able to make the cloudWatchEventsRuleName call : %v", Failed, err)
 					return
 				}

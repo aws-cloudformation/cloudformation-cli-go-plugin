@@ -114,38 +114,38 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 	return &SchedulerResult{ComputeLocal: false, Handler: hID, Target: tID}, nil
 }
 
-//CleanupCloudWatchEvents is used to clean up Cloudwatch Events.
+//CleanupEvents is used to clean up Cloudwatch Events.
 //After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
-func (s *Scheduler) CleanupCloudWatchEvents(cloudWatchEventsRuleName string, cloudWatchEventsTargetID string) error {
+func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 
-	if len(cloudWatchEventsRuleName) == 0 {
-		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsRuleName is required"))
+	if len(ruleName) == 0 {
+		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("ruleName is required"))
 	}
-	if len(cloudWatchEventsTargetID) == 0 {
-		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("cloudWatchEventsTargetID is required"))
+	if len(targetID) == 0 {
+		return cfnerr.New(ServiceInternalError, "Unable to complete request", errors.New("targetID is required"))
 	}
 	_, err := s.client.RemoveTargets(&cloudwatchevents.RemoveTargetsInput{
 		Ids: []*string{
-			aws.String(cloudWatchEventsTargetID),
+			aws.String(targetID),
 		},
-		Rule: aws.String(cloudWatchEventsRuleName),
+		Rule: aws.String(ruleName),
 	})
 	if err != nil {
-		es := fmt.Sprintf("Error cleaning CloudWatchEvents Target (targetId=%s)", cloudWatchEventsTargetID)
+		es := fmt.Sprintf("Error cleaning CloudWatchEvents Target (targetId=%s)", targetID)
 		log.Println(es)
 		return cfnerr.New(ServiceInternalError, es, err)
 	}
-	log.Printf("CloudWatchEvents Target (targetId=%s) removed", cloudWatchEventsTargetID)
+	log.Printf("CloudWatchEvents Target (targetId=%s) removed", targetID)
 
 	_, rerr := s.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
-		Name: aws.String(cloudWatchEventsRuleName),
+		Name: aws.String(ruleName),
 	})
 	if rerr != nil {
-		es := fmt.Sprintf("Error cleaning CloudWatchEvents (ruleName=%s)", cloudWatchEventsRuleName)
+		es := fmt.Sprintf("Error cleaning CloudWatchEvents (ruleName=%s)", ruleName)
 		log.Println(es)
 		return cfnerr.New(ServiceInternalError, es, rerr)
 	}
-	log.Printf("CloudWatchEvents Rule (ruleName=%s) removed", cloudWatchEventsRuleName)
+	log.Printf("CloudWatchEvents Rule (ruleName=%s) removed", ruleName)
 
 	return nil
 }

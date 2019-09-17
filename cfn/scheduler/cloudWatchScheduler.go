@@ -13,6 +13,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	HandlerPrepend string = "reinvoke-handler-%s"
+	TargentPrepend string = "reinvoke-target-%s"
+)
+
 //CloudWatchScheduler is used to schedule Cloudwatch Events.
 type CloudWatchScheduler struct {
 	client cloudwatcheventsiface.CloudWatchEventsAPI
@@ -48,8 +53,8 @@ func (c *CloudWatchScheduler) Reschedule(arn string, secsFromNow int, callbackRe
 		return false, cfnerr.New(ServiceInternalError, "uuid error", err)
 	}
 
-	rn := fmt.Sprintf("reinvoke-handler-%s", uID)
-	tID := fmt.Sprintf("reinvoke-target-%s", uID)
+	rn := fmt.Sprintf(HandlerPrepend, uID)
+	tID := fmt.Sprintf(TargentPrepend, uID)
 
 	ds := time.Until(deadline).Seconds()
 

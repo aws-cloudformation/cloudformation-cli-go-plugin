@@ -1,4 +1,4 @@
-package errorCode
+package errorcode
 
 import (
 	"strings"

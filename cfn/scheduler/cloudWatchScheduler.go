@@ -48,7 +48,11 @@ func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
 func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*SchedulerResult, error) {
 
-	lc, _ := lambdacontext.FromContext(lambdaCtx)
+	lc, hasValue := lambdacontext.FromContext(lambdaCtx)
+
+	if !hasValue {
+		return nil, cfnerr.New(ServiceInternalError, "Lambda Context has no value", errors.New("Lambda Context has no value"))
+	}
 
 	deadline, _ := lambdaCtx.Deadline()
 	secondsUnitDeadline := time.Until(deadline).Seconds()

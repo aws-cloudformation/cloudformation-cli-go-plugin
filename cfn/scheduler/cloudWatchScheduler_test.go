@@ -6,12 +6,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
 
-const succeed = "\u2713"
-const failed = "\u2717"
+const (
+	TargetRegx  string = `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`
+	HandlerRegx string = `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`
+	Succeed     string = "\u2713"
+	Failed      string = "\u2717"
+	Arn         string = "arn:aws:lambda:us-east-2:123456789:function:myproject"
+)
 
 //MockedEvents mocks the call to AWS CloudWatch Events
 type MockedEvents struct {
@@ -67,9 +73,9 @@ func TestGenerateOneTimeCronExpression(t *testing.T) {
 				got := GenerateOneTimeCronExpression(tt.args.minutesFromNow, tt.args.t)
 
 				if got == tt.want {
-					t.Logf("\t%s\tOneTimeCronExpression match should be (%v).", succeed, tt.want)
+					t.Logf("\t%s\tOneTimeCronExpression match should be (%v).", Succeed, tt.want)
 				} else {
-					t.Errorf("\t%s\tOneTimeCronExpression match should be (%v). : %v", failed, tt.want, got)
+					t.Errorf("\t%s\tOneTimeCronExpression match should be (%v). : %v", Failed, tt.want, got)
 				}
 			}
 		})
@@ -79,6 +85,10 @@ func TestGenerateOneTimeCronExpression(t *testing.T) {
 func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 
 	var cb = `{ string: "Foo"}`
+	ct1, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*time.Duration(1000)))
+	defer cancel()
+	ct2, cancel2 := context.WithDeadline(context.Background(), time.Now().Add(time.Second*time.Duration(16)))
+	defer cancel2()
 
 	type fields struct {
 		Client cloudwatcheventsiface.CloudWatchEventsAPI
@@ -99,10 +109,9 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 		WantTargetMatch    bool
 		computeLocal       bool
 	}{
-		{"TestCloudWatchScheduler56SecsComputeLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now().Add(time.Second * time.Duration(1000))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, true},
-		{"TestCloudWatchScheduler56SecsComputeNotLocal", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", 15, cb, time.Now().Add(time.Second * time.Duration(16))}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
-		{"TestCloudWatchSchedulerARNMustHaveValue", fields{NewMockEvents()}, args{"", 15, cb, time.Now().Add(time.Second * time.Duration(16))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
-		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{"arn:aws:lambda:us-east-2:123456789:function:myproject", -87, cb, time.Now().Add(time.Second * time.Duration(1000))}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true, false},
+		{"TestCloudWatchScheduler56SecsComputeLocal", fields{NewMockEvents()}, args{lambdacontext.NewContext(ct1, &lambdacontext.LambdaContext{InvokedFunctionArn: Arn}), 15, cb}, false, HandlerRegx, TargetRegx, true, true, true},
+		{"TestCloudWatchScheduler56SecsComputeNotLocal", fields{NewMockEvents()}, args{lambdacontext.NewContext(ct2, &lambdacontext.LambdaContext{InvokedFunctionArn: Arn}), 15, cb}, false, HandlerRegx, TargetRegx, true, true, false},
+		{"TestCloudWatchSchedulerLessThen0", fields{NewMockEvents()}, args{lambdacontext.NewContext(ct1, &lambdacontext.LambdaContext{InvokedFunctionArn: Arn}), -87, cb}, true, HandlerRegx, TargetRegx, true, true, false},
 	}
 
 	for i, tt := range tests {
@@ -113,18 +122,18 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 				c := &CloudWatchScheduler{
 					client: tt.fields.Client,
 				}
-				cp, err := c.Reschedule(tt.args.arn, tt.args.secFromNow, cb, tt.args.deadline)
+				cp, err := c.Reschedule(tt.args.ctx, tt.args.secFromNow, tt.args.callbackContext)
 				if err != nil && !tt.wantErr {
 
-					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", failed, err)
+					t.Errorf("\t%s\tShould be able to make the RescheduleAfterMinutes call : %v", Failed, err)
 					return
 				}
-				t.Logf("\t%s\tShould be able to make the RescheduleAfterMinutes call.", succeed)
+				t.Logf("\t%s\tShould be able to make the RescheduleAfterMinutes call.", Succeed)
 
 				if cp == tt.computeLocal {
-					t.Logf("\t%s\tCompute Local should be (%v).", succeed, tt.computeLocal)
+					t.Logf("\t%s\tCompute Local should be (%v).", Succeed, tt.computeLocal)
 				} else {
-					t.Errorf("\t%s\tCompute Local should be (%v). : Value:%v", failed, tt.computeLocal, cp)
+					t.Errorf("\t%s\tCompute Local should be (%v). : Value:%v", Failed, tt.computeLocal, cp)
 					return
 				}
 
@@ -133,29 +142,29 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 					matchedRule, err := regexp.Match(tt.WantRegxRuleName, []byte(e.RuleName))
 
 					if (err != nil) != tt.wantErr {
-						t.Errorf("\t%s\tShould be able to make the Match call : %v", failed, err)
+						t.Errorf("\t%s\tShould be able to make the Match call : %v", Failed, err)
 						return
 					}
-					t.Logf("\t%s\tShould be able to make the Matchcall.", succeed)
+					t.Logf("\t%s\tShould be able to make the Matchcall.", Succeed)
 
 					if matchedRule == tt.WantRuleMatch {
-						t.Logf("\t%s\tRule match should be (%v).", succeed, tt.WantRuleMatch)
+						t.Logf("\t%s\tRule match should be (%v).", Succeed, tt.WantRuleMatch)
 					} else {
-						t.Errorf("\t%s\tRule match should be (%v). : %v  Value:%s", failed, tt.WantRuleMatch, matchedRule, e.RuleName)
+						t.Errorf("\t%s\tRule match should be (%v). : %v  Value:%s", Failed, tt.WantRuleMatch, matchedRule, e.RuleName)
 					}
 
 					matchedTarget, err := regexp.Match(tt.WantRegxTargetName, []byte(e.TargetName))
 
 					if (err != nil) != tt.wantErr {
-						t.Errorf("\t%s\tShould be able to make the Match call : %v", failed, err)
+						t.Errorf("\t%s\tShould be able to make the Match call : %v", Failed, err)
 						return
 					}
-					t.Logf("\t%s\tShould be able to make the Matchcall.", succeed)
+					t.Logf("\t%s\tShould be able to make the Matchcall.", Succeed)
 
 					if matchedTarget == tt.WantTargetMatch {
-						t.Logf("\t%s\tTarget match should be (%v).", succeed, tt.WantTargetMatch)
+						t.Logf("\t%s\tTarget match should be (%v).", Succeed, tt.WantTargetMatch)
 					} else {
-						t.Errorf("\t%s\tTarget match should be (%v). : %v  Value: %s", failed, tt.WantRegxTargetName, matchedTarget, e.RuleName)
+						t.Errorf("\t%s\tTarget match should be (%v). : %v  Value: %s", Failed, tt.WantRegxTargetName, matchedTarget, e.RuleName)
 					}
 
 				}
@@ -184,9 +193,9 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 		WantRuleMatch      bool
 		WantTargetMatch    bool
 	}{
-		{"TestCloudWatchRemove", fields{NewMockEvents()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, false, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchRemoveBlankCloudWatchEventsRuleName", fields{NewMockEvents()}, args{"", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
-		{"TestCloudWatchRemoveBlankcloudWatchEventsTargetID", fields{NewMockEvents()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", ""}, true, `reinvoke-handler-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, `reinvoke-target-([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}`, true, true},
+		{"TestCloudWatchRemove", fields{NewMockEvents()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, false, HandlerRegx, TargetRegx, true, true},
+		{"TestCloudWatchRemoveBlankCloudWatchEventsRuleName", fields{NewMockEvents()}, args{"", "reinvoke-target-c51d7ba5-8eed-4226-99a6-6743f1169688"}, true, HandlerRegx, TargetRegx, true, true},
+		{"TestCloudWatchRemoveBlankcloudWatchEventsTargetID", fields{NewMockEvents()}, args{"reinvoke-handler-c51d7ba5-8eed-4226-99a6-6743f1169688", ""}, true, HandlerRegx, TargetRegx, true, true},
 	}
 	for i, tt := range tests {
 
@@ -198,38 +207,38 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 					client: tt.fields.Client,
 				}
 				if err := c.CleanupCloudWatchEvents(tt.args.cloudWatchEventsRuleName, tt.args.cloudWatchEventsTargetID); (err != nil) != tt.wantErr {
-					t.Errorf("\t%s\tShould be able to make the cloudWatchEventsRuleName call : %v", failed, err)
+					t.Errorf("\t%s\tShould be able to make the cloudWatchEventsRuleName call : %v", Failed, err)
 					return
 				}
-				t.Logf("\t%s\tShould be able to make the cloudWatchEventsRuleName call.", succeed)
+				t.Logf("\t%s\tShould be able to make the cloudWatchEventsRuleName call.", Succeed)
 				if tt.wantErr == false {
 
 					matchedRule, err := regexp.Match(tt.WantRegxRuleName, []byte(e.RuleName))
 
 					if (err != nil) != tt.wantErr {
-						t.Errorf("\t%s\tShould be able to make the Match call : %v", failed, err)
+						t.Errorf("\t%s\tShould be able to make the Match call : %v", Failed, err)
 						return
 					}
-					t.Logf("\t%s\tShould be able to make the Matchcall.", succeed)
+					t.Logf("\t%s\tShould be able to make the Matchcall.", Succeed)
 
 					if matchedRule == tt.WantRuleMatch {
-						t.Logf("\t%s\tRule match should be (%v).", succeed, tt.WantRuleMatch)
+						t.Logf("\t%s\tRule match should be (%v).", Succeed, tt.WantRuleMatch)
 					} else {
-						t.Errorf("\t%s\tRule match should be (%v). : %v  Value:%s", failed, tt.WantRuleMatch, matchedRule, e.RuleName)
+						t.Errorf("\t%s\tRule match should be (%v). : %v  Value:%s", Failed, tt.WantRuleMatch, matchedRule, e.RuleName)
 					}
 
 					matchedTarget, err := regexp.Match(tt.WantRegxTargetName, []byte(e.TargetName))
 
 					if (err != nil) != tt.wantErr {
-						t.Errorf("\t%s\tShould be able to make the Match call : %v", failed, err)
+						t.Errorf("\t%s\tShould be able to make the Match call : %v", Failed, err)
 						return
 					}
-					t.Logf("\t%s\tShould be able to make the Matchcall.", succeed)
+					t.Logf("\t%s\tShould be able to make the Matchcall.", Succeed)
 
 					if matchedTarget == tt.WantTargetMatch {
-						t.Logf("\t%s\tTarget match should be (%v).", succeed, tt.WantTargetMatch)
+						t.Logf("\t%s\tTarget match should be (%v).", Succeed, tt.WantTargetMatch)
 					} else {
-						t.Errorf("\t%s\tTarget match should be (%v). : %v  Value: %s", failed, tt.WantRegxTargetName, matchedTarget, e.RuleName)
+						t.Errorf("\t%s\tTarget match should be (%v). : %v  Value: %s", Failed, tt.WantRegxTargetName, matchedTarget, e.RuleName)
 					}
 
 				}

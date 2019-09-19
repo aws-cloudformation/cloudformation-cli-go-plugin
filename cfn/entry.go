@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	sdkCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 
 	"gopkg.in/validator.v2"
 )
@@ -85,19 +87,63 @@ type Event struct {
 	Region              string `validate:"nonzero"`
 	RequestData         *RequestData
 	ResourceType        string `validate:"nonzero"`
-	ResourceTypeVersion float32
+	ResourceTypeVersion float64
 	ResponseEndpoint    string `validate:"nonzero"`
 	StackID             string `validate:"nonzero"`
 } // may need to manually unmarshal?
+
+func (e *Event) UnmarshalJSON(b []byte) error {
+	var d struct {
+		Action              string
+		AWSAccountID        string
+		BearerToken         string
+		Context             json.RawMessage
+		NextToken           string
+		Region              string
+		RequestData         json.RawMessage
+		ResourceType        string
+		ResourceTypeVersion string
+		ResponseEndpoint    string
+		StackID             string
+	}
+
+	if err := json.Unmarshal(b, &d); err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the event", err)
+	}
+
+	resourceTypeVersion, err := strconv.ParseFloat(d.ResourceTypeVersion, 64)
+	if err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to format float32", err)
+	}
+
+	requestData := &RequestData{}
+
+	if err := json.Unmarshal(d.RequestData, requestData); err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the event", err)
+	}
+
+	e.Action = action.Convert(d.Action)
+	e.AWSAccountID = d.AWSAccountID
+	e.BearerToken = d.BearerToken
+	e.NextToken = d.NextToken
+	e.Region = d.Region
+	e.RequestData = requestData
+	e.ResourceType = d.ResourceType
+	e.ResourceTypeVersion = resourceTypeVersion
+	e.ResponseEndpoint = d.ResponseEndpoint
+	e.StackID = d.StackID
+
+	return nil
+}
 
 // RequestData is internal to the RPDK. It contains a number of fields that are for
 // internal use only.
 //
 // @todo Consider moving to an internal pkg
 type RequestData struct {
-	CallerCredentials          *credentials.Credentials
+	CallerCredentials          sdkCredentials.Provider
 	LogicalResourceID          string
-	PlatformCredentials        *credentials.Credentials
+	PlatformCredentials        sdkCredentials.Provider
 	PreviousResourceProperties json.RawMessage
 	PreviousStackTags          Tags
 	ProviderLogGroupName       string
@@ -126,6 +172,22 @@ func (rd *RequestData) UnmarshalJSON(b []byte) error {
 	rd.LogicalResourceID = d.LogicalResourceID
 	rd.ProviderLogGroupName = d.ProviderLogGroupName
 	rd.PreviousResourceProperties = d.PreviousResourceProperties
+	rd.ResourceProperties = d.ResourceProperties
+	rd.PreviousStackTags = d.PreviousStackTags
+	rd.StackTags = d.StackTags
+	rd.SystemTags = d.SystemTags
+
+	rd.CallerCredentials = credentials.NewProvider(
+		d.CallerCredentials["accessKeyId"],
+		d.CallerCredentials["secretAccessKey"],
+		d.CallerCredentials["sessionToken"],
+	)
+
+	rd.PlatformCredentials = credentials.NewProvider(
+		d.PlatformCredentials["accessKeyId"],
+		d.PlatformCredentials["secretAccessKey"],
+		d.PlatformCredentials["sessionToken"],
+	)
 
 	return nil
 }
@@ -262,9 +324,7 @@ func Invoke(handlerFn HandlerFunc, request Request) (Response, error) {
 			//handler failed to respond.
 			return nil, errors.New("Handler failed to respond")
 		}
-
 	}
-
 }
 
 // Start ...

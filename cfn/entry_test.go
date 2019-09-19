@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 )
 
 func TestMarshalling(t *testing.T) {
@@ -40,6 +41,34 @@ func TestMarshalling(t *testing.T) {
 
 		if err := json.Unmarshal([]byte(invalidEvent), evt); err == nil {
 			t.Fatalf("Marshaling error uncaught")
+		}
+	})
+}
+
+func TestRouter(t *testing.T) {
+	t.Run("Happy Path", func(t *testing.T) {
+
+		fn, err := Router(action.Read, &EmptyHandlers{})
+		if err != nil {
+			t.Fatalf("Unable to select 'Read' handler: %v", err)
+		}
+
+		if fn == nil {
+			t.Fatalf("Handler was not returned")
+		}
+	})
+
+	t.Run("Failed Path", func(t *testing.T) {
+		fn, err := Router(action.Unknown, &EmptyHandlers{})
+		cfnErr := err.(cfnerr.Error)
+		if cfnErr != nil && cfnErr.Code() != InvalidRequestError {
+			t.Errorf("Unspecified error returned: %v", err)
+		} else if err == nil {
+			t.Errorf("There should have been an error")
+		}
+
+		if fn != nil {
+			t.Fatalf("Handler should be nil")
 		}
 	})
 }

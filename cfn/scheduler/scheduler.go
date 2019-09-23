@@ -29,7 +29,7 @@ type Result struct {
 	ComputeLocal bool
 	//The Cloudwatch target ID.
 	Target string
-	//The Cloudwatch tandler ID.
+	//The Cloudwatch handler ID.
 	Handler string
 }
 

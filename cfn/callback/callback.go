@@ -50,7 +50,7 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code 
 		ErrorCode:       aws.String(TranslateErrorCode(code.String())),
 	}
 
-	// TODO: be far more fault tolerant, do retries, emit logs and metrics, etc.
+	// Do retries and emit logs.
 	rerr := retry.Do(
 		func() error {
 			_, err := c.client.RecordHandlerProgress(&in)

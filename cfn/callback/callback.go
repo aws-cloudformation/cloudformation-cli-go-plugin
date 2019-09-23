@@ -17,7 +17,7 @@ import (
 const (
 	//ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
-	//MaxRetries is the number of retries allwed to report status.
+	//MaxRetries is the number of retries allowed to report status.
 	MaxRetries uint = 3
 )
 
@@ -59,7 +59,7 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code 
 			}
 			return nil
 		}, retry.OnRetry(func(n uint, err error) {
-			s := fmt.Sprintf("failed to record progress: try:#%d: %s\n ", n+1, err)
+			s := fmt.Sprintf("Failed to record progress: try:#%d: %s\n ", n+1, err)
 			log.Println(s)
 
 		}), retry.Attempts(MaxRetries),

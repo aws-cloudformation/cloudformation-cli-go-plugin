@@ -76,8 +76,6 @@ type Handlers interface {
 }
 
 // Event base structure, it will be internal to the RPDK.
-//
-// @todo Consider moving to an internal pkg
 type Event struct {
 	Action              action.Action
 	AWSAccountID        string `validate:"min=12"`
@@ -90,7 +88,7 @@ type Event struct {
 	ResourceTypeVersion float64
 	ResponseEndpoint    string `validate:"nonzero"`
 	StackID             string `validate:"nonzero"`
-} // may need to manually unmarshal?
+}
 
 func (e *Event) UnmarshalJSON(b []byte) error {
 	var d struct {
@@ -117,7 +115,6 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 	}
 
 	requestData := &RequestData{}
-
 	if err := json.Unmarshal(d.RequestData, requestData); err != nil {
 		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the event", err)
 	}

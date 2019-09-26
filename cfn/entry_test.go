@@ -37,24 +37,33 @@ func TestMarshalling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
-		evt := &Event{}
 
+		evt := &Event{}
 		if err := json.Unmarshal([]byte(invalidEvent), evt); err == nil {
-			t.Fatalf("Marshaling error uncaught")
+			t.Fatalf("Marshaling failed to throw an error: %#v", err)
 		}
 	})
 }
 
 func TestRouter(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
-
-		fn, err := Router(action.Read, &EmptyHandlers{})
-		if err != nil {
-			t.Fatalf("Unable to select 'Read' handler: %v", err)
+		actions := []action.Action{
+			action.Create,
+			action.Read,
+			action.Update,
+			action.Delete,
+			action.List,
 		}
 
-		if fn == nil {
-			t.Fatalf("Handler was not returned")
+		for _, a := range actions {
+			fn, err := Router(a, &EmptyHandlers{})
+			if err != nil {
+				t.Fatalf("Unable to select '%v' handler: %v", a.String(), err)
+			}
+
+			if fn == nil {
+				t.Fatalf("Handler was not returned")
+			}
 		}
 	})
 
@@ -70,6 +79,52 @@ func TestRouter(t *testing.T) {
 		if fn != nil {
 			t.Fatalf("Handler should be nil")
 		}
+	})
+}
+
+func TestValidateEvent(t *testing.T) {
+	t.Run("Happy Path", func(t *testing.T) {
+		validEvent, err := openFixture("request.read.json")
+		if err != nil {
+			t.Fatalf("Unable to read fixture: %v", err)
+		}
+
+		evt := &Event{}
+
+		if err := json.Unmarshal([]byte(validEvent), evt); err != nil {
+			t.Fatalf("Marshaling error with event: %v", err)
+		}
+
+		if err := ValidateEvent(evt); err != nil {
+			t.Fatalf("Failed to validate: %v", err)
+		}
+	})
+
+	t.Run("Failed Validation", func(t *testing.T) {
+		validEvent, err := openFixture("request.read.invalid.validation.json")
+		if err != nil {
+			t.Fatalf("Unable to read fixture: %v", err)
+		}
+
+		evt := &Event{}
+
+		if err := json.Unmarshal([]byte(validEvent), evt); err != nil {
+			t.Fatalf("Marshaling error with event: %v", err)
+		}
+
+		if err := ValidateEvent(evt); err == nil {
+			t.Fatalf("Failed to validate: %v", err)
+		}
+	})
+}
+
+func TestHandler(t *testing.T) {
+	// no-op
+}
+
+func TestInvoke(t *testing.T) {
+	t.Run("Happy Path", func(t *testing.T) {
+
 	})
 }
 

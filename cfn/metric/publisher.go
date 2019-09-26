@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -45,7 +46,7 @@ func New(client cloudwatchiface.CloudWatchAPI) *Publisher {
 }
 
 //PublishExceptionMetric publishes an exception metric.
-func (p *Publisher) PublishExceptionMetric(date time.Time, action Action, e error) error {
+func (p *Publisher) PublishExceptionMetric(date time.Time, action action.Action, e error) error {
 
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
@@ -69,7 +70,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action Action, e erro
 }
 
 //PublishInvocationMetric publishes an invocation metric.
-func (p *Publisher) PublishInvocationMetric(date time.Time, action Action) error {
+func (p *Publisher) PublishInvocationMetric(date time.Time, action action.Action) error {
 
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
@@ -92,7 +93,7 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action Action) error
 }
 
 //PublishDurationMetric publishes an duration metric.
-func (p *Publisher) PublishDurationMetric(date time.Time, action Action, secs float64) error {
+func (p *Publisher) PublishDurationMetric(date time.Time, action action.Action, secs float64) error {
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
 		err := errors.New(message)

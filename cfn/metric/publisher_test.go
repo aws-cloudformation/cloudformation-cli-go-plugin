@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
@@ -63,7 +64,7 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 	}
 	type args struct {
 		date   time.Time
-		action Action
+		action action.Action
 		e      error
 	}
 	tests := []struct {
@@ -79,11 +80,11 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 		wantUnit                      string
 		wantValue                     float64
 	}{
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Create, errors.New("failed to create resource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantNameSpaceError", fields{NewMockCloudWatchClient(), ""}, args{time.Now(), Create, errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Create, errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Update, errors.New("failed to create resource")}, "HandlerException", false, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Update, errors.New("failed to create resource")}, "HandlerException", true, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), action.Create, errors.New("failed to create resource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetricWantNameSpaceError", fields{NewMockCloudWatchClient(), ""}, args{time.Now(), action.Create, errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), action.Create, errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), action.Update, errors.New("failed to create resource")}, "HandlerException", false, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), action.Update, errors.New("failed to create resource")}, "HandlerException", true, "UPDATE", "failed to create resource", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -151,7 +152,7 @@ func TestPublisher_PublishInvocationMetric(t *testing.T) {
 	}
 	type args struct {
 		date   time.Time
-		action Action
+		action action.Action
 	}
 	tests := []struct {
 		name                        string
@@ -165,11 +166,11 @@ func TestPublisher_PublishInvocationMetric(t *testing.T) {
 		wantUnit                    string
 		wantValue                   float64
 	}{
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Create}, "HandlerInvocationCount", false, "CREATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetricWantNameSpaceError", fields{NewMockCloudWatchClient(), ""}, args{time.Now(), Create}, "HandlerInvocationCount", true, "CREATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Create}, "HandlerException", true, "CREATE", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Update}, "HandlerInvocationCount", false, "UPDATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetricError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Update}, "HandlerException", true, "UPDATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), action.Create}, "HandlerInvocationCount", false, "CREATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublishInvocationMetricWantNameSpaceError", fields{NewMockCloudWatchClient(), ""}, args{time.Now(), action.Create}, "HandlerInvocationCount", true, "CREATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), action.Create}, "HandlerException", true, "CREATE", "foo::bar::test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), action.Update}, "HandlerInvocationCount", false, "UPDATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublishInvocationMetricError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), action.Update}, "HandlerException", true, "UPDATE", "foo::bar::test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -232,7 +233,7 @@ func TestPublisher_PublishDurationMetric(t *testing.T) {
 	}
 	type args struct {
 		date   time.Time
-		action Action
+		action action.Action
 		sec    float64
 	}
 	tests := []struct {
@@ -247,11 +248,11 @@ func TestPublisher_PublishDurationMetric(t *testing.T) {
 		wantUnit                    string
 		wantValue                   float64
 	}{
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Create, 15.0}, "HandlerInvocationDuration", false, "CREATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetricWantNameSpaceError", fields{NewMockCloudWatchClient(), ""}, args{time.Now(), Create, 15.0}, "HandlerInvocationDuration", true, "CREATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Create, 15.0}, "HandlerInvocationDuration", true, "CREATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), Update, 15.0}, "HandlerInvocationDuration", false, "UPDATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetricError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), Update, 15.0}, "HandlerInvocationDuration", true, "UPDATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
+		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), action.Create, 15.0}, "HandlerInvocationDuration", false, "CREATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
+		{"testPublishInvocationMetricWantNameSpaceError", fields{NewMockCloudWatchClient(), ""}, args{time.Now(), action.Create, 15.0}, "HandlerInvocationDuration", true, "CREATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
+		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), action.Create, 15.0}, "HandlerInvocationDuration", true, "CREATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
+		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), action.Update, 15.0}, "HandlerInvocationDuration", false, "UPDATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
+		{"testPublishInvocationMetricError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), action.Update, 15.0}, "HandlerInvocationDuration", true, "UPDATE", "foo::bar::test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

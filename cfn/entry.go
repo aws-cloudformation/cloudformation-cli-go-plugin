@@ -88,17 +88,25 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 
 	resourceTypeVersion, err := strconv.ParseFloat(d.ResourceTypeVersion, 64)
 	if err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to format float32", err)
+		return cfnerr.New(UnmarshalingError, "Unable to format float64", err)
 	}
 
 	requestData := &RequestData{}
 	if err := json.Unmarshal(d.RequestData, requestData); err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the event", err)
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
 	}
+
+	reqContext := &RequestContext{}
+	if err := json.Unmarshal(d.Context, reqContext); err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request context", err)
+	}
+
+	reqContext.Session(credentials.SessionFromCredentialsProvider(requestData.CallerCredentials))
 
 	e.Action = action.Convert(d.Action)
 	e.AWSAccountID = d.AWSAccountID
 	e.BearerToken = d.BearerToken
+	e.Context = reqContext
 	e.NextToken = d.NextToken
 	e.Region = d.Region
 	e.RequestData = requestData

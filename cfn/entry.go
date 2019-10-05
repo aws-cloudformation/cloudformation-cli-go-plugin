@@ -165,9 +165,16 @@ func (rd *RequestData) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// RequestContextKey is used to prevent collisions within the context package
+// It's used is for the CallbackContext key in the Request Context
+//
+// 	reqContext.CallbackContext.Value(cfn.RequestContextKey("foo")).(Thing)
 type RequestContextKey string
 
 // RequestContext handles elements such as reties and long running creations.
+//
+// Updating the RequestContext key will do nothing in subsequent requests or retries,
+// instead you should opt to return your context items in the action
 type RequestContext struct {
 	CallbackContext          context.Context
 	CloudWatchEventsRuleName string
@@ -214,13 +221,13 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Tags are store as key/value pairs.
+// Tags are stored as key/value paired strings
 type Tags map[string]string
 
-// EventFunc ...
-type EventFunc func(ctx context.Context, event Event) (Response, error)
+// EventFunc is the function signature required to execute an event from the Lambda SDK
+type EventFunc func(ctx context.Context, event *Event) (Response, error)
 
-// HandlerFunc ...w
+// HandlerFunc is the signature required for all actions
 type HandlerFunc func(request Request, context *RequestContext) (Response, error)
 
 // Request will be passed to actions with customer related data, such as resource states
@@ -258,7 +265,8 @@ func Router(a action.Action, h Handlers) (HandlerFunc, error) {
 	}
 }
 
-// ValidateEvent ...
+// ValidateEvent ensures the event struct generated from the Lambda SDK is correct
+// A number of the RPDK values are required to be a certain type/length
 func ValidateEvent(event *Event) error {
 	if err := validator.Validate(event); err != nil {
 		return cfnerr.New(ValidationError, "Failed Validation", err)
@@ -269,14 +277,17 @@ func ValidateEvent(event *Event) error {
 
 // Handler is the entry point to all invocations of a custom resource
 func Handler(h Handlers) EventFunc {
-	return func(ctx context.Context, event Event) (Response, error) {
+	return func(ctx context.Context, event *Event) (Response, error) {
 		handlerFn, err := Router(event.Action, h)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			return handler.NewFailedResponse(cfnErr), cfnErr
 		}
 
-		// @todo validate input - based on spec?
+		if err := ValidateEvent(event); err != nil {
+			cfnErr := cfnerr.New(InvalidRequestError, "Failed to validate input", err)
+			return handler.NewFailedResponse(cfnErr), cfnErr
+		}
 
 		request := handler.NewRequest(
 			event.RequestData.PreviousResourceProperties,

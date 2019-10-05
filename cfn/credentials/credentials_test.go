@@ -23,3 +23,14 @@ func TestCredentials(t *testing.T) {
 		}
 	})
 }
+
+func TestSessionFromCredentialsProvider(t *testing.T) {
+	t.Run("Happy Path", func(t *testing.T) {
+		creds := NewProvider("a", "b", "c")
+		sess := SessionFromCredentialsProvider(creds)
+
+		if sess == nil {
+			t.Fatalf("Unable to create session")
+		}
+	})
+}

@@ -296,7 +296,7 @@ func Handler(h Handlers) EventFunc {
 			event.BearerToken,
 		)
 
-		resp, err := Invoke(handlerFn, request)
+		resp, err := Invoke(handlerFn, request, event.Context)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			return handler.NewFailedResponse(cfnErr), err
@@ -307,7 +307,7 @@ func Handler(h Handlers) EventFunc {
 }
 
 //Invoke handles the invocation of the handerFn.
-func Invoke(handlerFn HandlerFunc, request Request) (Response, error) {
+func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext) (Response, error) {
 	for {
 		// Create a context that is both manually cancellable and will signal
 		// a cancel at the specified duration.
@@ -324,7 +324,7 @@ func Invoke(handlerFn HandlerFunc, request Request) (Response, error) {
 		// Ask the goroutine to do some work for us.
 		go func() {
 			// Report the work is done.
-			resp, err := handlerFn(request)
+			resp, err := handlerFn(request, reqContext)
 
 			if err != nil {
 				cherror <- err

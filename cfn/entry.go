@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	sdkCredentials "github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 
 	"gopkg.in/validator.v2"
 )
@@ -26,26 +27,6 @@ const (
 	Timeout              time.Duration = 60 * time.Second
 )
 
-// BuilderFn is a convenience type for the builder callback.
-// It enables the creation of resource types without being tied
-// to a specific resource struct.
-type BuilderFn func() interface{}
-
-// Builder enables the creation of resource structs whenever
-// they are required.
-type Builder interface {
-	// BuilderCallback stores the creation function
-	//
-	// Example:
-	// 	type (r *Resource) BuilderCallback(func() interface{} {
-	//		return new(Resource)
-	//	})
-	BuilderCallback(BuilderFn)
-
-	// Build will execute the stored callback function
-	Build() interface{}
-}
-
 // Handlers represents the actions from the AWS CloudFormation service
 //
 // Each action maps directly to a CloudFormation action. Every action is
@@ -54,25 +35,20 @@ type Builder interface {
 // A valid error condition would be met if the resource operation failed or
 // an API is no longer available.
 type Handlers interface {
-	// Implement the `Builder` interface to allow the RPDK to create structs that match the resource.
-	//
-	// This interface is called during the hydration of the event lifecycle.
-	// Builder
-
 	// Create action
-	Create(request Request) (Response, error)
+	Create(request Request, context *RequestContext) (Response, error)
 
 	// Read action
-	Read(request Request) (Response, error)
+	Read(request Request, context *RequestContext) (Response, error)
 
 	// Update action
-	Update(request Request) (Response, error)
+	Update(request Request, context *RequestContext) (Response, error)
 
 	// Delete action
-	Delete(request Request) (Response, error)
+	Delete(request Request, context *RequestContext) (Response, error)
 
 	// List action
-	List(request Request) (Response, error)
+	List(request Request, context *RequestContext) (Response, error)
 }
 
 // Event base structure, it will be internal to the RPDK.
@@ -149,6 +125,7 @@ type RequestData struct {
 	SystemTags                 Tags
 }
 
+// UnmarshalJSON formats the request data into a usable struct
 func (rd *RequestData) UnmarshalJSON(b []byte) error {
 	var d struct {
 		CallerCredentials          map[string]string
@@ -190,13 +167,28 @@ func (rd *RequestData) UnmarshalJSON(b []byte) error {
 }
 
 // RequestContext handles elements such as reties and long running creations.
-//
-// @todo Consider moving to an internal pkg
 type RequestContext struct {
-	CallbackContext          map[string]string
+	CallbackContext          context.Context
 	CloudWatchEventsRuleName string
 	CloudWatchEventsTargetID string
 	Invocation               int32
+
+	session *session.Session
+}
+
+// Session adds a session to the return context
+func (rc *RequestContext) Session(s *session.Session) {
+	rc.session = s
+}
+
+// GetSession returns the customer session for interaction with their AWS account
+func (rc *RequestContext) GetSession() *session.Session {
+	return rc.session
+}
+
+// UnmarshalJSON parses the request context into a usable struct
+func (rc *RequestContext) UnmarshalJSON() error {
+	return nil
 }
 
 // Tags are store as key/value pairs.
@@ -205,8 +197,8 @@ type Tags map[string]string
 // EventFunc ...
 type EventFunc func(ctx context.Context, event Event) (Response, error)
 
-// HandlerFunc ...
-type HandlerFunc func(request Request) (Response, error)
+// HandlerFunc ...w
+type HandlerFunc func(request Request, context *RequestContext) (Response, error)
 
 // Request will be passed to actions with customer related data, such as resource states
 type Request interface {

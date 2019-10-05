@@ -66,6 +66,7 @@ type Event struct {
 	StackID             string `validate:"nonzero"`
 }
 
+// UnmarshalJSON formats the event into a struct
 func (e *Event) UnmarshalJSON(b []byte) error {
 	var d struct {
 		Action              string
@@ -111,8 +112,6 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 
 // RequestData is internal to the RPDK. It contains a number of fields that are for
 // internal use only.
-//
-// @todo Consider moving to an internal pkg
 type RequestData struct {
 	CallerCredentials          sdkCredentials.Provider
 	LogicalResourceID          string
@@ -166,12 +165,14 @@ func (rd *RequestData) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type RequestContextKey string
+
 // RequestContext handles elements such as reties and long running creations.
 type RequestContext struct {
 	CallbackContext          context.Context
 	CloudWatchEventsRuleName string
 	CloudWatchEventsTargetID string
-	Invocation               int32
+	Invocation               int64
 
 	session *session.Session
 }
@@ -187,7 +188,29 @@ func (rc *RequestContext) GetSession() *session.Session {
 }
 
 // UnmarshalJSON parses the request context into a usable struct
-func (rc *RequestContext) UnmarshalJSON() error {
+func (rc *RequestContext) UnmarshalJSON(b []byte) error {
+	var d struct {
+		CallbackContext          map[string]interface{}
+		CloudWatchEventsRuleName string
+		CloudWatchEventsTargetID string
+		Invocation               int64
+	}
+
+	if err := json.Unmarshal(b, &d); err != nil {
+		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
+	}
+
+	ctx := context.Background()
+
+	for k, v := range d.CallbackContext {
+		ctx = context.WithValue(ctx, RequestContextKey(k), v)
+	}
+
+	rc.CallbackContext = ctx
+	rc.CloudWatchEventsRuleName = d.CloudWatchEventsRuleName
+	rc.CloudWatchEventsTargetID = d.CloudWatchEventsTargetID
+	rc.Invocation = d.Invocation
+
 	return nil
 }
 

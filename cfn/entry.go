@@ -97,8 +97,10 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 	}
 
 	reqContext := &RequestContext{}
-	if err := json.Unmarshal(d.Context, reqContext); err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request context", err)
+	if len(d.Context) > 0 {
+		if err := json.Unmarshal(d.Context, reqContext); err != nil {
+			return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request context", err)
+		}
 	}
 
 	reqContext.Session(credentials.SessionFromCredentialsProvider(requestData.CallerCredentials))
@@ -205,10 +207,10 @@ func (rc *RequestContext) GetSession() *session.Session {
 // UnmarshalJSON parses the request context into a usable struct
 func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 	var d struct {
-		CallbackContext          map[string]interface{}
-		CloudWatchEventsRuleName string
-		CloudWatchEventsTargetID string
-		Invocation               int64
+		CallbackContext          map[string]interface{} `json:"callbackContext,omitempty"`
+		CloudWatchEventsRuleName string                 `json:"cloudWatchEventsRuleName,omitempty"`
+		CloudWatchEventsTargetID string                 `json:"cloudWatchEventsTargetId,omitempty"`
+		Invocation               int64                  `json:"invocation,omitempty"`
 	}
 
 	if err := json.Unmarshal(b, &d); err != nil {

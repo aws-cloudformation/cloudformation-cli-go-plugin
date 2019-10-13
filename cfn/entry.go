@@ -11,10 +11,12 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/metrics"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	sdkCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
 	"gopkg.in/validator.v2"
 )
@@ -288,14 +290,19 @@ func ValidateEvent(event *Event) error {
 // Handler is the entry point to all invocations of a custom resource
 func Handler(h Handlers) EventFunc {
 	return func(ctx context.Context, event *Event) (Response, error) {
+		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
+		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
+
 		handlerFn, err := Router(event.Action, h)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 			return handler.NewFailedResponse(cfnErr), cfnErr
 		}
 
 		if err := ValidateEvent(event); err != nil {
 			cfnErr := cfnerr.New(InvalidRequestError, "Failed to validate input", err)
+			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 			return handler.NewFailedResponse(cfnErr), cfnErr
 		}
 
@@ -309,8 +316,11 @@ func Handler(h Handlers) EventFunc {
 		resp, err := Invoke(handlerFn, request, event.Context)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 			return handler.NewFailedResponse(cfnErr), err
 		}
+
+		metricsPublisher.PublishInvocationMetric(time.Now(), event.Action)
 
 		return resp, nil
 	}

@@ -3,7 +3,6 @@ package cfn
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strconv"
 	"time"
 
@@ -22,11 +21,15 @@ import (
 )
 
 const (
-	InvalidRequestError  string        = "InvalidRequest"
-	ServiceInternalError string        = "ServiceInternal"
-	UnmarshalingError    string        = "UnmarshalingError"
-	ValidationError      string        = "Validation"
-	Timeout              time.Duration = 60 * time.Second
+	InvalidRequestError  string = "InvalidRequest"
+	ServiceInternalError string = "ServiceInternal"
+	UnmarshalingError    string = "UnmarshalingError"
+	ValidationError      string = "Validation"
+	TimeoutError         string = "Timeout"
+)
+
+const (
+	Timeout time.Duration = 60 * time.Second
 )
 
 // Handlers represents the actions from the AWS CloudFormation service
@@ -314,7 +317,12 @@ func Handler(h Handlers) EventFunc {
 		)
 
 		resp, err := Invoke(handlerFn, request, event.Context)
-		if err != nil {
+		cfnErr := err.(cfnerr.Error)
+		if cfnErr != nil && cfnErr.Code() {
+			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+			return handler.NewFailedResponse(cfnErr), err
+		} else if cfnErr != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 			return handler.NewFailedResponse(cfnErr), err
@@ -365,7 +373,8 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext) 
 
 		case <-ctx.Done():
 			//handler failed to respond.
-			return nil, errors.New("Handler failed to respond")
+			cfnErr := cfnerr.New(TimeoutError, "Handler failed to respond in time", nil)
+			return nil, cfnErr
 		}
 	}
 }

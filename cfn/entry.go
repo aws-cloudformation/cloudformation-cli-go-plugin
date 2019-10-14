@@ -318,11 +318,7 @@ func Handler(h Handlers) EventFunc {
 
 		resp, err := Invoke(handlerFn, request, event.Context)
 		cfnErr := err.(cfnerr.Error)
-		if cfnErr != nil && cfnErr.Code() != TimeoutError {
-			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
-			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
-			return handler.NewFailedResponse(cfnErr), err
-		} else if cfnErr != nil {
+		if cfnErr != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 			return handler.NewFailedResponse(cfnErr), err

@@ -22,14 +22,20 @@ import (
 )
 
 const (
-	InvalidRequestError  string = "InvalidRequest"
+	// InvalidRequestError ...
+	InvalidRequestError string = "InvalidRequest"
+	// ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
-	UnmarshalingError    string = "UnmarshalingError"
-	ValidationError      string = "Validation"
-	TimeoutError         string = "Timeout"
+	// UnmarshalingError ...
+	UnmarshalingError string = "UnmarshalingError"
+	// ValidationError ...
+	ValidationError string = "Validation"
+	// TimeoutError ...
+	TimeoutError string = "Timeout"
 )
 
 const (
+	// Timeout ...
 	Timeout time.Duration = 60 * time.Second
 )
 

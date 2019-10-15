@@ -1,22 +1,72 @@
 package resource
 
 import (
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/proxy"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
 )
 
-//{{operation|uppercase_first_letter}}Request handles the {{operation|uppercase_first_letter}} event from the Cloudformation service.
-//The DesiredResourceState and PreviousResourceState are Unmarshal into a resource struct and
-//made avalible as an interface{}. The interfaces needs Type assertions be for you can access
-//the stored values.
-func (r *{{ model_name|uppercase_first_letter }}) {{operation|uppercase_first_letter}}Request(request *proxy.ResourceHandlerRequest, proxyClient *proxy.AWSClientProxy) (*proxy.ProgressEvent, error) {
-	//***Add code here: Make your API call, modify the model, etc..
-
-
-	//return the status
-	return &proxy.ProgressEvent{
-		OperationStatus:      proxy.Complete,
-		Message:              "Complete",
-		CallbackDelaySeconds: 0,
-
-	},nil
+//New is a factory function that returns a ResourceHandler
+func New() *ResourceHandler {
+	return &ResourceHandler{}
 }
+
+//ResourceHandler implements the cfn.Handler interface
+type ResourceHandler struct {
+}
+
+//Create handles the Create event from the Cloudformation service.
+func (r *ResourceHandler) Create(request cfn.Request, context *cfn.RequestContext) (cfn.Response, error) {
+	//***Add code here: Make your API call, modify the model, etc..
+	m := Model{}
+	if err := request.ResourceProperties(m); err != nil {
+		return handler.NewFailedResponse(err), err
+	}
+	//return the status
+	return handler.NewResponse(), nil
+}
+
+//Delete handles the Delete event from the Cloudformation service.
+func (r *ResourceHandler) Delete(request cfn.Request, context *cfn.RequestContext) (cfn.Response, error) {
+	//***Add code here: Make your API call, modify the model, etc..
+	m := Model{}
+	if err := request.ResourceProperties(m); err != nil {
+		return handler.NewFailedResponse(err), err
+	}
+	//return the status
+	return handler.NewResponse(), nil
+}
+
+//List handles the List event from the Cloudformation service.
+func (r *ResourceHandler) List(request cfn.Request, context *cfn.RequestContext) (cfn.Response, error) {
+	//***Add code here: Make your API call, modify the model, etc..
+	m := Model{}
+	if err := request.ResourceProperties(m); err != nil {
+		return handler.NewFailedResponse(err), err
+	}
+	//return the status
+	return handler.NewResponse(), nil
+}
+
+//Read handles the Read event from the Cloudformation service.
+func (r *ResourceHandler) Read(request cfn.Request, context *cfn.RequestContext) (cfn.Response, error) {
+	//***Add code here: Make your API call, modify the model, etc..
+	m := Model{}
+	if err := request.ResourceProperties(m); err != nil {
+		return handler.NewFailedResponse(err), err
+	}
+	//return the status
+	return handler.NewResponse(), nil
+}
+
+//Update handles the Update event from the Cloudformation service.
+func (r *ResourceHandler) Update(request cfn.Request, context *cfn.RequestContext) (cfn.Response, error) {
+	//***Add code here: Make your API call, modify the model, etc..
+	m := Model{}
+	if err := request.ResourceProperties(m); err != nil {
+		return handler.NewFailedResponse(err), err
+	}
+	//return the status
+	return handler.NewResponse(), nil
+}
+
+

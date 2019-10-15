@@ -5,10 +5,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/metrics"
 )
 
 func TestMarshalling(t *testing.T) {
@@ -123,9 +127,47 @@ func TestHandler(t *testing.T) {
 }
 
 func TestInvoke(t *testing.T) {
-	t.Run("Happy Path", func(t *testing.T) {
+	mockClient := NewMockedMetrics()
+	mockPub := metrics.New(mockClient)
+	mockPub.SetResourceTypeName("dsf::fs::sfa")
 
-	})
+	type args struct {
+		handlerFn        HandlerFunc
+		request          Request
+		reqContext       *RequestContext
+		metricsPublisher *metrics.Publisher
+		action           action.Action
+	}
+	tests := []struct {
+		name      string
+		args      args
+		want      Response
+		wantErr   bool
+		wantCount int
+	}{
+		{"TestMaxTriesShouldReturnError ", args{func(request Request, context *RequestContext) (Response, error) {
+			time.Sleep(2 * time.Hour)
+			return nil, nil
+		}, handler.NewRequest(nil, nil, "foo", "bar"), &RequestContext{}, mockPub, action.Create,
+		}, handler.NewResponse(), true, 3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Invoke(tt.args.handlerFn, tt.args.request, tt.args.reqContext, tt.args.metricsPublisher, tt.args.action)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Invoke() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+
+			}
+
+			if mockClient.HandlerInvocationCount != tt.wantCount {
+				t.Errorf("InvocationCount= %v, wantCount %v", mockClient.HandlerInvocationCount, tt.wantCount)
+			}
+		})
+	}
 }
 
 // helper func to load fixtures from the disk

@@ -3,6 +3,7 @@ package cfn
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"strconv"
 	"time"
 
@@ -30,6 +31,11 @@ const (
 
 const (
 	Timeout time.Duration = 60 * time.Second
+)
+
+const (
+	//MaxRetries is the number of times to try to call the Handler after it fails to respond.
+	MaxRetries int = 3
 )
 
 // Handlers represents the actions from the AWS CloudFormation service
@@ -295,6 +301,7 @@ func Handler(h Handlers) EventFunc {
 	return func(ctx context.Context, event *Event) (Response, error) {
 		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
+		metricsPublisher.SetResourceTypeName(event.ResourceType)
 
 		handlerFn, err := Router(event.Action, h)
 		if err != nil {
@@ -316,7 +323,7 @@ func Handler(h Handlers) EventFunc {
 			event.BearerToken,
 		)
 
-		resp, err := Invoke(handlerFn, request, event.Context)
+		resp, err := Invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
@@ -330,8 +337,11 @@ func Handler(h Handlers) EventFunc {
 }
 
 //Invoke handles the invocation of the handerFn.
-func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext) (Response, error) {
+func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action) (Response, error) {
+	attempts := 0
+
 	for {
+		attempts++
 		// Create a context that is both manually cancellable and will signal
 		// a cancel at the specified duration.
 		ctx, cancel := context.WithTimeout(context.Background(), Timeout)
@@ -346,8 +356,18 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext) 
 
 		// Ask the goroutine to do some work for us.
 		go func() {
+			//start the timer
+			start := time.Now()
+			if err := metricsPublisher.PublishInvocationMetric(time.Now(), action); err != nil {
+				cherror <- err
+			}
 			// Report the work is done.
 			resp, err := handlerFn(request, reqContext)
+
+			elapsed := time.Since(start)
+			if err := metricsPublisher.PublishDurationMetric(time.Now(), action, elapsed.Seconds()*1e3); err != nil {
+				cherror <- err
+			}
 
 			if err != nil {
 				cherror <- err
@@ -359,6 +379,8 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext) 
 		// Wait for the work to finish. If it takes too long move on. If the function returns an error, signal the error channel.
 		select {
 		case e := <-cherror:
+			cfnErr := cfnerr.New(TimeoutError, "Handler error", e)
+			metricsPublisher.PublishExceptionMetric(time.Now(), action, cfnErr)
 			//The handler returned an error.
 			return nil, e
 
@@ -367,9 +389,15 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext) 
 			return d, nil
 
 		case <-ctx.Done():
-			//handler failed to respond.
-			cfnErr := cfnerr.New(TimeoutError, "Handler failed to respond in time", nil)
-			return nil, cfnErr
+			if attempts == MaxRetries {
+				log.Printf("Handler failed to respond, retrying... attempt: %v action: %s \n", attempts, action)
+				//handler failed to respond.
+				cfnErr := cfnerr.New(TimeoutError, "Handler failed to respond in time", nil)
+				metricsPublisher.PublishExceptionMetric(time.Now(), action, cfnErr)
+				return nil, cfnErr
+			}
+			log.Printf("Handler failed to respond, retrying... attempt: %v action: %s \n", attempts, action)
+
 		}
 	}
 }

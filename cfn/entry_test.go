@@ -1,6 +1,7 @@
 package cfn
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -145,7 +146,7 @@ func TestInvoke(t *testing.T) {
 		wantErr   bool
 		wantCount int
 	}{
-		{"TestMaxTriesShouldReturnError ", args{func(request Request, context *RequestContext) (Response, error) {
+		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request Request) (Response, error) {
 			time.Sleep(2 * time.Hour)
 			return nil, nil
 		}, handler.NewRequest(nil, nil, "foo", "bar"), &RequestContext{}, mockPub, action.Create,

@@ -1,29 +1,31 @@
 package cfn
 
 import (
+	"context"
+
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
 
 type EmptyHandlers struct{}
 
-func (h *EmptyHandlers) Create(request Request, rc *RequestContext) (Response, error) {
+func (h *EmptyHandlers) Create(ctx context.Context, request Request) (Response, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Read(request Request, rc *RequestContext) (Response, error) {
+func (h *EmptyHandlers) Read(ctx context.Context, request Request) (Response, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Update(request Request, rc *RequestContext) (Response, error) {
+func (h *EmptyHandlers) Update(ctx context.Context, request Request) (Response, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Delete(request Request, rc *RequestContext) (Response, error) {
+func (h *EmptyHandlers) Delete(ctx context.Context, request Request) (Response, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) List(request Request, rc *RequestContext) (Response, error) {
+func (h *EmptyHandlers) List(ctx context.Context, request Request) (Response, error) {
 	return nil, nil
 }
 

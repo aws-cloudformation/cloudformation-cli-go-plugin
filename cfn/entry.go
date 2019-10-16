@@ -53,19 +53,19 @@ const (
 // an API is no longer available.
 type Handlers interface {
 	// Create action
-	Create(request Request, context *RequestContext) (Response, error)
+	Create(ctx context.Context, request Request) (Response, error)
 
 	// Read action
-	Read(request Request, context *RequestContext) (Response, error)
+	Read(ctx context.Context, request Request) (Response, error)
 
 	// Update action
-	Update(request Request, context *RequestContext) (Response, error)
+	Update(ctx context.Context, request Request) (Response, error)
 
 	// Delete action
-	Delete(request Request, context *RequestContext) (Response, error)
+	Delete(ctx context.Context, request Request) (Response, error)
 
 	// List action
-	List(request Request, context *RequestContext) (Response, error)
+	List(ctx context.Context, request Request) (Response, error)
 }
 
 // Event base structure, it will be internal to the RPDK.
@@ -255,7 +255,7 @@ type Tags map[string]string
 type EventFunc func(ctx context.Context, event *Event) (Response, error)
 
 // HandlerFunc is the signature required for all actions
-type HandlerFunc func(request Request, context *RequestContext) (Response, error)
+type HandlerFunc func(ctx context.Context, request Request) (Response, error)
 
 // Request will be passed to actions with customer related data, such as resource states
 type Request interface {
@@ -367,8 +367,14 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, 
 			if err := metricsPublisher.PublishInvocationMetric(time.Now(), action); err != nil {
 				cherror <- err
 			}
+
+			customerCtx := reqContext.CallbackContext
+			if customerCtx == nil {
+				customerCtx = context.Background()
+			}
+
 			// Report the work is done.
-			resp, err := handlerFn(request, reqContext)
+			resp, err := handlerFn(customerCtx, request)
 
 			elapsed := time.Since(start)
 			if err := metricsPublisher.PublishDurationMetric(time.Now(), action, elapsed.Seconds()*1e3); err != nil {

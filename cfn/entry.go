@@ -192,12 +192,6 @@ func (rd *RequestData) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// RequestContextKey is used to prevent collisions within the context package
-// It's used is for the CallbackContext key in the Request Context
-//
-// 	reqContext.CallbackContext.Value(cfn.RequestContextKey("foo")).(Thing)
-type RequestContextKey string
-
 // RequestContext handles elements such as reties and long running creations.
 //
 // Updating the RequestContext key will do nothing in subsequent requests or retries,
@@ -234,11 +228,7 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
 	}
 
-	ctx := context.Background()
-
-	for k, v := range d.CallbackContext {
-		ctx = context.WithValue(ctx, RequestContextKey(k), v)
-	}
+	ctx := handler.CreateContext(d.CallbackContext)
 
 	rc.CallbackContext = ctx
 	rc.CloudWatchEventsRuleName = d.CloudWatchEventsRuleName
@@ -372,6 +362,8 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, 
 			if customerCtx == nil {
 				customerCtx = context.Background()
 			}
+
+			customerCtx = handler.ContextInjectSession(ctx, reqContext.GetSession())
 
 			// Report the work is done.
 			resp, err := handlerFn(customerCtx, request)

@@ -1,15 +1,18 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 const (
-	MarshalingError string = "Marshaling"
-	BodyEmptyError  string = "BodyEmpty"
+	MarshalingError      string = "Marshaling"
+	BodyEmptyError       string = "BodyEmpty"
+	SessionNotFoundError string = "SessionNotFound"
 )
 
 // NewRequest ...
@@ -106,4 +109,39 @@ func (r *Response) Error() error {
 // MarshalJSON ...
 func (r *Response) MarshalJSON() ([]byte, error) {
 	return nil, nil
+}
+
+// ContextKey is used to prevent collisions within the context package
+// It's used is for the CallbackContext key in the Request Context
+//
+// 	ctx.Value(handler.ContextKey("foo")).(Thing)
+type ContextKey string
+
+// CreateContext creates a context to pass to handlers
+func CreateContext(items map[string]interface{}) context.Context {
+	ctx := context.Background()
+
+	for k, v := range items {
+		ctx = context.WithValue(ctx, ContextKey(k), v)
+	}
+
+	return ctx
+}
+
+// ContextInjectSession ..
+func ContextInjectSession(ctx context.Context, sess *session.Session) context.Context {
+	ctx = context.WithValue(ctx, ContextKey("aws_session"), sess)
+
+	return ctx
+}
+
+// ContextSession ..
+func ContextSession(ctx context.Context) (*session.Session, error) {
+	val, ok := ctx.Value(ContextKey("aws_session")).(*session.Session)
+	if !ok {
+		cfnErr := cfnerr.New(SessionNotFoundError, "Session not found", nil)
+		return nil, cfnErr
+	}
+
+	return val, nil
 }

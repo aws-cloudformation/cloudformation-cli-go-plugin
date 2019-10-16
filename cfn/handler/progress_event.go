@@ -35,9 +35,6 @@ type ProgressEvent struct {
 	// The output resource instance populated by a READ/LIST for synchronous results
 	// and by CREATE/UPDATE/DELETE for final response validation/confirmation
 	ResourceModel interface{}
-
-	// The output resource instances populated by a LIST for synchronous results
-	ResourceModels []interface{}
 }
 
 // MarshalResponse converts a progress event into a useable reponse

@@ -56,8 +56,12 @@ func (pevt *ProgressEvent) MarshalResponse() (*Response, error) {
 	return resp, nil
 }
 
-func (pevt *ProgressEvent) MarshalCallback() (context.Context, int64) {
-	return p.CallbackContext, p.CallbackDelaySeconds
+// MarshalCallback allows for the ProgressEvent to be parsed into something
+// the RPDK can use to reinvoke the resource provider with the same context.
+func (pevt *ProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
+	var items CallbackContextValues
+
+	return items, pevt.CallbackDelaySeconds
 }
 
 // NewFailedEvent creates a generic failure progress event based on

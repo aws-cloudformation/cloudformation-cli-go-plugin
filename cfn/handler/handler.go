@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	MarshalingError      string = "Marshaling"
-	BodyEmptyError       string = "BodyEmpty"
+	// MarshalingError occurs when we can't marshal data from one format into another.
+	MarshalingError string = "Marshaling"
+	// BodyEmptyError happens when the resource body is empty
+	BodyEmptyError string = "BodyEmpty"
+	// SessionNotFoundError occurs when the AWS SDK session isn't available in the context
 	SessionNotFoundError string = "SessionNotFound"
 )
 
@@ -93,14 +96,17 @@ type Response struct {
 	errorCode       error
 }
 
+// Message ...
 func (r *Response) Message() string {
 	return r.message
 }
 
+// OperationStatus ...
 func (r *Response) OperationStatus() operationstatus.Status {
 	return r.operationStatus
 }
 
+// Error ...
 func (r *Response) Error() error {
 	return r.errorCode
 }
@@ -116,15 +122,25 @@ func (r *Response) MarshalJSON() ([]byte, error) {
 // 	ctx.Value(handler.ContextKey("foo")).(Thing)
 type ContextKey string
 
-// CreateContext creates a context to pass to handlers
-func CreateContext(items map[string]interface{}) context.Context {
-	ctx := context.Background()
+// CallbackContextValues ...
+type CallbackContextValues map[string]interface{}
 
-	for k, v := range items {
-		ctx = context.WithValue(ctx, ContextKey(k), v)
-	}
+// CreateContext creates a context to pass to handlers
+func CreateContext(values CallbackContextValues) context.Context {
+	ctx := context.WithValue(context.Background(), ContextKey("user_callback_context"), values)
 
 	return ctx
+}
+
+// ContextCallback ...
+func ContextCallback(ctx context.Context) (CallbackContextValues, error) {
+	values, ok := ctx.Value(ContextKey("user_callback_context")).(CallbackContextValues)
+	if !ok {
+		cfnErr := cfnerr.New(SessionNotFoundError, "Session not found", nil)
+		return nil, cfnErr
+	}
+
+	return values, nil
 }
 
 // ContextInjectSession ..

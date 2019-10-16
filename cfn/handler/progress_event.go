@@ -56,6 +56,10 @@ func (pevt *ProgressEvent) MarshalResponse() (*Response, error) {
 	return resp, nil
 }
 
+func (pevt *ProgressEvent) MarshalCallback() (context.Context, int64) {
+	return p.CallbackContext, p.CallbackDelaySeconds
+}
+
 // NewFailedEvent creates a generic failure progress event based on
 // an error passed in.
 func NewFailedEvent(err cfnerr.Error) *ProgressEvent {

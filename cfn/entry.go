@@ -263,6 +263,7 @@ type Response interface {
 // ProgressEvent returns the status of any given action
 type ProgressEvent interface {
 	MarshalResponse() (Response, error)
+	MarshalCallback() (context.Context, int64)
 }
 
 // Router decides which handler should be invoked based on the action

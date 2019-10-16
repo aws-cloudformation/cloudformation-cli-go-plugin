@@ -3,29 +3,30 @@ package cfn
 import (
 	"context"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
 
 type EmptyHandlers struct{}
 
-func (h *EmptyHandlers) Create(ctx context.Context, request Request) (ProgressEvent, error) {
+func (h *EmptyHandlers) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Read(ctx context.Context, request Request) (ProgressEvent, error) {
+func (h *EmptyHandlers) Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Update(ctx context.Context, request Request) (ProgressEvent, error) {
+func (h *EmptyHandlers) Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Delete(ctx context.Context, request Request) (ProgressEvent, error) {
+func (h *EmptyHandlers) Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) List(ctx context.Context, request Request) (ProgressEvent, error) {
+func (h *EmptyHandlers) List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	return nil, nil
 }
 

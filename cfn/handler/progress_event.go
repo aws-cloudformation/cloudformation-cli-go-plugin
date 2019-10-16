@@ -7,8 +7,8 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
 )
 
-// ProgressEvent represent the progress of CRUD handlers.
-type ProgressEvent struct {
+// IProgressEvent represent the progress of CRUD handlers.
+type IProgressEvent struct {
 	// The status indicates whether the handler has reached a terminal state or is
 	// still computing and requires more time to complete.
 	OperationStatus operationstatus.Status
@@ -39,7 +39,7 @@ type ProgressEvent struct {
 
 // MarshalResponse converts a progress event into a useable reponse
 // for the CloudFormation Resource Provider service to understand.
-func (pevt *ProgressEvent) MarshalResponse() (*Response, error) {
+func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
 	resp := NewResponse()
 
 	resp.operationStatus = pevt.OperationStatus
@@ -58,7 +58,7 @@ func (pevt *ProgressEvent) MarshalResponse() (*Response, error) {
 
 // MarshalCallback allows for the ProgressEvent to be parsed into something
 // the RPDK can use to reinvoke the resource provider with the same context.
-func (pevt *ProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
+func (pevt *IProgressEvent) MarshalCallback() (map[string]interface{}, int64) {
 	var items CallbackContextValues
 
 	return items, pevt.CallbackDelaySeconds
@@ -66,8 +66,8 @@ func (pevt *ProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
 
 // NewFailedEvent creates a generic failure progress event based on
 // an error passed in.
-func NewFailedEvent(err cfnerr.Error) *ProgressEvent {
-	return &ProgressEvent{
+func NewFailedEvent(err cfnerr.Error) ProgressEvent {
+	return &IProgressEvent{
 		OperationStatus:  operationstatus.Failed,
 		Message:          err.Message(),
 		HandlerErrorCode: err.Code(),
@@ -76,8 +76,8 @@ func NewFailedEvent(err cfnerr.Error) *ProgressEvent {
 
 // NewEvent creates a new progress event
 // By using this we can abstract certain aspects away from the user when needed.
-func NewEvent() *ProgressEvent {
-	return &ProgressEvent{
+func NewEvent() ProgressEvent {
+	return &IProgressEvent{
 		CallbackContext: context.Background(),
 		OperationStatus: operationstatus.Unknown,
 	}

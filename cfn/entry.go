@@ -53,19 +53,19 @@ const (
 // an API is no longer available.
 type Handlers interface {
 	// Create action
-	Create(ctx context.Context, request Request) (ProgressEvent, error)
+	Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
 
 	// Read action
-	Read(ctx context.Context, request Request) (ProgressEvent, error)
+	Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
 
 	// Update action
-	Update(ctx context.Context, request Request) (ProgressEvent, error)
+	Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
 
 	// Delete action
-	Delete(ctx context.Context, request Request) (ProgressEvent, error)
+	Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
 
 	// List action
-	List(ctx context.Context, request Request) (ProgressEvent, error)
+	List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
 }
 
 // Event base structure, it will be internal to the RPDK.
@@ -242,29 +242,10 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 type Tags map[string]string
 
 // EventFunc is the function signature required to execute an event from the Lambda SDK
-type EventFunc func(ctx context.Context, event *Event) (Response, error)
+type EventFunc func(ctx context.Context, event *Event) (handler.Response, error)
 
 // HandlerFunc is the signature required for all actions
-type HandlerFunc func(ctx context.Context, request Request) (ProgressEvent, error)
-
-// Request will be passed to actions with customer related data, such as resource states
-type Request interface {
-	PreviousResourceProperties(v interface{}) error
-	ResourceProperties(v interface{}) error
-	LogicalResourceID() string
-	BearerToken() string
-}
-
-// Response ...
-type Response interface {
-	json.Marshaler
-}
-
-// ProgressEvent returns the status of any given action
-type ProgressEvent interface {
-	MarshalResponse() (Response, error)
-	MarshalCallback() (map[string]interface{}, int64)
-}
+type HandlerFunc func(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
 
 // Router decides which handler should be invoked based on the action
 //
@@ -300,7 +281,7 @@ func ValidateEvent(event *Event) error {
 
 // Handler is the entry point to all invocations of a custom resource
 func Handler(h Handlers) EventFunc {
-	return func(ctx context.Context, event *Event) (Response, error) {
+	return func(ctx context.Context, event *Event) (handler.Response, error) {
 		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
@@ -339,7 +320,7 @@ func Handler(h Handlers) EventFunc {
 }
 
 //Invoke handles the invocation of the handerFn.
-func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action) (Response, error) {
+func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action) (handler.Response, error) {
 	attempts := 0
 
 	for {
@@ -351,7 +332,7 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, 
 		defer cancel()
 
 		// Create a channel to received a signal that work is done.
-		ch := make(chan Response, 1)
+		ch := make(chan handler.Response, 1)
 
 		// Create a channel to received error.
 		cherror := make(chan error, 1)

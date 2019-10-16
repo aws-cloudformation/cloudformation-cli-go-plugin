@@ -134,7 +134,7 @@ func TestInvoke(t *testing.T) {
 
 	type args struct {
 		handlerFn        HandlerFunc
-		request          Request
+		request          handler.Request
 		reqContext       *RequestContext
 		metricsPublisher *metrics.Publisher
 		action           action.Action
@@ -142,11 +142,11 @@ func TestInvoke(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		want      ProgressEvent
+		want      handler.ProgressEvent
 		wantErr   bool
 		wantCount int
 	}{
-		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request Request) (ProgressEvent, error) {
+		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 			time.Sleep(2 * time.Hour)
 			return nil, nil
 		}, handler.NewRequest(nil, nil, "foo", "bar"), &RequestContext{}, mockPub, action.Create,

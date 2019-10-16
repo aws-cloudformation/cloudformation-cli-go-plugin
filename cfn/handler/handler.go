@@ -18,9 +18,30 @@ const (
 	SessionNotFoundError string = "SessionNotFound"
 )
 
+// Request will be passed to actions with customer related data, such as resource states
+type Request interface {
+	PreviousResourceProperties(v interface{}) error
+	ResourceProperties(v interface{}) error
+	LogicalResourceID() string
+	BearerToken() string
+}
+
+// Response ...
+type Response interface {
+	Error() error
+	Message() string
+	OperationStatus() operationstatus.Status
+}
+
+// ProgressEvent returns the status of any given action
+type ProgressEvent interface {
+	MarshalResponse() (Response, error)
+	MarshalCallback() (map[string]interface{}, int64)
+}
+
 // NewRequest ...
-func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string, bearerToken string) *Request {
-	req := &Request{
+func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string, bearerToken string) Request {
+	req := &IRequest{
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
 		logicalResourceID:              logicalResourceID,
@@ -30,8 +51,8 @@ func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResou
 	return req
 }
 
-// Request ...
-type Request struct {
+// IRequest ...
+type IRequest struct {
 	previousResourcePropertiesBody json.RawMessage
 	resourcePropertiesBody         json.RawMessage
 	logicalResourceID              string
@@ -39,7 +60,7 @@ type Request struct {
 }
 
 // PreviousResourceProperties ...
-func (r *Request) PreviousResourceProperties(v interface{}) error {
+func (r *IRequest) PreviousResourceProperties(v interface{}) error {
 	if len(r.resourcePropertiesBody) == 0 {
 		return cfnerr.New(BodyEmptyError, "Body is empty", nil)
 	}
@@ -52,7 +73,7 @@ func (r *Request) PreviousResourceProperties(v interface{}) error {
 }
 
 // ResourceProperties ...
-func (r *Request) ResourceProperties(v interface{}) error {
+func (r *IRequest) ResourceProperties(v interface{}) error {
 	if len(r.resourcePropertiesBody) == 0 {
 		return cfnerr.New(BodyEmptyError, "Body is empty", nil)
 	}
@@ -65,31 +86,31 @@ func (r *Request) ResourceProperties(v interface{}) error {
 }
 
 // LogicalResourceID ...
-func (r *Request) LogicalResourceID() string {
+func (r *IRequest) LogicalResourceID() string {
 	return r.logicalResourceID
 }
 
 // BearerToken ...
-func (r *Request) BearerToken() string {
+func (r *IRequest) BearerToken() string {
 	return r.bearerToken
 }
 
 // NewResponse ...
-func NewResponse() *Response {
-	return &Response{}
+func NewResponse() *IResponse {
+	return &IResponse{}
 }
 
 // NewFailedResponse ...
-func NewFailedResponse(err error) *Response {
-	return &Response{
+func NewFailedResponse(err error) Response {
+	return &IResponse{
 		operationStatus: operationstatus.Failed,
 		errorCode:       err,
 		message:         err.Error(),
 	}
 }
 
-// Response ...
-type Response struct {
+// IResponse ...
+type IResponse struct {
 	message         string
 	operationStatus operationstatus.Status
 	ResourceModel   interface{}
@@ -97,22 +118,22 @@ type Response struct {
 }
 
 // Message ...
-func (r *Response) Message() string {
+func (r *IResponse) Message() string {
 	return r.message
 }
 
 // OperationStatus ...
-func (r *Response) OperationStatus() operationstatus.Status {
+func (r *IResponse) OperationStatus() operationstatus.Status {
 	return r.operationStatus
 }
 
 // Error ...
-func (r *Response) Error() error {
+func (r *IResponse) Error() error {
 	return r.errorCode
 }
 
 // MarshalJSON ...
-func (r *Response) MarshalJSON() ([]byte, error) {
+func (r *IResponse) MarshalJSON() ([]byte, error) {
 	return nil, nil
 }
 

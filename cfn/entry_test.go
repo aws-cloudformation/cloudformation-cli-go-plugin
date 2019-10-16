@@ -142,15 +142,15 @@ func TestInvoke(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		want      Response
+		want      ProgressEvent
 		wantErr   bool
 		wantCount int
 	}{
-		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request Request) (Response, error) {
+		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request Request) (ProgressEvent, error) {
 			time.Sleep(2 * time.Hour)
 			return nil, nil
 		}, handler.NewRequest(nil, nil, "foo", "bar"), &RequestContext{}, mockPub, action.Create,
-		}, handler.NewResponse(), true, 3,
+		}, handler.NewEvent(), true, 3,
 		},
 	}
 	for _, tt := range tests {

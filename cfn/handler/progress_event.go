@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
 )
 
@@ -37,4 +38,42 @@ type ProgressEvent struct {
 
 	// The output resource instances populated by a LIST for synchronous results
 	ResourceModels []interface{}
+}
+
+// MarshalResponse converts a progress event into a useable reponse
+// for the CloudFormation Resource Provider service to understand.
+func (pevt *ProgressEvent) MarshalResponse() (*Response, error) {
+	resp := NewResponse()
+
+	resp.operationStatus = pevt.OperationStatus
+	resp.message = pevt.Message
+
+	if len(pevt.HandlerErrorCode) == 0 {
+		resp.errorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
+	}
+
+	if pevt.ResourceModel != nil {
+		resp.ResourceModel = pevt.ResourceModel
+	}
+
+	return resp, nil
+}
+
+// NewFailedEvent creates a generic failure progress event based on
+// an error passed in.
+func NewFailedEvent(err cfnerr.Error) *ProgressEvent {
+	return &ProgressEvent{
+		OperationStatus:  operationstatus.Failed,
+		Message:          err.Message(),
+		HandlerErrorCode: err.Code(),
+	}
+}
+
+// NewEvent creates a new progress event
+// By using this we can abstract certain aspects away from the user when needed.
+func NewEvent() *ProgressEvent {
+	return &ProgressEvent{
+		CallbackContext: context.Background(),
+		OperationStatus: operationstatus.Unknown,
+	}
 }

@@ -89,8 +89,7 @@ func NewFailedResponse(err error) *Response {
 type Response struct {
 	message         string
 	operationStatus operationstatus.Status
-	ResourceModel   string
-	BearerToken     string
+	ResourceModel   interface{}
 	errorCode       error
 }
 

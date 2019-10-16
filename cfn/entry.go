@@ -53,19 +53,19 @@ const (
 // an API is no longer available.
 type Handlers interface {
 	// Create action
-	Create(ctx context.Context, request Request) (Response, error)
+	Create(ctx context.Context, request Request) (ProgressEvent, error)
 
 	// Read action
-	Read(ctx context.Context, request Request) (Response, error)
+	Read(ctx context.Context, request Request) (ProgressEvent, error)
 
 	// Update action
-	Update(ctx context.Context, request Request) (Response, error)
+	Update(ctx context.Context, request Request) (ProgressEvent, error)
 
 	// Delete action
-	Delete(ctx context.Context, request Request) (Response, error)
+	Delete(ctx context.Context, request Request) (ProgressEvent, error)
 
 	// List action
-	List(ctx context.Context, request Request) (Response, error)
+	List(ctx context.Context, request Request) (ProgressEvent, error)
 }
 
 // Event base structure, it will be internal to the RPDK.
@@ -245,7 +245,7 @@ type Tags map[string]string
 type EventFunc func(ctx context.Context, event *Event) (Response, error)
 
 // HandlerFunc is the signature required for all actions
-type HandlerFunc func(ctx context.Context, request Request) (Response, error)
+type HandlerFunc func(ctx context.Context, request Request) (ProgressEvent, error)
 
 // Request will be passed to actions with customer related data, such as resource states
 type Request interface {
@@ -258,6 +258,11 @@ type Request interface {
 // Response ...
 type Response interface {
 	json.Marshaler
+}
+
+// ProgressEvent returns the status of any given action
+type ProgressEvent interface {
+	MarshalResponse() (Response, error)
 }
 
 // Router decides which handler should be invoked based on the action
@@ -366,7 +371,7 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, 
 			customerCtx = handler.ContextInjectSession(ctx, reqContext.GetSession())
 
 			// Report the work is done.
-			resp, err := handlerFn(customerCtx, request)
+			progEvt, err := handlerFn(customerCtx, request)
 
 			elapsed := time.Since(start)
 			if err := metricsPublisher.PublishDurationMetric(time.Now(), action, elapsed.Seconds()*1e3); err != nil {
@@ -377,6 +382,10 @@ func Invoke(handlerFn HandlerFunc, request Request, reqContext *RequestContext, 
 				cherror <- err
 			}
 
+			resp, err := progEvt.MarshalResponse()
+			if err != nil {
+				cherror <- err
+			}
 			ch <- resp
 		}()
 

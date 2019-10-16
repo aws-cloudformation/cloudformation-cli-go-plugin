@@ -9,23 +9,23 @@ import (
 
 type EmptyHandlers struct{}
 
-func (h *EmptyHandlers) Create(ctx context.Context, request Request) (Response, error) {
+func (h *EmptyHandlers) Create(ctx context.Context, request Request) (ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Read(ctx context.Context, request Request) (Response, error) {
+func (h *EmptyHandlers) Read(ctx context.Context, request Request) (ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Update(ctx context.Context, request Request) (Response, error) {
+func (h *EmptyHandlers) Update(ctx context.Context, request Request) (ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) Delete(ctx context.Context, request Request) (Response, error) {
+func (h *EmptyHandlers) Delete(ctx context.Context, request Request) (ProgressEvent, error) {
 	return nil, nil
 }
 
-func (h *EmptyHandlers) List(ctx context.Context, request Request) (Response, error) {
+func (h *EmptyHandlers) List(ctx context.Context, request Request) (ProgressEvent, error) {
 	return nil, nil
 }
 

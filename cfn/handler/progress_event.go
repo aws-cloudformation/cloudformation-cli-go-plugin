@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
 )
@@ -25,7 +23,7 @@ type IProgressEvent struct {
 	// IN_PROGRESS event to allow the passing through of additional state or
 	// metadata between subsequent retries; for example to pass through a Resource
 	// identifier which can be used to continue polling for stabilization
-	CallbackContext context.Context
+	CallbackContext CallbackContextValues
 
 	// A callback will be scheduled with an initial delay of no less than the number
 	// of seconds specified in the progress event. Set this value to <= 0 to
@@ -59,9 +57,7 @@ func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
 // MarshalCallback allows for the ProgressEvent to be parsed into something
 // the RPDK can use to reinvoke the resource provider with the same context.
 func (pevt *IProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
-	var items CallbackContextValues
-
-	return items, pevt.CallbackDelaySeconds
+	return pevt.CallbackContext, pevt.CallbackDelaySeconds
 }
 
 // NewFailedEvent creates a generic failure progress event based on
@@ -78,7 +74,6 @@ func NewFailedEvent(err cfnerr.Error) ProgressEvent {
 // By using this we can abstract certain aspects away from the user when needed.
 func NewEvent() *IProgressEvent {
 	return &IProgressEvent{
-		CallbackContext: context.Background(),
 		OperationStatus: operationstatus.Unknown,
 	}
 }

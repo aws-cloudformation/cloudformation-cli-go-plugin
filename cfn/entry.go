@@ -527,7 +527,6 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 
 			// Report the work is done.
 			progEvt, err := handlerFn(customerCtx, request)
-
 			if err != nil {
 				cherror <- err
 			}

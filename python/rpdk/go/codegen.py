@@ -127,8 +127,8 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def init_handlers(self, project, src):
         LOG.debug("Writing stub handlers")
-        template = self.env.get_template("StubHandler.go.tple")
-        path = src / "Handlers.go"
+        template = self.env.get_template("stubHandler.go.tple")
+        path = src / "handlers.go"
         contents = template.render()
         project.safewrite(path, contents)
 
@@ -147,7 +147,7 @@ class GoLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing Types")
         models = resolve_models(project.schema)
         template = self.env.get_template("types.go.tple")
-        path = src / "{}.go".format("Generated")
+        path = src / "{}.go".format("generated")
         contents = template.render(
             models=models,
             )

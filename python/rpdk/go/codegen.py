@@ -127,7 +127,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def init_handlers(self, project, src):
         LOG.debug("Writing stub handlers")
-        template = self.env.get_template("StubHandler.go.tple")
+        template = self.env.get_template("stubHandler.go.tple")
         path = src / "Handlers.go"
         contents = template.render()
         project.safewrite(path, contents)

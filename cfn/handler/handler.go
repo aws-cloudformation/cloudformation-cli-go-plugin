@@ -111,10 +111,39 @@ func NewFailedResponse(err error) Response {
 
 // IResponse ...
 type IResponse struct {
-	message         string
-	operationStatus operationstatus.Status
-	ResourceModel   interface{}
-	errorCode       error
+	message         string                 `json:"Message,omitempty"`
+	operationStatus operationstatus.Status `json:"OperationStatus,omitempty"`
+	resourceModel   interface{}            `json:"ResourceModel,omitempty"`
+	errorCode       error                  `json:"ErrorCode,omitempty"`
+}
+
+func (r *IResponse) MarshalJSON() ([]byte, error) {
+	var resp struct {
+		Message         string      `json:"Message,omitempty"`
+		OperationStatus string      `json:"OperationStatus,omitempty"`
+		ResourceModel   interface{} `json:"ResourceModel,omitempty"`
+		ErrorCode       string      `json:"ErrorCode,omitempty"`
+	}
+
+	cfnErr, ok := r.Error().(cfnerr.Error)
+	if cfnErr != nil && !ok {
+		return nil, cfnerr.New(MarshalingError, "Unable to marshal response, zomg", r.Error())
+	}
+
+	resp.Message = r.Message()
+	resp.OperationStatus = r.operationStatus.String()
+	resp.ResourceModel = r.ResourceModel()
+
+	if cfnErr != nil {
+		resp.ErrorCode = cfnErr.Code()
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		return nil, cfnerr.New(MarshalingError, "Unable to marshal response", err)
+	}
+
+	return b, nil
 }
 
 // Message ...
@@ -132,9 +161,8 @@ func (r *IResponse) Error() error {
 	return r.errorCode
 }
 
-// MarshalJSON ...
-func (r *IResponse) MarshalJSON() ([]byte, error) {
-	return nil, nil
+func (r *IResponse) ResourceModel() interface{} {
+	return r.resourceModel
 }
 
 // ContextKey is used to prevent collisions within the context package

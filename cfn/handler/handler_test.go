@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/cfnerr"
@@ -146,4 +147,32 @@ func TestNewFailedResponse(t *testing.T) {
 		}
 	})
 
+}
+
+func TestResponseMarshaling(t *testing.T) {
+	t.Run("Happy Path", func(t *testing.T) {
+		colour := struct {
+			Name        string
+			Description string
+		}{
+			Name:        "Red",
+			Description: "The colour red",
+		}
+
+		resp := NewResponse()
+		resp.operationStatus = operationstatus.Complete
+		resp.message = "Completed"
+		resp.resourceModel = colour
+
+		b, err := json.Marshal(resp)
+		if err != nil {
+			t.Fatalf("Problem marshaling: %v", err)
+		}
+
+		valid := `{"Message":"Completed","OperationStatus":"Complete","ResourceModel":{"Name":"Red","Description":"The colour red"}}`
+
+		if valid != string(b) {
+			t.Fatalf("Response is not the same")
+		}
+	})
 }

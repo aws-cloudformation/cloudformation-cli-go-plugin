@@ -50,7 +50,7 @@ func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
 	}
 
 	if pevt.ResourceModel != nil {
-		resp.ResourceModel = pevt.ResourceModel
+		resp.resourceModel = pevt.ResourceModel
 	}
 
 	return resp, nil

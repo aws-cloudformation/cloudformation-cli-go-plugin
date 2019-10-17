@@ -4,9 +4,18 @@ import (
 	"strings"
 )
 
-// Status ...
+// Status is the resource provider status
+//
+// The status will be reported back to the Resource Provider
+// API in the form a ProgressEvent from the handler (Read/Update/etc)
 type Status int
 
+// Formats the status as a string
+//
+// Example
+//
+//  // Will return "InProgress"
+//	operationstatus.InProgress.String()
 func (c Status) String() string {
 	if c < InProgress || c > Failed {
 		return "Unknown"
@@ -22,6 +31,12 @@ func (c Status) String() string {
 	return statuses[c]
 }
 
+// Convert turns a string into a status
+//
+// Example
+//
+//  // will return operationstatus.InProgress
+// 	operationstatus.Convert("InProgress")
 func Convert(s string) Status {
 	status := strings.ToUpper(s)
 
@@ -42,15 +57,19 @@ func Convert(s string) Status {
 }
 
 const (
-	// Unknown ...
+	// Unknown represents all states that aren't covered
+	// elsewhere
 	Unknown Status = iota
 
-	// InProgress ...
+	// InProgress should be returned when a resource provider
+	// is in the process of being operated on.
 	InProgress
 
-	// Complete ...
+	// Complete should be returned when the resource provider
+	// has finished it's operation.
 	Complete
 
-	// Failed ...
+	// Failed should be returned when the resource provider
+	// has failed
 	Failed
 )

@@ -3,6 +3,7 @@ package cfn
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -26,12 +27,19 @@ import (
 const (
 	// InvalidRequestError ...
 	InvalidRequestError string = "InvalidRequest"
+
 	// ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
+
 	// UnmarshalingError ...
 	UnmarshalingError string = "UnmarshalingError"
+
+	// MarshalingError ...
+	MarshalingError string = "MarshalingError"
+
 	// ValidationError ...
 	ValidationError string = "Validation"
+
 	// TimeoutError ...
 	TimeoutError string = "Timeout"
 )
@@ -139,6 +147,43 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalJSON ...
+func (e *Event) MarshalJSON() ([]byte, error) {
+	var d struct {
+		Action              string
+		AWSAccountID        string
+		BearerToken         string
+		Context             interface{}
+		NextToken           string
+		Region              string
+		RequestData         interface{}
+		ResourceType        string
+		ResourceTypeVersion string
+		ResponseEndpoint    string
+		StackID             string
+	}
+
+	d.Action = e.Action.String()
+	d.AWSAccountID = e.AWSAccountID
+	d.BearerToken = e.BearerToken
+	d.NextToken = e.NextToken
+	d.Region = e.Region
+	d.ResourceType = e.ResourceType
+	d.ResourceTypeVersion = fmt.Sprintf("%.2f", e.ResourceTypeVersion)
+	d.ResponseEndpoint = e.ResponseEndpoint
+	d.StackID = e.StackID
+	d.RequestData = e.RequestData
+	d.Context = e.Context
+
+	b, err := json.Marshal(d)
+	if err != nil {
+		cfnErr := cfnerr.New(MarshalingError, "Unable to marshal event", err)
+		return nil, cfnErr
+	}
+
+	return b, nil
+}
+
 // RequestData is internal to the RPDK. It contains a number of fields that are for
 // internal use only.
 type RequestData struct {
@@ -194,6 +239,51 @@ func (rd *RequestData) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalJSON ...
+func (rd *RequestData) MarshalJSON() ([]byte, error) {
+	var d struct {
+		CallerCredentials          map[string]string
+		LogicalResourceID          string
+		PlatformCredentials        map[string]string
+		PreviousResourceProperties interface{}
+		PreviousStackTags          Tags
+		ProviderLogGroupName       string
+		ResourceProperties         interface{}
+		StackTags                  Tags
+		SystemTags                 Tags
+	}
+
+	// we can swallow the errors, it's never raised.
+	caller, _ := rd.CallerCredentials.Retrieve()
+	platform, _ := rd.CallerCredentials.Retrieve()
+
+	d.CallerCredentials = map[string]string{
+		"accessKeyId":     caller.AccessKeyID,
+		"secretAccessKey": caller.SecretAccessKey,
+		"sessionToken":    caller.SessionToken,
+	}
+	d.LogicalResourceID = rd.LogicalResourceID
+	d.PlatformCredentials = map[string]string{
+		"accessKeyId":     platform.AccessKeyID,
+		"secretAccessKey": platform.SecretAccessKey,
+		"sessionToken":    platform.SessionToken,
+	}
+	d.PreviousResourceProperties = rd.PreviousResourceProperties
+	d.PreviousStackTags = rd.PreviousStackTags
+	d.ProviderLogGroupName = rd.ProviderLogGroupName
+	d.ResourceProperties = rd.ResourceProperties
+	d.StackTags = rd.StackTags
+	d.SystemTags = rd.StackTags
+
+	b, err := json.Marshal(d)
+	if err != nil {
+		cfnErr := cfnerr.New(MarshalingError, "Unable to marshal request data", err)
+		return nil, cfnErr
+	}
+
+	return b, nil
+}
+
 // RequestContext handles elements such as reties and long running creations.
 //
 // Updating the RequestContext key will do nothing in subsequent requests or retries,
@@ -244,6 +334,29 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 	rc.Invocation = d.Invocation
 
 	return nil
+}
+
+// MarshalJSON ...
+func (rc *RequestContext) MarshalJSON() ([]byte, error) {
+	var d struct {
+		CallbackContext          map[string]interface{} `json:"callbackContext,omitempty"`
+		CloudWatchEventsRuleName string                 `json:"cloudWatchEventsRuleName,omitempty"`
+		CloudWatchEventsTargetID string                 `json:"cloudWatchEventsTargetId,omitempty"`
+		Invocation               int64                  `json:"invocation,omitempty"`
+	}
+
+	d.CallbackContext = rc.CallbackContext
+	d.CloudWatchEventsRuleName = rc.CloudWatchEventsRuleName
+	d.CloudWatchEventsTargetID = rc.CloudWatchEventsTargetID
+	d.Invocation = rc.Invocation
+
+	b, err := json.Marshal(d)
+	if err != nil {
+		cfnErr := cfnerr.New(MarshalingError, "Unable to marshal request context", err)
+		return nil, cfnErr
+	}
+
+	return b, nil
 }
 
 // Tags are stored as key/value paired strings

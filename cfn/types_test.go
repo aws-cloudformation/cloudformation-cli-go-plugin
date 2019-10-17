@@ -8,6 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
 
+// EmptyHandlers is a implementation of the handlers required to create
+// a resource provider plugin.
+//
+// This implementation of the handlers is only used for testing.
 type EmptyHandlers struct{}
 
 func (h *EmptyHandlers) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {

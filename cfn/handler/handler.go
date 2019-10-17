@@ -36,7 +36,7 @@ type Response interface {
 // ProgressEvent returns the status of any given action
 type ProgressEvent interface {
 	MarshalResponse() (Response, error)
-	MarshalCallback() (map[string]interface{}, int64)
+	MarshalCallback() (CallbackContextValues, int64)
 }
 
 // NewRequest ...

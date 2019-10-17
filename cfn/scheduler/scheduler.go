@@ -27,6 +27,11 @@ const (
 type Result struct {
 	//Denotes if the computation was done locally.
 	ComputeLocal bool
+	IDS          ScheduleIDS
+}
+
+//ScheduleIDS is of the invocation
+type ScheduleIDS struct {
 	//The Cloudwatch target ID.
 	Target string
 	//The Cloudwatch handler ID.
@@ -49,7 +54,7 @@ func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 //invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
-func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*Result, error) {
+func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, callbackRequest string, invocationIDS *ScheduleIDS) (*Result, error) {
 
 	lc, hasValue := lambdacontext.FromContext(lambdaCtx)
 
@@ -65,22 +70,13 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 		return nil, cfnerr.New(ServiceInternalError, "Scheduled seconds must be greater than 0", err)
 	}
 
-	uuid, err := uuid.NewUUID()
-
-	if err != nil {
-		return nil, cfnerr.New(ServiceInternalError, "uuid error", err)
-	}
-
-	handlerID := fmt.Sprintf(HandlerPrepend, uuid)
-	targetID := fmt.Sprintf(TargentPrepend, uuid)
-
 	if secsFromNow < 60 && secondsUnitDeadline > float64(secsFromNow)*1.2 {
 
 		log.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", secsFromNow, string(callbackRequest))
 
 		time.Sleep(time.Duration(secsFromNow) * time.Second)
 
-		return &Result{ComputeLocal: true, Handler: handlerID, Target: targetID}, nil
+		return &Result{ComputeLocal: true, IDS: *invocationIDS}, nil
 	}
 
 	//re-invoke through CloudWatchEvents no less than 1 minute from now.
@@ -89,10 +85,10 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 	}
 
 	cr := GenerateOneTimeCronExpression(secsFromNow, time.Now())
-	log.Printf("Scheduling re-invoke at %s (%s)\n", cr, uuid)
+	log.Printf("Scheduling re-invoke at %s \n", cr)
 	_, rerr := s.client.PutRule(&cloudwatchevents.PutRuleInput{
 
-		Name:               aws.String(handlerID),
+		Name:               aws.String(invocationIDS.Handler),
 		ScheduleExpression: aws.String(cr),
 		State:              aws.String(cloudwatchevents.RuleStateEnabled),
 	})
@@ -101,20 +97,20 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 		return nil, cfnerr.New(ServiceInternalError, "Schedule error", rerr)
 	}
 	_, perr := s.client.PutTargets(&cloudwatchevents.PutTargetsInput{
-		Rule: aws.String(handlerID),
+		Rule: aws.String(invocationIDS.Handler),
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
 				Arn:   aws.String(lc.InvokedFunctionArn),
-				Id:    aws.String(targetID),
+				Id:    aws.String(invocationIDS.Target),
 				Input: aws.String(string(callbackRequest)),
 			},
 		},
 	})
 	if perr != nil {
-		return nil, cfnerr.New(ServiceInternalError, "Schedule error", err)
+		return nil, cfnerr.New(ServiceInternalError, "Schedule error", perr)
 	}
 
-	return &Result{ComputeLocal: false, Handler: handlerID, Target: targetID}, nil
+	return &Result{ComputeLocal: false, IDS: *invocationIDS}, nil
 }
 
 //CleanupEvents is used to clean up Cloudwatch Events.
@@ -154,7 +150,24 @@ func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 }
 
 //GenerateOneTimeCronExpression a cron(..) expression for a single instance at Now+minutesFromNow
-func GenerateOneTimeCronExpression(secFromNow int, t time.Time) string {
+func GenerateOneTimeCronExpression(secFromNow int64, t time.Time) string {
 	a := t.Add(time.Second * time.Duration(secFromNow))
 	return fmt.Sprintf("cron(%02d %02d %02d %02d ? %d)", a.Minute(), a.Hour(), a.Day(), a.Month(), a.Year())
+}
+
+//GenerateCloudWatchIDS creates the targetID and handlerID for invocation
+func GenerateCloudWatchIDS() (*ScheduleIDS, error) {
+	uuid, err := uuid.NewUUID()
+
+	if err != nil {
+		return nil, cfnerr.New(ServiceInternalError, "uuid error", err)
+	}
+
+	handlerID := fmt.Sprintf(HandlerPrepend, uuid)
+	targetID := fmt.Sprintf(TargentPrepend, uuid)
+
+	return &ScheduleIDS{
+		Target:  targetID,
+		Handler: handlerID,
+	}, nil
 }

@@ -450,7 +450,7 @@ func Handler(h Handlers) EventFunc {
 			event.Context.CloudWatchEventsRuleName = invocationIDS.Handler
 			event.Context.CloudWatchEventsTargetID = invocationIDS.Target
 
-			callbackRequest, err := json.Marshal(event)
+			callbackRequest, err := event.MarshalJSON()
 
 			if err != nil {
 				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)

@@ -13,6 +13,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/metrics"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/operationstatus"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/scheduler"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -436,50 +437,58 @@ func Handler(h Handlers) EventFunc {
 				return handler.NewFailedResponse(cfnErr), err
 			}
 
-			customerCtx, delay := progEvt.MarshalCallback()
-
-			invocationIDS, err := scheduler.GenerateCloudWatchIDS()
+			r, err := progEvt.MarshalResponse()
 			if err != nil {
 				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 				return handler.NewFailedResponse(cfnErr), err
 			}
 
-			//Add IDs to recall the function with Cloudwatch events
-			event.Context.CloudWatchEventsRuleName = invocationIDS.Handler
-			event.Context.CloudWatchEventsTargetID = invocationIDS.Target
+			switch r.OperationStatus() {
+			case operationstatus.Complete:
+				return r, nil
+			case operationstatus.Failed:
+				return r, nil
+			case operationstatus.InProgress:
 
-			callbackRequest, err := event.MarshalJSON()
+				customerCtx, delay := progEvt.MarshalCallback()
 
-			if err != nil {
-				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
-				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
-				return handler.NewFailedResponse(cfnErr), err
-			}
-
-			scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
-
-			if err != nil {
-				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
-				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
-				return handler.NewFailedResponse(cfnErr), err
-			}
-
-			//If not computing local, exit and return response
-			if !scheResult.ComputeLocal {
-				r, err := progEvt.MarshalResponse()
+				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
 				if err != nil {
 					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
 					return handler.NewFailedResponse(cfnErr), err
 				}
 
-				resp = r
-				break
-			}
+				//Add IDs to recall the function with Cloudwatch events
+				event.Context.CloudWatchEventsRuleName = invocationIDS.Handler
+				event.Context.CloudWatchEventsTargetID = invocationIDS.Target
 
-			//Rebuild the context
-			event.Context.CallbackContext = customerCtx
+				callbackRequest, err := event.MarshalJSON()
+
+				if err != nil {
+					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+					metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+					return handler.NewFailedResponse(cfnErr), err
+				}
+
+				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
+
+				if err != nil {
+					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+					metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+					return handler.NewFailedResponse(cfnErr), err
+				}
+
+				//If not computing local, exit and return response
+				if !scheResult.ComputeLocal {
+					return r, nil
+				}
+
+				//Rebuild the context
+				event.Context.CallbackContext = customerCtx
+
+			}
 
 		}
 

@@ -76,7 +76,7 @@ func NewFailedEvent(err cfnerr.Error) ProgressEvent {
 
 // NewEvent creates a new progress event
 // By using this we can abstract certain aspects away from the user when needed.
-func NewEvent() ProgressEvent {
+func NewEvent() *IProgressEvent {
 	return &IProgressEvent{
 		CallbackContext: context.Background(),
 		OperationStatus: operationstatus.Unknown,

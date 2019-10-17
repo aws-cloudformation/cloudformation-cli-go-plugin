@@ -3,7 +3,7 @@ package cfn
 import (
 	"context"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )

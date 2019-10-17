@@ -339,10 +339,10 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 // MarshalJSON ...
 func (rc *RequestContext) MarshalJSON() ([]byte, error) {
 	var d struct {
-		CallbackContext          map[string]interface{} `json:"callbackContext,omitempty"`
-		CloudWatchEventsRuleName string                 `json:"cloudWatchEventsRuleName,omitempty"`
-		CloudWatchEventsTargetID string                 `json:"cloudWatchEventsTargetId,omitempty"`
-		Invocation               int64                  `json:"invocation,omitempty"`
+		CallbackContext          handler.CallbackContextValues `json:"callbackContext,omitempty"`
+		CloudWatchEventsRuleName string                        `json:"cloudWatchEventsRuleName,omitempty"`
+		CloudWatchEventsTargetID string                        `json:"cloudWatchEventsTargetId,omitempty"`
+		Invocation               int64                         `json:"invocation,omitempty"`
 	}
 
 	d.CallbackContext = rc.CallbackContext
@@ -514,7 +514,7 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 				cherror <- err
 			}
 
-			customerCtx := handler.CreateContext(reqContext.CallbackContext)
+			customerCtx := handler.ContextValues(context.Background(), reqContext.CallbackContext)
 			customerCtx = handler.ContextInjectSession(customerCtx, reqContext.GetSession())
 
 			// Report the work is done.

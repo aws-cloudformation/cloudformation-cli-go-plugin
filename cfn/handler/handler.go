@@ -146,11 +146,9 @@ type ContextKey string
 // CallbackContextValues ...
 type CallbackContextValues map[string]interface{}
 
-// CreateContext creates a context to pass to handlers
-func CreateContext(values CallbackContextValues) context.Context {
-	ctx := context.WithValue(context.Background(), ContextKey("user_callback_context"), values)
-
-	return ctx
+// ContextValues creates a context to pass to handlers
+func ContextValues(ctx context.Context, values CallbackContextValues) context.Context {
+	return context.WithValue(ctx, ContextKey("user_callback_context"), values)
 }
 
 // ContextCallback ...

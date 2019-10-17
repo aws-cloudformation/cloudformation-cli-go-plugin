@@ -58,7 +58,7 @@ func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
 
 // MarshalCallback allows for the ProgressEvent to be parsed into something
 // the RPDK can use to reinvoke the resource provider with the same context.
-func (pevt *IProgressEvent) MarshalCallback() (map[string]interface{}, int64) {
+func (pevt *IProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
 	var items CallbackContextValues
 
 	return items, pevt.CallbackDelaySeconds

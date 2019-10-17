@@ -13,11 +13,13 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/metrics"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin-thulsimo/cfn/scheduler"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	sdkCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 
 	"gopkg.in/validator.v2"
 )
@@ -287,7 +289,7 @@ func (rd *RequestData) MarshalJSON() ([]byte, error) {
 // Updating the RequestContext key will do nothing in subsequent requests or retries,
 // instead you should opt to return your context items in the action
 type RequestContext struct {
-	CallbackContext          context.Context
+	CallbackContext          handler.CallbackContextValues
 	CloudWatchEventsRuleName string
 	CloudWatchEventsTargetID string
 	Invocation               int64
@@ -308,10 +310,10 @@ func (rc *RequestContext) GetSession() *session.Session {
 // UnmarshalJSON parses the request context into a usable struct
 func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 	var d struct {
-		CallbackContext          map[string]interface{} `json:"callbackContext,omitempty"`
-		CloudWatchEventsRuleName string                 `json:"cloudWatchEventsRuleName,omitempty"`
-		CloudWatchEventsTargetID string                 `json:"cloudWatchEventsTargetId,omitempty"`
-		Invocation               int64                  `json:"invocation,omitempty"`
+		CallbackContext          handler.CallbackContextValues `json:"callbackContext,omitempty"`
+		CloudWatchEventsRuleName string                        `json:"cloudWatchEventsRuleName,omitempty"`
+		CloudWatchEventsTargetID string                        `json:"cloudWatchEventsTargetId,omitempty"`
+		Invocation               int64                         `json:"invocation,omitempty"`
 	}
 
 	if err := json.Unmarshal(b, &d); err != nil {
@@ -320,7 +322,13 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 
 	ctx := handler.CreateContext(d.CallbackContext)
 
-	rc.CallbackContext = ctx
+	callbackCtx, err := handler.ContextCallback(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	rc.CallbackContext = callbackCtx
 	rc.CloudWatchEventsRuleName = d.CloudWatchEventsRuleName
 	rc.CloudWatchEventsTargetID = d.CloudWatchEventsTargetID
 	rc.Invocation = d.Invocation
@@ -398,6 +406,8 @@ func Handler(h Handlers) EventFunc {
 		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
+		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
+		var resp handler.Response
 
 		handlerFn, err := Router(event.Action, h)
 		if err != nil {
@@ -418,22 +428,68 @@ func Handler(h Handlers) EventFunc {
 			event.RequestData.LogicalResourceID,
 			event.BearerToken,
 		)
+		for {
+			progEvt, err := Invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
 
-		resp, err := Invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
-		if err != nil {
-			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
-			metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
-			return handler.NewFailedResponse(cfnErr), err
+			if err != nil {
+				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+				return handler.NewFailedResponse(cfnErr), err
+			}
+
+			customerCtx, delay := progEvt.MarshalCallback()
+
+			invocationIDS, err := scheduler.GenerateCloudWatchIDS()
+			if err != nil {
+				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+				return handler.NewFailedResponse(cfnErr), err
+			}
+
+			//Add IDs to recall the function with Cloudwatch events
+			event.Context.CloudWatchEventsRuleName = invocationIDS.Handler
+			event.Context.CloudWatchEventsTargetID = invocationIDS.Target
+
+			callbackRequest, err := event.MarshalJSON()
+
+			if err != nil {
+				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+				return handler.NewFailedResponse(cfnErr), err
+			}
+
+			scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
+
+			if err != nil {
+				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+				metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+				return handler.NewFailedResponse(cfnErr), err
+			}
+
+			//If not computing local, exit and return response
+			if !scheResult.ComputeLocal {
+				r, err := progEvt.MarshalResponse()
+				if err != nil {
+					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+					metricsPublisher.PublishExceptionMetric(time.Now(), event.Action, cfnErr)
+					return handler.NewFailedResponse(cfnErr), err
+				}
+
+				resp = r
+				break
+			}
+
+			//Rebuild the context
+			event.Context.CallbackContext = customerCtx
+
 		}
-
-		metricsPublisher.PublishInvocationMetric(time.Now(), event.Action)
 
 		return resp, nil
 	}
 }
 
 //Invoke handles the invocation of the handerFn.
-func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action) (handler.Response, error) {
+func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action) (handler.ProgressEvent, error) {
 	attempts := 0
 
 	for {
@@ -445,7 +501,7 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 		defer cancel()
 
 		// Create a channel to received a signal that work is done.
-		ch := make(chan handler.Response, 1)
+		ch := make(chan handler.ProgressEvent, 1)
 
 		// Create a channel to received error.
 		cherror := make(chan error, 1)
@@ -458,30 +514,23 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 				cherror <- err
 			}
 
-			customerCtx := reqContext.CallbackContext
-			if customerCtx == nil {
-				customerCtx = context.Background()
-			}
-
-			customerCtx = handler.ContextInjectSession(ctx, reqContext.GetSession())
+			customerCtx := handler.CreateContext(reqContext.CallbackContext)
+			customerCtx = handler.ContextInjectSession(customerCtx, reqContext.GetSession())
 
 			// Report the work is done.
 			progEvt, err := handlerFn(customerCtx, request)
 
+			if err != nil {
+				cherror <- err
+			}
+
 			elapsed := time.Since(start)
+
 			if err := metricsPublisher.PublishDurationMetric(time.Now(), action, elapsed.Seconds()*1e3); err != nil {
 				cherror <- err
 			}
 
-			if err != nil {
-				cherror <- err
-			}
-
-			resp, err := progEvt.MarshalResponse()
-			if err != nil {
-				cherror <- err
-			}
-			ch <- resp
+			ch <- progEvt
 		}()
 
 		// Wait for the work to finish. If it takes too long move on. If the function returns an error, signal the error channel.

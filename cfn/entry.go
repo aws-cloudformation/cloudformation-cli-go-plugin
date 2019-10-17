@@ -251,9 +251,21 @@ func (rd *RequestData) MarshalJSON() ([]byte, error) {
 		SystemTags                 Tags
 	}
 
-	d.CallerCredentials = rd.CallerCredentials
+	// we can swallow the errors, it's never raised.
+	caller, _ := rd.CallerCredentials.Retrieve()
+	platform, _ := rd.CallerCredentials.Retrieve()
+
+	d.CallerCredentials = map[string]string{
+		"accessKeyId":     caller.AccessKeyID,
+		"secretAccessKey": caller.SecretAccessKey,
+		"sessionToken":    caller.SessionToken,
+	}
 	d.LogicalResourceID = rd.LogicalResourceID
-	d.PlatformCredentials = rd.PlatformCredentials
+	d.PlatformCredentials = map[string]string{
+		"accessKeyId":     platform.AccessKeyID,
+		"secretAccessKey": platform.SecretAccessKey,
+		"sessionToken":    platform.SessionToken,
+	}
 	d.PreviousResourceProperties = rd.PreviousResourceProperties
 	d.PreviousStackTags = rd.PreviousStackTags
 	d.ProviderLogGroupName = rd.ProviderLogGroupName

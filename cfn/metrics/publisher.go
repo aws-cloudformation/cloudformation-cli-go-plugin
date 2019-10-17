@@ -92,7 +92,9 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action action.Action
 	return nil
 }
 
-//PublishDurationMetric publishes an duration metric.
+// PublishDurationMetric publishes an duration metric.
+//
+// A duration metric is the timing of something.
 func (p *Publisher) PublishDurationMetric(date time.Time, action action.Action, secs float64) error {
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
@@ -150,7 +152,14 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	return out, nil
 }
 
-//SetResourceTypeName returns a type name by removing (::) and replaing with (/)
+// SetResourceTypeName returns a type name by removing (::) and replaing with (/)
+//
+// Example
+//
+// 	pub := metrics.New(cw)
+//
+// 	// Will return "AWS/Service/Resource"
+// 	pub.SetResourceTypeName("AWS::Service::Resource")
 func (p *Publisher) SetResourceTypeName(t string) {
 	p.namespace = strings.ReplaceAll(t, "::", "/")
 

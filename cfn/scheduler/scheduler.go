@@ -16,41 +16,47 @@ import (
 )
 
 const (
-	HandlerPrepend       string = "reinvoke-handler-%s"
-	TargentPrepend       string = "reinvoke-target-%s"
-	InvalidRequestError  string = "InvalidRequest"
-	ServiceInternalError string = "ServiceInternal"
-	ValidationError      string = "Validation"
+	HandlerPrepend string = "reinvoke-handler-%s"
+	TargentPrepend string = "reinvoke-target-%s"
 )
 
-//Result is the return results.
+const (
+	// ServiceInternalError is used when there's a downstream error
+	// in the code.
+	ServiceInternalError string = "ServiceInternal"
+)
+
+// Result holds the confirmation of the rescheduled invocation.
 type Result struct {
-	//Denotes if the computation was done locally.
+	// Denotes if the computation was done locally.
 	ComputeLocal bool
-	//The Cloudwatch target ID.
+	// The Cloudwatch target ID.
 	Target string
-	//The Cloudwatch handler ID.
+	// The Cloudwatch handler ID.
 	Handler string
 }
 
-//Scheduler is used to schedule Cloudwatch Events.
+// Scheduler is the implementation of the rescheduler of an invoke
+//
+// Invokes will be rescheduled if a handler takes longer than 60
+// seconds. The invoke is rescheduled through CloudWatch Events
+// via a CRON expression
 type Scheduler struct {
 	client cloudwatcheventsiface.CloudWatchEventsAPI
 }
 
-//New creates a CloudWatchScheduler and returns a pointer to the struct.
+// New creates a CloudWatchScheduler and returns a pointer to the struct.
 func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 	return &Scheduler{
 		client: client,
 	}
 }
 
-//Reschedule when a handler requests a sub-minute callback delay, and if the lambda
-//invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
-//otherwise we re-invoke through CloudWatchEvents which have a granularity of
-//minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
+// Reschedule when a handler requests a sub-minute callback delay, and if the lambda
+// invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
+// otherwise we re-invoke through CloudWatchEvents which have a granularity of
+// minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
 func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*Result, error) {
-
 	lc, hasValue := lambdacontext.FromContext(lambdaCtx)
 
 	if !hasValue {
@@ -83,7 +89,7 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 		return &Result{ComputeLocal: true, Handler: handlerID, Target: targetID}, nil
 	}
 
-	//re-invoke through CloudWatchEvents no less than 1 minute from now.
+	// re-invoke through CloudWatchEvents no less than 1 minute from now.
 	if secsFromNow < 60 {
 		secsFromNow = 60
 	}
@@ -117,8 +123,8 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callb
 	return &Result{ComputeLocal: false, Handler: handlerID, Target: targetID}, nil
 }
 
-//CleanupEvents is used to clean up Cloudwatch Events.
-//After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
+// CleanupEvents is used to clean up Cloudwatch Events.
+// After a re-invocation, the CWE rule which generated the reinvocation should be scrubbed.
 func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 
 	if len(ruleName) == 0 {
@@ -153,7 +159,8 @@ func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 	return nil
 }
 
-//GenerateOneTimeCronExpression a cron(..) expression for a single instance at Now+minutesFromNow
+// GenerateOneTimeCronExpression a cron(..) expression for a single
+// instance at Now+minutesFromNow
 func GenerateOneTimeCronExpression(secFromNow int, t time.Time) string {
 	a := t.Add(time.Second * time.Duration(secFromNow))
 	return fmt.Sprintf("cron(%02d %02d %02d %02d ? %d)", a.Minute(), a.Hour(), a.Day(), a.Month(), a.Year())

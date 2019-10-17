@@ -30,16 +30,12 @@ const (
 type Result struct {
 	// Denotes if the computation was done locally.
 	ComputeLocal bool
-<<<<<<< HEAD
 	IDS          ScheduleIDS
 }
 
 //ScheduleIDS is of the invocation
 type ScheduleIDS struct {
 	//The Cloudwatch target ID.
-=======
-	// The Cloudwatch target ID.
->>>>>>> upstream/master
 	Target string
 	// The Cloudwatch handler ID.
 	Handler string
@@ -61,20 +57,12 @@ func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 	}
 }
 
-<<<<<<< HEAD
 //Reschedule when a handler requests a sub-minute callback delay, and if the lambda
 //invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
 //otherwise we re-invoke through CloudWatchEvents which have a granularity of
 //minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
 func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, callbackRequest string, invocationIDS *ScheduleIDS) (*Result, error) {
 
-=======
-// Reschedule when a handler requests a sub-minute callback delay, and if the lambda
-// invocation has enough runtime (with 20% buffer), we can reschedule from a thread wait
-// otherwise we re-invoke through CloudWatchEvents which have a granularity of
-// minutes. re-invoke through CloudWatchEvents no less than 1 minute from now.
-func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int, callbackRequest string) (*Result, error) {
->>>>>>> upstream/master
 	lc, hasValue := lambdacontext.FromContext(lambdaCtx)
 
 	if !hasValue {
@@ -168,14 +156,8 @@ func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 	return nil
 }
 
-<<<<<<< HEAD
 //GenerateOneTimeCronExpression a cron(..) expression for a single instance at Now+minutesFromNow
 func GenerateOneTimeCronExpression(secFromNow int64, t time.Time) string {
-=======
-// GenerateOneTimeCronExpression a cron(..) expression for a single
-// instance at Now+minutesFromNow
-func GenerateOneTimeCronExpression(secFromNow int, t time.Time) string {
->>>>>>> upstream/master
 	a := t.Add(time.Second * time.Duration(secFromNow))
 	return fmt.Sprintf("cron(%02d %02d %02d %02d ? %d)", a.Minute(), a.Hour(), a.Day(), a.Month(), a.Year())
 }

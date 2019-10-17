@@ -320,8 +320,7 @@ func (rc *RequestContext) UnmarshalJSON(b []byte) error {
 		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
 	}
 
-	ctx := handler.CreateContext(d.CallbackContext)
-
+	ctx := handler.ContextValues(context.Background(), d.CallbackContext)
 	callbackCtx, err := handler.ContextCallback(ctx)
 
 	if err != nil {

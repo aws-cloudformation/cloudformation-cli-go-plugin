@@ -9,16 +9,12 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
 )
 
-//New is a factory function that returns a ResourceHandler
-func New() *ResourceHandler {
-	return &ResourceHandler{}
-}
-
-//ResourceHandler implements the cfn.Handler interface
+// ResourceHandler implements the cfn.Handler interface.
+// The zero value is ready to use.
 type ResourceHandler struct {
 }
 
-//Create handles the Create event from the Cloudformation service.
+// Create handles the Create event from the Cloudformation service.
 func (r *ResourceHandler) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
@@ -28,14 +24,14 @@ func (r *ResourceHandler) Create(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
-
 	p.OperationStatus = operationstatus.Complete
 	p.Message = "Complete"
-	//return the status
+
+	// return the status
 	return p, nil
 }
 
-//Delete handles the Delete event from the Cloudformation service.
+// Delete handles the Delete event from the Cloudformation service.
 func (r *ResourceHandler) Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
@@ -45,14 +41,14 @@ func (r *ResourceHandler) Delete(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
-
 	p.OperationStatus = operationstatus.Complete
 	p.Message = "Complete"
-	//return the status
+
+	// return the status
 	return p, nil
 }
 
-//List handles the List event from the Cloudformation service.
+// List handles the List event from the Cloudformation service.
 func (r *ResourceHandler) List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
@@ -62,14 +58,14 @@ func (r *ResourceHandler) List(ctx context.Context, request handler.Request) (ha
 	}
 
 	p := handler.NewEvent()
-
 	p.OperationStatus = operationstatus.Complete
 	p.Message = "Complete"
-	//return the status
+
+	// return the status
 	return p, nil
 }
 
-//Read handles the Read event from the Cloudformation service.
+// Read handles the Read event from the Cloudformation service.
 func (r *ResourceHandler) Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
@@ -79,14 +75,14 @@ func (r *ResourceHandler) Read(ctx context.Context, request handler.Request) (ha
 	}
 
 	p := handler.NewEvent()
-
 	p.OperationStatus = operationstatus.Complete
 	p.Message = "Complete"
-	//return the status
+
+	// return the status
 	return p, nil
 }
 
-//Update handles the Update event from the Cloudformation service.
+// Update handles the Update event from the Cloudformation service.
 func (r *ResourceHandler) Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
@@ -96,11 +92,9 @@ func (r *ResourceHandler) Update(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
-
 	p.OperationStatus = operationstatus.Complete
 	p.Message = "Complete"
-	//return the status
+
+	// return the status
 	return p, nil
 }
-
-

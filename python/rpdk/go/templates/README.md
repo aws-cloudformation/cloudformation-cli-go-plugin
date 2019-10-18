@@ -1,6 +1,8 @@
 # {{ type_name }}
 
-Congratulations on starting development! Next steps:
+Congratulations on starting development!
+
+Next steps:
 
 1. Write the JSON schema describing your resource, `{{ schema_path.name }}`
 2. The RPDK will automatically generate the correct resource model from the
@@ -8,6 +10,4 @@ Congratulations on starting development! Next steps:
    with the following command: `{{ executable }} generate`
 3. Implement your resource handlers by adding code to provision your resources in the various Handler classes.
 
-
-Please don't modify files `{{ files }}`, as will be
-automatically overwritten.
+Please don't modify files `{{ files }}`, as they will be automatically overwritten.

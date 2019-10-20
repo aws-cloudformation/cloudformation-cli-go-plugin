@@ -19,6 +19,8 @@ LOG = logging.getLogger(__name__)
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn-cli"
 
+class GoExecutableNotFoundError(SysExitRecommendedError):
+    pass
 
 class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
@@ -162,9 +164,46 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
+    @staticmethod
+    def _find_jar(project):
+        exe_glob = list(
+            (project.root / "bin").glob(
+                "{}".format('handler')
+            )
+        )
+        if not exe_glob:
+            LOG.debug("No Go executable match")
+            raise GoExecutableNotFoundError(
+                "No Go executable was found.\n"
+                "Please run 'make' or the equivalent command "
+                "in your IDE to compile and package the code."
+            )
+
+        if len(exe_glob) > 1:
+            LOG.debug(
+                "Multiple Go executable match: %s",
+                ", ".join(str(path) for path in exe_glob),
+            )
+            raise InternalError("Multiple Go executable match")
+
+        return exe_glob[0]
 
         LOG.debug("Generate complete")
+    def package(self, project, zip_file):
+        LOG.info("Packaging Go project")
+        def write_with_relative_path(path):
+            relative = path.relative_to(project.root)
+            zip_file.write(path.resolve(), str(relative))
 
-    def package(self, project):
-        LOG.debug("Generate started")
+        jar = self._find_jar(project)
+        write_with_relative_path(jar)
+        write_with_relative_path(project.root / "Makefile")
+
+        for path in (project.root / "cmd").rglob("*"):
+            if path.is_file():
+                write_with_relative_path(path)
+
+        for path in (project.root / "internal").rglob("*"):
+            if path.is_file():
+                write_with_relative_path(path)
 

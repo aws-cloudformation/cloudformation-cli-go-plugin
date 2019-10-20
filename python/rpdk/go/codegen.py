@@ -168,7 +168,7 @@ class GoLanguagePlugin(LanguagePlugin):
     def _find_jar(project):
         exe_glob = list(
             (project.root / "bin").glob(
-                "{}.exe".format('handler')
+                "{}".format('handler')
             )
         )
         if not exe_glob:
@@ -190,15 +190,20 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
     def package(self, project, zip_file):
+        LOG.info("Packaging Go project")
         def write_with_relative_path(path):
             relative = path.relative_to(project.root)
             zip_file.write(path.resolve(), str(relative))
 
         jar = self._find_jar(project)
         write_with_relative_path(jar)
-        #write_with_relative_path(project.root / "pom.xml")
+        write_with_relative_path(project.root / "Makefile")
 
-        #for path in (project.root / "src").rglob("*"):
-        #    if path.is_file():
-        #        write_with_relative_path(path)
+        for path in (project.root / "cmd").rglob("*"):
+            if path.is_file():
+                write_with_relative_path(path)
+
+        for path in (project.root / "internal").rglob("*"):
+            if path.is_file():
+                write_with_relative_path(path)
 

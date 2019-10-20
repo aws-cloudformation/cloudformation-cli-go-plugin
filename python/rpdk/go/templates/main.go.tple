@@ -12,6 +12,6 @@ changes will be undone by the next 'generate' command.
 
 // main is the entry point of the applicaton.
 func main() {
-	r := resource.ResourceHandler{}
+	r := &resource.ResourceHandler{}
 	cfn.Start(cfn.Handler(r))
 }

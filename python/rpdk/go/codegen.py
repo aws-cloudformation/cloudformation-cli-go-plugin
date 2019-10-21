@@ -168,7 +168,7 @@ class GoLanguagePlugin(LanguagePlugin):
     def _find_exe(project):
         exe_glob = list(
             (project.root / "bin").glob(
-                "{}".format('handler')
+                "{}.zip".format('handler')
             )
         )
         if not exe_glob:

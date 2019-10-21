@@ -165,7 +165,7 @@ class GoLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
 
     @staticmethod
-    def _find_jar(project):
+    def _find_exe(project):
         exe_glob = list(
             (project.root / "bin").glob(
                 "{}".format('handler')
@@ -195,8 +195,8 @@ class GoLanguagePlugin(LanguagePlugin):
             relative = path.relative_to(project.root)
             zip_file.write(path.resolve(), str(relative))
 
-        jar = self._find_jar(project)
-        write_with_relative_path(jar)
+        exe = self._find_exe(project)
+        write_with_relative_path(exe)
         write_with_relative_path(project.root / "Makefile")
 
         for path in (project.root / "cmd").rglob("*"):

@@ -1,5 +1,0 @@
-package resource
-
-// Context holds context information and returns on INPROGRESS events
-type Context struct {
-}

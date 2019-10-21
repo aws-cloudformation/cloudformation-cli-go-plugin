@@ -26,7 +26,7 @@ class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "go1.x"
     ENTRY_POINT = "handler"
-    TEST_ENTRY_POINT = ".bin/"
+    TEST_ENTRY_POINT = "handler"
     CODE_URI = ".bin/"
 
     def __init__(self):

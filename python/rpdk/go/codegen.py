@@ -167,7 +167,7 @@ class GoLanguagePlugin(LanguagePlugin):
     @staticmethod
     def _find_exe(project):
         exe_glob = list(
-            (project.root / "bin").glob(
+            (project.root / ".bin").glob(
                 "{}.zip".format('handler')
             )
         )

@@ -26,8 +26,8 @@ class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "go1.x"
     ENTRY_POINT = "handler"
-    TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
-    CODE_URI = "bin/"
+    TEST_ENTRY_POINT = ".bin/"
+    CODE_URI = ".bin/"
 
     def __init__(self):
         self.env = self._setup_jinja_env(

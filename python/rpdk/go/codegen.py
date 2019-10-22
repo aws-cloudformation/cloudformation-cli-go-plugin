@@ -29,7 +29,7 @@ class GoLanguagePlugin(LanguagePlugin):
     RUNTIME = "go1.x"
     ENTRY_POINT = "handler"
     TEST_ENTRY_POINT = "handler"
-    CODE_URI = ".bin/"
+    CODE_URI = "bin/"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -172,7 +172,7 @@ class GoLanguagePlugin(LanguagePlugin):
         f = TemporaryFile("w+b")
 
         with zipfile.ZipFile(f, mode="w") as zip_file:
-            for path in (project.root / ".bin").iterdir():
+            for path in (project.root / "bin").iterdir():
                 if path.is_file():
                     zip_file.write(path.resolve(), path.name)
         f.seek(0)
@@ -182,7 +182,7 @@ class GoLanguagePlugin(LanguagePlugin):
     @staticmethod
     def _find_exe(project):
         exe_glob = list(
-            (project.root / ".bin").glob(
+            (project.root / "bin").glob(
                 "{}".format('handler')
             )
         )

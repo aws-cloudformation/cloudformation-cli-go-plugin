@@ -24,6 +24,8 @@ func (r *ResourceHandler) Create(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
+	p.ResourceModel = *m
+	p.BearerToken = request.BearerToken()
 	p.OperationStatus = operationstatus.Success
 	p.Message = "Completed"
 
@@ -41,6 +43,8 @@ func (r *ResourceHandler) Delete(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
+	p.ResourceModel = *m
+	p.BearerToken = request.BearerToken()
 	p.OperationStatus = operationstatus.Success
 	p.Message = "Completed"
 
@@ -58,6 +62,8 @@ func (r *ResourceHandler) List(ctx context.Context, request handler.Request) (ha
 	}
 
 	p := handler.NewEvent()
+	p.ResourceModel = *m
+	p.BearerToken = request.BearerToken()
 	p.OperationStatus = operationstatus.Success
 	p.Message = "Completed"
 
@@ -75,6 +81,8 @@ func (r *ResourceHandler) Read(ctx context.Context, request handler.Request) (ha
 	}
 
 	p := handler.NewEvent()
+	p.ResourceModel = *m
+	p.BearerToken = request.BearerToken()
 	p.OperationStatus = operationstatus.Success
 	p.Message = "Completed"
 
@@ -92,6 +100,8 @@ func (r *ResourceHandler) Update(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
+	p.ResourceModel = *m
+	p.BearerToken = request.BearerToken()
 	p.OperationStatus = operationstatus.Success
 	p.Message = "Completed"
 

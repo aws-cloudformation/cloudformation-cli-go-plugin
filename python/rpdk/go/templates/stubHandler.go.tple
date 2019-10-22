@@ -24,8 +24,8 @@ func (r *ResourceHandler) Create(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
-	p.OperationStatus = operationstatus.Complete
-	p.Message = "Complete"
+	p.OperationStatus = operationstatus.Success
+	p.Message = "Completed"
 
 	// return the status
 	return p, nil
@@ -41,8 +41,8 @@ func (r *ResourceHandler) Delete(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
-	p.OperationStatus = operationstatus.Complete
-	p.Message = "Complete"
+	p.OperationStatus = operationstatus.Success
+	p.Message = "Completed"
 
 	// return the status
 	return p, nil
@@ -58,8 +58,8 @@ func (r *ResourceHandler) List(ctx context.Context, request handler.Request) (ha
 	}
 
 	p := handler.NewEvent()
-	p.OperationStatus = operationstatus.Complete
-	p.Message = "Complete"
+	p.OperationStatus = operationstatus.Success
+	p.Message = "Completed"
 
 	// return the status
 	return p, nil
@@ -75,8 +75,8 @@ func (r *ResourceHandler) Read(ctx context.Context, request handler.Request) (ha
 	}
 
 	p := handler.NewEvent()
-	p.OperationStatus = operationstatus.Complete
-	p.Message = "Complete"
+	p.OperationStatus = operationstatus.Success
+	p.Message = "Completed"
 
 	// return the status
 	return p, nil
@@ -92,8 +92,8 @@ func (r *ResourceHandler) Update(ctx context.Context, request handler.Request) (
 	}
 
 	p := handler.NewEvent()
-	p.OperationStatus = operationstatus.Complete
-	p.Message = "Complete"
+	p.OperationStatus = operationstatus.Success
+	p.Message = "Completed"
 
 	// return the status
 	return p, nil

@@ -3,6 +3,8 @@
 # pylint doesn't recognize abstract methods
 import logging
 import shutil
+import zipfile
+from tempfile import TemporaryFile
 
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import InternalError, SysExitRecommendedError
@@ -26,7 +28,7 @@ class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     RUNTIME = "go1.x"
     ENTRY_POINT = "handler"
-    TEST_ENTRY_POINT = "{}.HandlerWrapper::testEntrypoint"
+    TEST_ENTRY_POINT = "handler"
     CODE_URI = "bin/"
 
     def __init__(self):
@@ -165,6 +167,19 @@ class GoLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
 
     @staticmethod
+    def pre_package(project):
+        # zip the Go build output - it's all needed to execute correctly
+        f = TemporaryFile("w+b")
+
+        with zipfile.ZipFile(f, mode="w") as zip_file:
+            for path in (project.root / "bin").iterdir():
+                if path.is_file():
+                    zip_file.write(path.resolve(), path.name)
+        f.seek(0)
+
+        return f
+
+    @staticmethod
     def _find_exe(project):
         exe_glob = list(
             (project.root / "bin").glob(
@@ -195,8 +210,12 @@ class GoLanguagePlugin(LanguagePlugin):
             relative = path.relative_to(project.root)
             zip_file.write(path.resolve(), str(relative))
 
-        exe = self._find_exe(project)
-        write_with_relative_path(exe)
+        # sanity check for build output
+        self._find_exe(project)
+
+        executable_zip = self.pre_package(project)
+        zip_file.writestr("handler.zip", executable_zip.read())
+
         write_with_relative_path(project.root / "Makefile")
 
         for path in (project.root / "cmd").rglob("*"):

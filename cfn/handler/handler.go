@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"io"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
@@ -16,6 +17,9 @@ const (
 	BodyEmptyError string = "BodyEmpty"
 	// SessionNotFoundError occurs when the AWS SDK session isn't available in the context
 	SessionNotFoundError string = "SessionNotFound"
+
+	// LogProviderNotFoundError ...
+	LogProviderNotFoundError string = "LogProviderNotFound"
 )
 
 // Request will be passed to actions with customer related data, such as resource states
@@ -202,6 +206,24 @@ func ContextSession(ctx context.Context) (*session.Session, error) {
 	val, ok := ctx.Value(ContextKey("aws_session")).(*session.Session)
 	if !ok {
 		cfnErr := cfnerr.New(SessionNotFoundError, "Session not found", nil)
+		return nil, cfnErr
+	}
+
+	return val, nil
+}
+
+// ContextInjectLogProvider ..
+func ContextInjectLogProvider(ctx context.Context, writer io.Writer) context.Context {
+	ctx = context.WithValue(ctx, ContextKey("log_provider"), writer)
+
+	return ctx
+}
+
+// ContextLogProvider ..
+func ContextLogProvider(ctx context.Context) (io.Writer, error) {
+	val, ok := ctx.Value(ContextKey("log_provider")).(io.Writer)
+	if !ok {
+		cfnErr := cfnerr.New(LogProviderNotFoundError, "LogProvider not found", nil)
 		return nil, cfnErr
 	}
 

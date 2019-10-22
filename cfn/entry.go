@@ -12,6 +12,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logger"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/metrics"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
@@ -21,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 
 	"gopkg.in/validator.v2"
 )
@@ -429,7 +431,7 @@ func Handler(h Handlers) EventFunc {
 			event.BearerToken,
 		)
 		for {
-			progEvt, err := Invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
+			progEvt, err := Invoke(handlerFn, request, event.Context, metricsPublisher, event.Action, event.RequestData.ProviderLogGroupName)
 
 			if err != nil {
 				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
@@ -497,7 +499,7 @@ func Handler(h Handlers) EventFunc {
 }
 
 //Invoke handles the invocation of the handerFn.
-func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action) (handler.ProgressEvent, error) {
+func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestContext, metricsPublisher *metrics.Publisher, action action.Action, logGroupName string) (handler.ProgressEvent, error) {
 	attempts := 0
 
 	for {
@@ -522,8 +524,14 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 				cherror <- err
 			}
 
+			lp := logger.NewCloudWatchLogOutputProvider(
+				cloudwatchlogs.New(reqContext.GetSession()),
+				logGroupName,
+			)
+
 			customerCtx := handler.ContextValues(context.Background(), reqContext.CallbackContext)
 			customerCtx = handler.ContextInjectSession(customerCtx, reqContext.GetSession())
+			customerCtx = handler.ContextInjectLogProvider(customerCtx, lp)
 
 			// Report the work is done.
 			progEvt, err := handlerFn(customerCtx, request)

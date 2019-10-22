@@ -135,6 +135,7 @@ func (r *IResponse) MarshalJSON() ([]byte, error) {
 	resp.Message = r.Message()
 	resp.OperationStatus = r.operationStatus.String()
 	resp.ResourceModel = r.ResourceModel()
+	resp.BearerToken = r.bearerToken
 
 	if cfnErr != nil {
 		resp.ErrorCode = cfnErr.Code()

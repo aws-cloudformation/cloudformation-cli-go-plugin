@@ -43,7 +43,6 @@ func NewCloudWatchLogOutputProvider(client cloudwatchlogsiface.CloudWatchLogsAPI
 		logGroupName:  logGroupName,
 		logStreamName: logStreamName.String(),
 
-		ctx:      context.Background(),
 		logLines: []*cloudwatchlogs.InputLogEvent{},
 
 		logLinesSize:     0,
@@ -61,12 +60,13 @@ type CloudWatchLogOutputProvider struct {
 	logGroupName  string
 	logStreamName string
 
-	ctx      context.Context
 	logLines []*cloudwatchlogs.InputLogEvent
 
 	logLinesSize     int64
 	logBufferMaxSize int64
 	logFlushDuration time.Duration
+
+	ticker *time.Ticker
 }
 
 func (p *CloudWatchLogOutputProvider) Write(b []byte) (int, error) {
@@ -81,7 +81,9 @@ func (p *CloudWatchLogOutputProvider) Write(b []byte) (int, error) {
 	p.logLinesSize = p.logLinesSize + int64(msgBytes)
 
 	if p.requiresFlush() {
-		p.flush()
+		if err := p.flush(); err != nil {
+			return 0, err
+		}
 	}
 
 	return msgBytes, nil
@@ -91,16 +93,30 @@ func (p *CloudWatchLogOutputProvider) requiresFlush() bool {
 	return p.logLinesSize > 0 && p.logLinesSize > p.logBufferMaxSize
 }
 
-func (p *CloudWatchLogOutputProvider) setupFlusher() {
+// EnableAutoFlush ...
+func (p *CloudWatchLogOutputProvider) EnableAutoFlush() {
+	ticker := time.NewTicker(p.logFlushDuration)
+	p.ticker = ticker
+
 	go func() {
-		for range time.Tick(p.logFlushDuration) {
-			p.flush()
+		for {
+			select {
+			case <-ticker.C:
+				p.flush()
+			}
 		}
 	}()
 }
 
+// StopAutoFlush ...
+func (p *CloudWatchLogOutputProvider) StopAutoFlush() {
+	if p.ticker != nil {
+		p.ticker.Stop()
+	}
+}
+
 func (p *CloudWatchLogOutputProvider) flush() error {
-	ctx, cancel := context.WithTimeout(p.ctx, time.Millisecond*1000)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*1000)
 	defer cancel()
 
 	_, err := p.client.PutLogEventsWithContext(ctx, &cloudwatchlogs.PutLogEventsInput{
@@ -114,6 +130,7 @@ func (p *CloudWatchLogOutputProvider) flush() error {
 	}
 
 	p.logLinesSize = 0
+	p.logLines = []*cloudwatchlogs.InputLogEvent{}
 
 	return nil
 }

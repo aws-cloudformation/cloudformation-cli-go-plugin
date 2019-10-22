@@ -23,12 +23,12 @@ func (c Status) String() string {
 
 	statuses := []string{
 		"Unknown",
-		"InProgress",
-		"Complete",
+		"In_Progress",
+		"Success",
 		"Failed",
 	}
 
-	return statuses[c]
+	return strings.ToUpper(statuses[c])
 }
 
 // Convert turns a string into a status
@@ -42,8 +42,8 @@ func Convert(s string) Status {
 
 	statuses := []string{
 		"Unknown",
-		"InProgress",
-		"Complete",
+		"In_Progress",
+		"Success",
 		"Failed",
 	}
 
@@ -65,9 +65,9 @@ const (
 	// is in the process of being operated on.
 	InProgress
 
-	// Complete should be returned when the resource provider
+	// Success should be returned when the resource provider
 	// has finished it's operation.
-	Complete
+	Success
 
 	// Failed should be returned when the resource provider
 	// has failed

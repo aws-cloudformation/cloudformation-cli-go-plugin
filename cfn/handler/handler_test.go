@@ -160,7 +160,7 @@ func TestResponseMarshaling(t *testing.T) {
 		}
 
 		resp := NewResponse()
-		resp.operationStatus = operationstatus.Complete
+		resp.operationStatus = operationstatus.Success
 		resp.message = "Completed"
 		resp.resourceModel = colour
 
@@ -169,7 +169,7 @@ func TestResponseMarshaling(t *testing.T) {
 			t.Fatalf("Problem marshaling: %v", err)
 		}
 
-		valid := `{"Message":"Completed","OperationStatus":"Complete","ResourceModel":{"Name":"Red","Description":"The colour red"}}`
+		valid := `{"message":"Completed","operationStatus":"SUCCESS","resourceModel":{"Name":"Red","Description":"The colour red"}}`
 
 		if valid != string(b) {
 			t.Fatalf("Response is not the same")

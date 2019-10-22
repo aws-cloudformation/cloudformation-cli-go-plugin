@@ -111,18 +111,18 @@ func NewFailedResponse(err error) Response {
 
 // IResponse ...
 type IResponse struct {
-	message         string                 `json:"Message,omitempty"`
-	operationStatus operationstatus.Status `json:"OperationStatus,omitempty"`
-	resourceModel   interface{}            `json:"ResourceModel,omitempty"`
-	errorCode       error                  `json:"ErrorCode,omitempty"`
+	message         string                 `json:"message,omitempty"`
+	operationStatus operationstatus.Status `json:"operationStatus,omitempty"`
+	resourceModel   interface{}            `json:"resourceModel,omitempty"`
+	errorCode       error                  `json:"errorCode,omitempty"`
 }
 
 func (r *IResponse) MarshalJSON() ([]byte, error) {
 	var resp struct {
-		Message         string      `json:"Message,omitempty"`
-		OperationStatus string      `json:"OperationStatus,omitempty"`
-		ResourceModel   interface{} `json:"ResourceModel,omitempty"`
-		ErrorCode       string      `json:"ErrorCode,omitempty"`
+		Message         string      `json:"message,omitempty"`
+		OperationStatus string      `json:"operationStatus,omitempty"`
+		ResourceModel   interface{} `json:"resourceModel,omitempty"`
+		ErrorCode       string      `json:"errorCode,omitempty"`
 	}
 
 	cfnErr, ok := r.Error().(cfnerr.Error)

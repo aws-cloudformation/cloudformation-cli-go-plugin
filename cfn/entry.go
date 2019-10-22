@@ -445,7 +445,7 @@ func Handler(h Handlers) EventFunc {
 			}
 
 			switch r.OperationStatus() {
-			case operationstatus.Complete:
+			case operationstatus.Success:
 				return r, nil
 			case operationstatus.Failed:
 				return r, nil

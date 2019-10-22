@@ -9,9 +9,9 @@ import (
 func TestConvert(t *testing.T) {
 	t.Run("String List", func(t *testing.T) {
 		stringStatus := map[string]Status{
-			"InProgress": InProgress,
-			"Complete":   Complete,
-			"Failed":     Failed,
+			"IN_PROGRESS": InProgress,
+			"SUCCESS":     Success,
+			"FAILED":      Failed,
 		}
 
 		for k, v := range stringStatus {
@@ -32,9 +32,9 @@ func TestConvert(t *testing.T) {
 func TestString(t *testing.T) {
 	t.Run("OperationStatus Strings", func(t *testing.T) {
 		stringActions := map[Status]string{
-			InProgress: "InProgress",
-			Complete:   "Complete",
-			Failed:     "Failed",
+			InProgress: "IN_PROGRESS",
+			Success:    "SUCCESS",
+			Failed:     "FAILED",
 		}
 
 		for k, v := range stringActions {

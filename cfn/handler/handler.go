@@ -115,6 +115,7 @@ type IResponse struct {
 	operationStatus operationstatus.Status `json:"operationStatus,omitempty"`
 	resourceModel   interface{}            `json:"resourceModel,omitempty"`
 	errorCode       error                  `json:"errorCode,omitempty"`
+	bearerToken     string                 `json:"bearerToken,omitempty"`
 }
 
 func (r *IResponse) MarshalJSON() ([]byte, error) {
@@ -123,6 +124,7 @@ func (r *IResponse) MarshalJSON() ([]byte, error) {
 		OperationStatus string      `json:"operationStatus,omitempty"`
 		ResourceModel   interface{} `json:"resourceModel,omitempty"`
 		ErrorCode       string      `json:"errorCode,omitempty"`
+		BearerToken     string      `json:"bearerToken,omitempty"`
 	}
 
 	cfnErr, ok := r.Error().(cfnerr.Error)

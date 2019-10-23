@@ -33,6 +33,10 @@ type IProgressEvent struct {
 	// The output resource instance populated by a READ/LIST for synchronous results
 	// and by CREATE/UPDATE/DELETE for final response validation/confirmation
 	ResourceModel interface{}
+
+	//The BearerToken is used to report progress back to CloudFormation and is
+	//passed back to CloudFormation
+	BearerToken string
 }
 
 // MarshalResponse converts a progress event into a useable reponse
@@ -42,6 +46,7 @@ func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
 
 	resp.operationStatus = pevt.OperationStatus
 	resp.message = pevt.Message
+	resp.bearerToken = pevt.BearerToken
 
 	if len(pevt.HandlerErrorCode) == 0 {
 		resp.errorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)

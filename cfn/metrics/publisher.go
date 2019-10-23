@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -46,7 +45,7 @@ func New(client cloudwatchiface.CloudWatchAPI) *Publisher {
 }
 
 //PublishExceptionMetric publishes an exception metric.
-func (p *Publisher) PublishExceptionMetric(date time.Time, action action.Action, e error) error {
+func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e error) error {
 
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
@@ -55,7 +54,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action action.Action,
 	}
 
 	dimensions := map[string]string{
-		DimensionKeyAcionType:     action.String(),
+		DimensionKeyAcionType:     string(action),
 		DimensionKeyExceptionType: e.Error(),
 		DimensionKeyResouceType:   p.namespace,
 	}
@@ -70,7 +69,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action action.Action,
 }
 
 //PublishInvocationMetric publishes an invocation metric.
-func (p *Publisher) PublishInvocationMetric(date time.Time, action action.Action) error {
+func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error {
 
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
@@ -79,7 +78,7 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action action.Action
 	}
 
 	dimensions := map[string]string{
-		DimensionKeyAcionType:   action.String(),
+		DimensionKeyAcionType:   string(action),
 		DimensionKeyResouceType: p.namespace,
 	}
 
@@ -95,14 +94,14 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action action.Action
 // PublishDurationMetric publishes an duration metric.
 //
 // A duration metric is the timing of something.
-func (p *Publisher) PublishDurationMetric(date time.Time, action action.Action, secs float64) error {
+func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) error {
 	if len(p.namespace) == 0 {
 		message := fmt.Sprintf("Name Space was not set")
 		err := errors.New(message)
 		return cfnerr.New(ServiceInternalError, "Publisher error", err)
 	}
 	dimensions := map[string]string{
-		DimensionKeyAcionType:   action.String(),
+		DimensionKeyAcionType:   string(action),
 		DimensionKeyResouceType: p.namespace,
 	}
 

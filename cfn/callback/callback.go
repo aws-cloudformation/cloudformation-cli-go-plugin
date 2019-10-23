@@ -7,8 +7,6 @@ import (
 
 	"github.com/avast/retry-go"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/errcode"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
@@ -34,7 +32,7 @@ func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAd
 }
 
 //ReportProgress reports the current status back to the Cloudformation service.
-func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code errcode.Status, status operationstatus.Status, resourceModel interface{}, statusMessage string) error {
+func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code string, status string, resourceModel interface{}, statusMessage string) error {
 
 	b, err := json.Marshal(resourceModel)
 
@@ -44,10 +42,10 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code 
 
 	in := cloudformation.RecordHandlerProgressInput{
 		BearerToken:     aws.String(bearerToken),
-		OperationStatus: aws.String(TranslateOperationStatus(status.String())),
+		OperationStatus: aws.String(TranslateOperationStatus(status)),
 		StatusMessage:   aws.String(statusMessage),
 		ResourceModel:   aws.String(string(b)),
-		ErrorCode:       aws.String(TranslateErrorCode(code.String())),
+		ErrorCode:       aws.String(TranslateErrorCode(code)),
 	}
 
 	// Do retries and emit logs.

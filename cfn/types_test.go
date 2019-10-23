@@ -8,30 +8,29 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
 
-// EmptyHandlers is a implementation of the handlers required to create
-// a resource provider plugin.
+// EmptyHandler is a implementation of Handler
 //
 // This implementation of the handlers is only used for testing.
-type EmptyHandlers struct{}
+type EmptyHandler struct{}
 
-func (h *EmptyHandlers) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return nil, nil
+func (h *EmptyHandler) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	return handler.ProgressEvent{}, nil
 }
 
-func (h *EmptyHandlers) Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return nil, nil
+func (h *EmptyHandler) Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	return handler.ProgressEvent{}, nil
 }
 
-func (h *EmptyHandlers) Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return nil, nil
+func (h *EmptyHandler) Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	return handler.ProgressEvent{}, nil
 }
 
-func (h *EmptyHandlers) Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return nil, nil
+func (h *EmptyHandler) Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	return handler.ProgressEvent{}, nil
 }
 
-func (h *EmptyHandlers) List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return nil, nil
+func (h *EmptyHandler) List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	return handler.ProgressEvent{}, nil
 }
 
 //MockedMetrics mocks the call to AWS CloudWatch Metrics

@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
-// SprintError returns a string of the formatted error code.
+// Sprint returns a string of the formatted error code.
 //
 // Both extra and origErr are optional.  If they are included their lines
 // will be added, but if they are not included their lines will be ignored.
-func SprintError(code, message, extra string, origErr error) string {
+func Sprint(code, message, extra string, origErr error) string {
 	msg := fmt.Sprintf("%s: %s", code, message)
 	if extra != "" {
 		msg = fmt.Sprintf("%s\n\t%s", msg, extra)
@@ -64,10 +64,10 @@ func newBaseError(code, message string, origErrs []error) *baseError {
 func (b baseError) Error() string {
 	size := len(b.errs)
 	if size > 0 {
-		return SprintError(b.code, b.message, "", errorList(b.errs))
+		return Sprint(b.code, b.message, "", errorList(b.errs))
 	}
 
-	return SprintError(b.code, b.message, "", nil)
+	return Sprint(b.code, b.message, "", nil)
 }
 
 // String returns the string representation of the error.
@@ -144,7 +144,7 @@ func newRequestError(err Error, statusCode int, requestID string) *requestError 
 func (r requestError) Error() string {
 	extra := fmt.Sprintf("status code: %d, request id: %s",
 		r.statusCode, r.requestID)
-	return SprintError(r.Code(), r.Message(), extra, r.OrigErr())
+	return Sprint(r.Code(), r.Message(), extra, r.OrigErr())
 }
 
 // String returns the string representation of the error.

@@ -2,14 +2,13 @@ package handler
 
 import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
 )
 
-// IProgressEvent represent the progress of CRUD handlers.
-type IProgressEvent struct {
+// ProgressEvent represent the progress of CRUD handlers.
+type ProgressEvent struct {
 	// The status indicates whether the handler has reached a terminal state or is
 	// still computing and requires more time to complete.
-	OperationStatus operationstatus.Status
+	OperationStatus Status
 
 	// If OperationStatus is FAILED or IN_PROGRESS, an error code should be provided.
 	HandlerErrorCode string
@@ -39,14 +38,32 @@ type IProgressEvent struct {
 	BearerToken string
 }
 
+// NewEvent creates a new event
+// with a default OperationStatus of Unkown
+func NewEvent() ProgressEvent {
+	return ProgressEvent{
+		OperationStatus: UnknownStatus,
+	}
+}
+
+// NewFailedEvent creates a generic failure progress event based on
+// the error passed in.
+func NewFailedEvent(err cfnerr.Error) ProgressEvent {
+	return ProgressEvent{
+		OperationStatus:  Failed,
+		Message:          err.Message(),
+		HandlerErrorCode: err.Code(),
+	}
+}
+
 // MarshalResponse converts a progress event into a useable reponse
 // for the CloudFormation Resource Provider service to understand.
-func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
-	resp := NewResponse()
-
-	resp.operationStatus = pevt.OperationStatus
-	resp.message = pevt.Message
-	resp.bearerToken = pevt.BearerToken
+func (pevt *ProgressEvent) MarshalResponse() (Response, error) {
+	resp := Response{
+		operationStatus: pevt.OperationStatus,
+		message:         pevt.Message,
+		bearerToken:     pevt.BearerToken,
+	}
 
 	if len(pevt.HandlerErrorCode) == 0 {
 		resp.errorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
@@ -61,24 +78,6 @@ func (pevt *IProgressEvent) MarshalResponse() (Response, error) {
 
 // MarshalCallback allows for the ProgressEvent to be parsed into something
 // the RPDK can use to reinvoke the resource provider with the same context.
-func (pevt *IProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
+func (pevt *ProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
 	return pevt.CallbackContext, pevt.CallbackDelaySeconds
-}
-
-// NewFailedEvent creates a generic failure progress event based on
-// an error passed in.
-func NewFailedEvent(err cfnerr.Error) ProgressEvent {
-	return &IProgressEvent{
-		OperationStatus:  operationstatus.Failed,
-		Message:          err.Message(),
-		HandlerErrorCode: err.Code(),
-	}
-}
-
-// NewEvent creates a new progress event
-// By using this we can abstract certain aspects away from the user when needed.
-func NewEvent() *IProgressEvent {
-	return &IProgressEvent{
-		OperationStatus: operationstatus.Unknown,
-	}
 }

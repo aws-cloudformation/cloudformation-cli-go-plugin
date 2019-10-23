@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/errcode"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
@@ -94,8 +92,8 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 	}
 	type args struct {
 		bearerToken   string
-		code          errcode.Status
-		status        operationstatus.Status
+		code          string
+		status        string
 		resourceModel interface{}
 		statusMessage string
 	}
@@ -105,8 +103,8 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"TestRetryMaxReturnErr", fields{NewMockedCallback(6)}, args{"123456", errcode.AccessDenied, operationstatus.Failed, "test", "retry"}, true},
-		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", errcode.AccessDenied, operationstatus.Failed, "test", "retry"}, false},
+		{"TestRetryMaxReturnErr", fields{NewMockedCallback(6)}, args{"123456", "ACCESSDENIED", "FAILED", "test", "retry"}, true},
+		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", "ACCESSDENIED", "FAILED", "test", "retry"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

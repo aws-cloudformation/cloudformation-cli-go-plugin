@@ -2,12 +2,24 @@ package resource
 
 import (
 	"context"
+	"log"
+	"os"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/errcode"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/operationstatus"
 )
+
+func SetLogOutput(ctx) {
+	logWriter, err := handler.ContextLogProvider(ctx)
+	if err == nil {
+		// no logger, use stdout
+		log.SetOutput(logWriter)
+	}
+
+	log.SetOutput(os.Stdout)
+}
 
 //New is a factory function that returns a ResourceHandler
 func New() *ResourceHandler {
@@ -20,6 +32,11 @@ type ResourceHandler struct {
 
 //Create handles the Create event from the Cloudformation service.
 func (r *ResourceHandler) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	SetLogOutput(ctx)
+
+	// this will ship to the your AWS account
+	log.Printf("I love pineapple pizza")
+
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
 	if err := request.ResourceProperties(m); err != nil {
@@ -37,6 +54,11 @@ func (r *ResourceHandler) Create(ctx context.Context, request handler.Request) (
 
 //Delete handles the Delete event from the Cloudformation service.
 func (r *ResourceHandler) Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	SetLogOutput(ctx)
+
+	// this will ship to the your AWS account
+	log.Printf("I love pineapple pizza")
+
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
 	if err := request.ResourceProperties(m); err != nil {
@@ -54,6 +76,11 @@ func (r *ResourceHandler) Delete(ctx context.Context, request handler.Request) (
 
 //List handles the List event from the Cloudformation service.
 func (r *ResourceHandler) List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	SetLogOutput(ctx)
+
+	// this will ship to the your AWS account
+	log.Printf("I love pineapple pizza")
+
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
 	if err := request.ResourceProperties(m); err != nil {
@@ -71,6 +98,11 @@ func (r *ResourceHandler) List(ctx context.Context, request handler.Request) (ha
 
 //Read handles the Read event from the Cloudformation service.
 func (r *ResourceHandler) Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	SetLogOutput(ctx)
+
+	// this will ship to the your AWS account
+	log.Printf("I love pineapple pizza")
+
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
 	if err := request.ResourceProperties(m); err != nil {
@@ -88,6 +120,11 @@ func (r *ResourceHandler) Read(ctx context.Context, request handler.Request) (ha
 
 //Update handles the Update event from the Cloudformation service.
 func (r *ResourceHandler) Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+	SetLogOutput(ctx)
+
+	// this will ship to the your AWS account
+	log.Printf("I love pineapple pizza")
+
 	//***Add code here: Make your API call, modify the model, etc..
 	m := &Model{}
 	if err := request.ResourceProperties(m); err != nil {

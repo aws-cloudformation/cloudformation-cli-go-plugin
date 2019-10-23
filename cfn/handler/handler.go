@@ -196,9 +196,7 @@ func ContextCallback(ctx context.Context) (CallbackContextValues, error) {
 
 // ContextInjectSession ..
 func ContextInjectSession(ctx context.Context, sess *session.Session) context.Context {
-	ctx = context.WithValue(ctx, ContextKey("aws_session"), sess)
-
-	return ctx
+	return context.WithValue(ctx, ContextKey("aws_session"), sess)
 }
 
 // ContextSession ..
@@ -214,9 +212,7 @@ func ContextSession(ctx context.Context) (*session.Session, error) {
 
 // ContextInjectLogProvider ..
 func ContextInjectLogProvider(ctx context.Context, writer io.Writer) context.Context {
-	ctx = context.WithValue(ctx, ContextKey("log_provider"), writer)
-
-	return ctx
+	return context.WithValue(ctx, ContextKey("log_provider"), writer)
 }
 
 // ContextLogProvider ..

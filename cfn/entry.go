@@ -529,6 +529,8 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 				logGroupName,
 			)
 
+			lp.EnableAutoFlush()
+
 			customerCtx := handler.ContextValues(context.Background(), reqContext.CallbackContext)
 			customerCtx = handler.ContextInjectSession(customerCtx, reqContext.GetSession())
 			customerCtx = handler.ContextInjectLogProvider(customerCtx, lp)
@@ -538,6 +540,8 @@ func Invoke(handlerFn HandlerFunc, request handler.Request, reqContext *RequestC
 			if err != nil {
 				cherror <- err
 			}
+
+			lp.StopAutoFlush()
 
 			elapsed := time.Since(start)
 

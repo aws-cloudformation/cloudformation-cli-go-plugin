@@ -28,12 +28,6 @@ const (
 	LogFlushDuration = time.Millisecond * 50
 )
 
-// LogOutputProvider is an interface to write logs to a io.Writer interface.
-// A logger could be anything in the backend.
-type LogOutputProvider interface {
-	io.Writer
-}
-
 // NewCloudWatchLogOutputProvider ...
 func NewCloudWatchLogOutputProvider(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) *CloudWatchLogOutputProvider {
 	logStreamName := ksuid.New()

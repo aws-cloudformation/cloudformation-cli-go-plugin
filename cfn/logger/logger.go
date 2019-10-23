@@ -110,6 +110,11 @@ func (p *CloudWatchLogOutputProvider) StopAutoFlush() {
 }
 
 func (p *CloudWatchLogOutputProvider) flush() error {
+	// do nothing, there's nothing to send.
+	if len(p.logLines) == 0 {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*1000)
 	defer cancel()
 

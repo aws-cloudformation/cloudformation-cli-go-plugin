@@ -40,7 +40,7 @@ type ProgressEvent struct {
 
 // NewEvent creates a new event
 // with a default OperationStatus of Unkown
-func NewEvent() ProgressEvent {
+func NewProgressEvent() ProgressEvent {
 	return ProgressEvent{
 		OperationStatus: UnknownStatus,
 	}

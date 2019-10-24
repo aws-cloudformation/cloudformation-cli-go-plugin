@@ -22,7 +22,7 @@ func (r *Handler) {{ method }}(ctx context.Context, request handler.Request) han
 		return handler.NewFailedEvent(cfnErr)
 	}
 
-	p := handler.NewEvent()
+	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.BearerToken = request.BearerToken()
 	p.OperationStatus = handler.Success

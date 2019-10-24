@@ -1,9 +1,5 @@
 package handler
 
-// Status is the resource provider status
-//
-// The status will be reported back to the Resource Provider
-// API in the form a ProgressEvent from the handler (Read/Update/etc)
 type Status string
 
 const (

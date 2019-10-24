@@ -1,123 +1,59 @@
-package errcode
-
-import (
-	"strings"
-)
-
-// Status ...
-type Status int
-
-func (c Status) String() string {
-	if c < NotUpdatable || c > InternalFailure {
-		return "Unknown"
-	}
-
-	statuses := []string{
-		"Unknown",
-		"NotUpdatable",
-		"InvalidRequest",
-		"AccessDenied",
-		"InvalidCredentials",
-		"AlreadyExists",
-		"NotFound",
-		"ResourceConflict",
-		"Throttling",
-		"ServiceLimitExceeded",
-		"NotStabilized",
-		"GeneralServiceException",
-		"ServiceInternalError",
-		"NetworkFailure",
-		"InternalFailure",
-	}
-
-	return statuses[c]
-}
-
-//Convert string to Status
-func Convert(s string) Status {
-	status := strings.ToUpper(s)
-
-	statuses := []string{
-		"Unknown",
-		"NotUpdatable",
-		"InvalidRequest",
-		"AccessDenied",
-		"InvalidCredentials",
-		"AlreadyExists",
-		"NotFound",
-		"ResourceConflict",
-		"Throttling",
-		"ServiceLimitExceeded",
-		"NotStabilized",
-		"GeneralServiceException",
-		"ServiceInternalError",
-		"NetworkFailure",
-		"InternalFailure",
-	}
-
-	for i, v := range statuses {
-		if status == strings.ToUpper(v) {
-			return Status(i)
-		}
-	}
-
-	return Unknown
-}
+package cfnerr
 
 const (
 	// Unknown ...
-	Unknown Status = iota
+	UnknownError = "UNKNOWN"
 
 	// NotUpdatable is when the customer tried perform an update to a property that is CreateOnly. Only
 	// applicable to Update Handler. (Terminal)
-	NotUpdatable
+	NotUpdatable = "NOTUPDATABLE"
 
 	// InvalidRequest is a generic exception caused by invalid input from the customer. (Terminal)
-	InvalidRequest
+	InvalidRequest = "INVALIDREQUEST"
 
 	//AccessDenied is when the customer has insufficient permissions to perform this action. (Terminal)
-	AccessDenied
+	AccessDenied = "ACCESSDENIED"
 
 	//InvalidCredentials is when the customer's provided credentials were invalid. (Terminal)
-	InvalidCredentials
+	InvalidCredentials = "INVALIDCREDENTIALS"
 
 	//AlreadyExists is when the specified resource already existed prior to the execution of the handler.
 	//Only applicable to Create Handler (Terminal) Handlers MUST return this error
 	//when duplicate creation requests are received.
-	AlreadyExists
+	AlreadyExists = "ALREADYEXISTS"
 
 	//NotFound is when the specified resource does not exist, or is in a terminal, inoperable, and
 	//irrecoverable state. (Terminal)
-	NotFound
+	NotFound = "NOTFOUND"
 
 	//ResourceConflict is when the resource is temporarily unable to be acted upon; for example, if the
 	//resource is currently undergoing an operation and cannot be acted upon until
 	//that operation is finished (Retriable)
-	ResourceConflict
+	ResourceConflict = "RESOURCECONFLICT"
 
 	//Throttling is when the request was throttled by the downstream service. (Retriable)
-	Throttling
+	Throttling = "THROTTLING"
 
 	//ServiceLimitExceeded is when a non-transient resource limit was reached on the service side. (Terminal)
-	ServiceLimitExceeded
+	ServiceLimitExceeded = "SERVICELIMITEXCEEDED"
 
 	//NotStabilized is when the downstream resource failed to complete all of its ready state checks.
 	//(Retriable)
-	NotStabilized
+	NotStabilized = "NOTSTABILIZED"
 
 	//GeneralServiceException is an exception from the downstream service that does not map to any other error
 	//codes. (Terminal)
-	GeneralServiceException
+	GeneralServiceException = "GENERALSERVICEEXCEPTION"
 
-	//ServiceInternalError is when the downstream service returned an internal error, typically with a 5XX HTTP
-	//Status code. (Retriable)
-	ServiceInternalError
+	//ServiceInternalis when the downstream service returned an internal error, typically with a 5XX HTTP
+	//code. (Retriable)
+	ServiceInternalError = "SERVICEINTERNALERROR"
 
 	//NetworkFailure is when the request was unable to be completed due to networking issues, such as
 	//failure to receive a response from the server. (Retriable)
-	NetworkFailure
+	NetworkFailure = "NETWORKFAILURE"
 
 	// InternalFailure is an unexpected error occurred within the handler, such as an NPE, etc.
 	//(Terminal)
-	InternalFailure
+	InternalFailure = "INTERNALFAILURE"
 )

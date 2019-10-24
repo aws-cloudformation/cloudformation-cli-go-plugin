@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/action"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/metrics"
@@ -18,18 +17,18 @@ import (
 
 func TestMarshalling(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
-		validEvent, err := openFixture("request.read.json")
+		validevent, err := openFixture("request.read.json")
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
-		evt := &Event{}
+		evt := &event{}
 
-		if err := json.Unmarshal([]byte(validEvent), evt); err != nil {
+		if err := json.Unmarshal([]byte(validevent), evt); err != nil {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
-		if evt.Action != action.Read {
-			t.Fatalf("Incorrect action (%v), expected: %v", evt.Action.String(), action.Read.String())
+		if evt.Action != readAction {
+			t.Fatalf("Incorrect action (%v), expected: %v", evt.Action, readAction)
 		}
 
 		if evt.RequestData.LogicalResourceID != "myBucket" {
@@ -38,32 +37,32 @@ func TestMarshalling(t *testing.T) {
 	})
 
 	t.Run("Invalid Body", func(t *testing.T) {
-		invalidEvent, err := openFixture("request.read.invalid.json")
+		invalidevent, err := openFixture("request.read.invalid.json")
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
 
-		evt := &Event{}
-		if err := json.Unmarshal([]byte(invalidEvent), evt); err == nil {
+		evt := &event{}
+		if err := json.Unmarshal([]byte(invalidevent), evt); err == nil {
 			t.Fatalf("Marshaling failed to throw an error: %#v", err)
 		}
 	})
 }
 
-func TestRouter(t *testing.T) {
+func Testrouter(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
-		actions := []action.Action{
-			action.Create,
-			action.Read,
-			action.Update,
-			action.Delete,
-			action.List,
+		actions := []string{
+			createAction,
+			readAction,
+			updateAction,
+			deleteAction,
+			listAction,
 		}
 
 		for _, a := range actions {
-			fn, err := Router(a, &EmptyHandlers{})
+			fn, err := router(a, &EmptyHandler{})
 			if err != nil {
-				t.Fatalf("Unable to select '%v' handler: %v", a.String(), err)
+				t.Fatalf("Unable to select '%v' handler: %v", a, err)
 			}
 
 			if fn == nil {
@@ -73,9 +72,9 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("Failed Path", func(t *testing.T) {
-		fn, err := Router(action.Unknown, &EmptyHandlers{})
+		fn, err := router(unknownAction, &EmptyHandler{})
 		cfnErr := err.(cfnerr.Error)
-		if cfnErr != nil && cfnErr.Code() != InvalidRequestError {
+		if cfnErr != nil && cfnErr.Code() != invalidRequestError {
 			t.Errorf("Unspecified error returned: %v", err)
 		} else if err == nil {
 			t.Errorf("There should have been an error")
@@ -87,37 +86,37 @@ func TestRouter(t *testing.T) {
 	})
 }
 
-func TestValidateEvent(t *testing.T) {
+func TestvalidateEvent(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
-		validEvent, err := openFixture("request.read.json")
+		validevent, err := openFixture("request.read.json")
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
 
-		evt := &Event{}
+		evt := &event{}
 
-		if err := json.Unmarshal([]byte(validEvent), evt); err != nil {
+		if err := json.Unmarshal([]byte(validevent), evt); err != nil {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
-		if err := ValidateEvent(evt); err != nil {
+		if err := validateEvent(evt); err != nil {
 			t.Fatalf("Failed to validate: %v", err)
 		}
 	})
 
 	t.Run("Failed Validation", func(t *testing.T) {
-		validEvent, err := openFixture("request.read.invalid.validation.json")
+		validevent, err := openFixture("request.read.invalid.validation.json")
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
 
-		evt := &Event{}
+		evt := &event{}
 
-		if err := json.Unmarshal([]byte(validEvent), evt); err != nil {
+		if err := json.Unmarshal([]byte(validevent), evt); err != nil {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
-		if err := ValidateEvent(evt); err == nil {
+		if err := validateEvent(evt); err == nil {
 			t.Fatalf("Failed to validate: %v", err)
 		}
 	})
@@ -132,12 +131,15 @@ func TestInvoke(t *testing.T) {
 	mockPub := metrics.New(mockClient)
 	mockPub.SetResourceTypeName("dsf::fs::sfa")
 
+	// For test purposes, set the timeout low
+	Timeout = time.Second
+
 	type args struct {
-		handlerFn        HandlerFunc
+		handlerFn        handlerFunc
 		request          handler.Request
-		reqContext       *RequestContext
+		reqContext       *requestContext
 		metricsPublisher *metrics.Publisher
-		action           action.Action
+		action           string
 	}
 	tests := []struct {
 		name      string
@@ -146,16 +148,16 @@ func TestInvoke(t *testing.T) {
 		wantErr   bool
 		wantCount int
 	}{
-		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) handler.ProgressEvent {
 			time.Sleep(2 * time.Hour)
-			return nil, nil
-		}, handler.NewRequest(nil, nil, "foo", "bar"), &RequestContext{}, mockPub, action.Create,
-		}, handler.NewEvent(), true, 3,
+			return handler.ProgressEvent{}
+		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, createAction,
+		}, handler.NewProgressEvent(), true, 3,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Invoke(tt.args.handlerFn, tt.args.request, tt.args.reqContext, tt.args.metricsPublisher, tt.args.action)
+			got, err := invoke(tt.args.handlerFn, tt.args.request, tt.args.reqContext, tt.args.metricsPublisher, tt.args.action)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Invoke() error = %v, wantErr %v", err, tt.wantErr)
 				return

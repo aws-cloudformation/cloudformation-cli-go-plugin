@@ -151,7 +151,7 @@ func TestInvoke(t *testing.T) {
 		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) handler.ProgressEvent {
 			time.Sleep(2 * time.Hour)
 			return handler.ProgressEvent{}
-		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, createAction,
+		}, handler.NewRequest(nil, nil, "foo"), &requestContext{}, mockPub, createAction,
 		}, handler.ProgressEvent{}, true, 3,
 		},
 	}

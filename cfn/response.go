@@ -29,11 +29,11 @@ func newFailedResponse(err error) response {
 
 // marshalResponse converts a progress event into a useable reponse
 // for the CloudFormation Resource Provider service to understand.
-func marshalResponse(pevt *handler.ProgressEvent) (response, error) {
+func marshalResponse(pevt *handler.ProgressEvent, bearerToken string) (response, error) {
 	resp := response{
 		operationStatus: pevt.OperationStatus,
 		message:         pevt.Message,
-		bearerToken:     pevt.BearerToken,
+		bearerToken:     bearerToken,
 	}
 
 	if len(pevt.HandlerErrorCode) == 0 {

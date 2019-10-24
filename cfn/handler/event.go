@@ -32,26 +32,20 @@ type ProgressEvent struct {
 	// The output resource instance populated by a READ/LIST for synchronous results
 	// and by CREATE/UPDATE/DELETE for final response validation/confirmation
 	ResourceModel interface{}
-
-	// The BearerToken is used to report progress back to CloudFormation and is
-	// passed back to CloudFormation
-	BearerToken string
 }
 
-// NewEvent creates a new event
-// with a default OperationStatus of Unkown
-func NewProgressEvent(req Request) ProgressEvent {
+// NewEvent creates a new event with
+// a default OperationStatus of Unkown
+func NewProgressEvent() ProgressEvent {
 	return ProgressEvent{
 		OperationStatus: UnknownStatus,
-		BearerToken:     req.bearerToken,
 	}
 }
 
-// NewFailedEvent creates a generic failure progress event based on
-// the error passed in.
-func NewFailedEvent(req Request, err cfnerr.Error) ProgressEvent {
+// NewFailedEvent creates a generic failure progress event
+// based on the error passed in.
+func NewFailedEvent(err cfnerr.Error) ProgressEvent {
 	return ProgressEvent{
-		BearerToken:      req.bearerToken,
 		OperationStatus:  Failed,
 		Message:          err.Message(),
 		HandlerErrorCode: err.Code(),

@@ -183,7 +183,6 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
 			event.RequestData.LogicalResourceID,
-			event.BearerToken,
 		)
 		for {
 			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
@@ -194,7 +193,7 @@ func makeEventFunc(h Handler) eventFunc {
 				return newFailedResponse(cfnErr), err
 			}
 
-			r, err := marshalResponse(&progEvt)
+			r, err := marshalResponse(&progEvt, event.BearerToken)
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)

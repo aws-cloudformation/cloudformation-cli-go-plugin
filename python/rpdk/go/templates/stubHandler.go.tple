@@ -19,10 +19,10 @@ func (r *Handler) {{ method }}(ctx context.Context, req handler.Request) handler
 	m := &Model{}
 	if err := req.Unmarshal(m); err != nil {
 		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(req, cfnErr)
+		return handler.NewFailedEvent(cfnErr)
 	}
 
-	p := handler.NewProgressEvent(req)
+	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.OperationStatus = handler.Success
 	p.Message = "Completed"

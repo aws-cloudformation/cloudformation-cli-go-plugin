@@ -8,7 +8,7 @@ a handler.ProgressEvent.
 An empty Update method that returns a blank ProgressEvent could look like this:
 
 	func (h *MyHandler) Update(ctx context.Context, req handler.Request) handler.ProgressEvent {
-		return handler.NewProgressEvent(req)
+		return handler.NewProgressEvent()
 	}
 
 The handler.Request can be used to access information about an existing resource:
@@ -20,12 +20,12 @@ The handler.Request can be used to access information about an existing resource
 		err := req.Unmarshal(m)
 		if err != nil {
 			cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-			return handler.NewFailedEvent(req, cfnErr)
+			return handler.NewFailedEvent(cfnErr)
 		}
 
 		// Output the resource's logical ID
 		fmt.Println("Updating resource:", req.LogicalResourceID)
-		return handler.NewProgressEvent(req)
+		return handler.NewProgressEvent()
 	}
 
 When a Handler method is successful, it should set the appropriate properties
@@ -33,7 +33,7 @@ of the ProgressEvent that it returns.
 
 For example, an "in progress" response might look like this:
 
-	e := handler.NewProgressEvent(req)
+	e := handler.NewProgressEvent()
 
 	// Change status to "In progress"
 	e.OperationStatus = InProgress
@@ -43,7 +43,7 @@ For example, an "in progress" response might look like this:
 
 And a completed response like this:
 
-	e := handler.NewProgressEvent(req)
+	e := handler.NewProgressEvent()
 
 	// Change status to "Succes"
 	e.OperationStatus = Success

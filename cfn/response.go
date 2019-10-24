@@ -59,7 +59,7 @@ func (r *response) MarshalJSON() ([]byte, error) {
 
 	cfnErr, ok := r.Error().(cfnerr.Error)
 	if cfnErr != nil && !ok {
-		return nil, cfnerr.New(MarshalingError, "Unable to marshal response, zomg", r.Error())
+		return nil, cfnerr.New(marshalingError, "Unable to marshal response, zomg", r.Error())
 	}
 
 	resp.Message = r.Message()
@@ -72,7 +72,7 @@ func (r *response) MarshalJSON() ([]byte, error) {
 
 	b, err := json.Marshal(resp)
 	if err != nil {
-		return nil, cfnerr.New(MarshalingError, "Unable to marshal response", err)
+		return nil, cfnerr.New(marshalingError, "Unable to marshal response", err)
 	}
 
 	return b, nil

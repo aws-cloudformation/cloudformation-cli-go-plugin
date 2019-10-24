@@ -44,23 +44,23 @@ func (e *event) UnmarshalJSON(b []byte) error {
 	}
 
 	if err := json.Unmarshal(b, &d); err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the event", err)
+		return cfnerr.New(unmarshalingError, "Unable to unmarshal the event", err)
 	}
 
 	resourceTypeVersion, err := strconv.ParseFloat(d.ResourceTypeVersion, 64)
 	if err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to format float64", err)
+		return cfnerr.New(unmarshalingError, "Unable to format float64", err)
 	}
 
 	reqData := &requestData{}
 	if err := json.Unmarshal(d.RequestData, reqData); err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
+		return cfnerr.New(unmarshalingError, "Unable to unmarshal the request data", err)
 	}
 
 	reqContext := &requestContext{}
 	if len(d.Context) > 0 {
 		if err := json.Unmarshal(d.Context, reqContext); err != nil {
-			return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request context", err)
+			return cfnerr.New(unmarshalingError, "Unable to unmarshal the request context", err)
 		}
 	}
 
@@ -111,7 +111,7 @@ func (e *event) MarshalJSON() ([]byte, error) {
 
 	b, err := json.Marshal(d)
 	if err != nil {
-		cfnErr := cfnerr.New(MarshalingError, "Unable to marshal event", err)
+		cfnErr := cfnerr.New(marshalingError, "Unable to marshal event", err)
 		return nil, cfnErr
 	}
 
@@ -122,7 +122,7 @@ func (e *event) MarshalJSON() ([]byte, error) {
 // A number of the RPDK values are required to be a certain type/length
 func validateEvent(event *event) error {
 	if err := validator.Validate(event); err != nil {
-		return cfnerr.New(ValidationError, "Failed Validation", err)
+		return cfnerr.New(validationError, "Failed Validation", err)
 	}
 
 	return nil

@@ -41,7 +41,7 @@ func (rd *requestData) UnmarshalJSON(b []byte) error {
 	}
 
 	if err := json.Unmarshal(b, &d); err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
+		return cfnerr.New(unmarshalingError, "Unable to unmarshal the request data", err)
 	}
 
 	rd.LogicalResourceID = d.LogicalResourceID
@@ -105,7 +105,7 @@ func (rd *requestData) MarshalJSON() ([]byte, error) {
 
 	b, err := json.Marshal(d)
 	if err != nil {
-		cfnErr := cfnerr.New(MarshalingError, "Unable to marshal request data", err)
+		cfnErr := cfnerr.New(marshalingError, "Unable to marshal request data", err)
 		return nil, cfnErr
 	}
 
@@ -145,7 +145,7 @@ func (rc *requestContext) UnmarshalJSON(b []byte) error {
 	}
 
 	if err := json.Unmarshal(b, &d); err != nil {
-		return cfnerr.New(UnmarshalingError, "Unable to unmarshal the request data", err)
+		return cfnerr.New(unmarshalingError, "Unable to unmarshal the request data", err)
 	}
 
 	ctx := handler.ContextValues(context.Background(), d.CallbackContext)
@@ -179,7 +179,7 @@ func (rc *requestContext) MarshalJSON() ([]byte, error) {
 
 	b, err := json.Marshal(d)
 	if err != nil {
-		cfnErr := cfnerr.New(MarshalingError, "Unable to marshal request context", err)
+		cfnErr := cfnerr.New(marshalingError, "Unable to marshal request context", err)
 		return nil, cfnErr
 	}
 

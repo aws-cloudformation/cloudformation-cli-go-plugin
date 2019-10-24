@@ -74,7 +74,7 @@ func Testrouter(t *testing.T) {
 	t.Run("Failed Path", func(t *testing.T) {
 		fn, err := router(handler.UnknownAction, &EmptyHandler{})
 		cfnErr := err.(cfnerr.Error)
-		if cfnErr != nil && cfnErr.Code() != InvalidRequestError {
+		if cfnErr != nil && cfnErr.Code() != invalidRequestError {
 			t.Errorf("Unspecified error returned: %v", err)
 		} else if err == nil {
 			t.Errorf("There should have been an error")

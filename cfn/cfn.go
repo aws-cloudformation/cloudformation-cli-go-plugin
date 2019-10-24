@@ -18,16 +18,16 @@ import (
 )
 
 const (
-	InvalidRequestError  string = "InvalidRequest"
-	ServiceInternalError string = "ServiceInternal"
-	UnmarshalingError    string = "UnmarshalingError"
-	MarshalingError      string = "MarshalingError"
-	ValidationError      string = "Validation"
-	TimeoutError         string = "Timeout"
-
-	//MaxRetries is the number of times to try to call the Handler after it fails to respond.
-	MaxRetries int = 3
+	invalidRequestError  string = "InvalidRequest"
+	serviceInternalError string = "ServiceInternal"
+	unmarshalingError    string = "UnmarshalingError"
+	marshalingError      string = "MarshalingError"
+	validationError      string = "Validation"
+	timeoutError         string = "Timeout"
 )
+
+// MaxRetries is the number of times to try to call the Handler after it fails to respond.
+var MaxRetries int = 3
 
 // Timeout is the length of time to wait before giving up on a request.
 var Timeout time.Duration = 60 * time.Second
@@ -78,7 +78,7 @@ func router(a handler.Action, h Handler) (handlerFunc, error) {
 		return h.List, nil
 	default:
 		// No action matched, we should fail and return an InvalidRequestErrorCode
-		return nil, cfnerr.New(InvalidRequestError, "No action/invalid action specified", nil)
+		return nil, cfnerr.New(invalidRequestError, "No action/invalid action specified", nil)
 	}
 }
 
@@ -126,7 +126,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 		// Wait for the work to finish. If it takes too long move on. If the function returns an error, signal the error channel.
 		select {
 		case e := <-cherror:
-			cfnErr := cfnerr.New(TimeoutError, "Handler error", e)
+			cfnErr := cfnerr.New(timeoutError, "Handler error", e)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(action), cfnErr)
 			//The handler returned an error.
 			return handler.ProgressEvent{}, e
@@ -139,7 +139,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 			if attempts == MaxRetries {
 				log.Printf("Handler failed to respond, retrying... attempt: %v action: %s \n", attempts, action)
 				//handler failed to respond.
-				cfnErr := cfnerr.New(TimeoutError, "Handler failed to respond in time", nil)
+				cfnErr := cfnerr.New(timeoutError, "Handler failed to respond in time", nil)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(action), cfnErr)
 				return handler.ProgressEvent{}, cfnErr
 			}
@@ -160,13 +160,13 @@ func makeEventFunc(h Handler) eventFunc {
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
-			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 			return newFailedResponse(cfnErr), cfnErr
 		}
 
 		if err := validateEvent(event); err != nil {
-			cfnErr := cfnerr.New(InvalidRequestError, "Failed to validate input", err)
+			cfnErr := cfnerr.New(invalidRequestError, "Failed to validate input", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 			return newFailedResponse(cfnErr), cfnErr
 		}
@@ -181,14 +181,14 @@ func makeEventFunc(h Handler) eventFunc {
 			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
 
 			if err != nil {
-				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
 
 			r, err := marshalResponse(&progEvt)
 			if err != nil {
-				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
@@ -204,7 +204,7 @@ func makeEventFunc(h Handler) eventFunc {
 
 				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
 				if err != nil {
-					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 					return newFailedResponse(cfnErr), err
 				}
@@ -216,7 +216,7 @@ func makeEventFunc(h Handler) eventFunc {
 				callbackRequest, err := event.MarshalJSON()
 
 				if err != nil {
-					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 					return newFailedResponse(cfnErr), err
 				}
@@ -224,7 +224,7 @@ func makeEventFunc(h Handler) eventFunc {
 				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
 
 				if err != nil {
-					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
+					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 					return newFailedResponse(cfnErr), err
 				}

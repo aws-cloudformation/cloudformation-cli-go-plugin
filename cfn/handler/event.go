@@ -56,26 +56,6 @@ func NewFailedEvent(err cfnerr.Error) ProgressEvent {
 	}
 }
 
-// MarshalResponse converts a progress event into a useable reponse
-// for the CloudFormation Resource Provider service to understand.
-func (pevt *ProgressEvent) MarshalResponse() (Response, error) {
-	resp := Response{
-		operationStatus: pevt.OperationStatus,
-		message:         pevt.Message,
-		bearerToken:     pevt.BearerToken,
-	}
-
-	if len(pevt.HandlerErrorCode) == 0 {
-		resp.errorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
-	}
-
-	if pevt.ResourceModel != nil {
-		resp.resourceModel = pevt.ResourceModel
-	}
-
-	return resp, nil
-}
-
 // MarshalCallback allows for the ProgressEvent to be parsed into something
 // the RPDK can use to reinvoke the resource provider with the same context.
 func (pevt *ProgressEvent) MarshalCallback() (CallbackContextValues, int64) {

@@ -56,7 +56,7 @@ func Start(h Handler) {
 type tags map[string]string
 
 // eventFunc is the function signature required to execute an event from the Lambda SDK
-type eventFunc func(ctx context.Context, event *event) (handler.Response, error)
+type eventFunc func(ctx context.Context, event *event) (response, error)
 
 // handlerFunc is the signature required for all actions
 type handlerFunc func(ctx context.Context, request handler.Request) (handler.ProgressEvent, error)
@@ -154,24 +154,24 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
-	return func(ctx context.Context, event *event) (handler.Response, error) {
+	return func(ctx context.Context, event *event) (response, error) {
 		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
-		var resp handler.Response
+		var resp response
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
 			cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return handler.NewFailedResponse(cfnErr), cfnErr
+			return newFailedResponse(cfnErr), cfnErr
 		}
 
 		if err := validateEvent(event); err != nil {
 			cfnErr := cfnerr.New(InvalidRequestError, "Failed to validate input", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return handler.NewFailedResponse(cfnErr), cfnErr
+			return newFailedResponse(cfnErr), cfnErr
 		}
 
 		request := handler.NewRequest(
@@ -186,14 +186,14 @@ func makeEventFunc(h Handler) eventFunc {
 			if err != nil {
 				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-				return handler.NewFailedResponse(cfnErr), err
+				return newFailedResponse(cfnErr), err
 			}
 
-			r, err := progEvt.MarshalResponse()
+			r, err := marshalResponse(&progEvt)
 			if err != nil {
 				cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-				return handler.NewFailedResponse(cfnErr), err
+				return newFailedResponse(cfnErr), err
 			}
 
 			switch r.OperationStatus() {
@@ -209,7 +209,7 @@ func makeEventFunc(h Handler) eventFunc {
 				if err != nil {
 					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-					return handler.NewFailedResponse(cfnErr), err
+					return newFailedResponse(cfnErr), err
 				}
 
 				//Add IDs to recall the function with Cloudwatch events
@@ -221,7 +221,7 @@ func makeEventFunc(h Handler) eventFunc {
 				if err != nil {
 					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-					return handler.NewFailedResponse(cfnErr), err
+					return newFailedResponse(cfnErr), err
 				}
 
 				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
@@ -229,7 +229,7 @@ func makeEventFunc(h Handler) eventFunc {
 				if err != nil {
 					cfnErr := cfnerr.New(ServiceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-					return handler.NewFailedResponse(cfnErr), err
+					return newFailedResponse(cfnErr), err
 				}
 
 				//If not computing local, exit and return response

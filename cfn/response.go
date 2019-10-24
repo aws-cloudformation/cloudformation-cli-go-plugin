@@ -1,33 +1,54 @@
-package handler
+package cfn
 
 import (
 	"encoding/json"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 )
 
-// Response represents a response to the
+// response represents a response to the
 // cloudformation service from a resource handler.
 // The zero value is ready to use.
-type Response struct {
-	message         string      `json:"message,omitempty"`
-	operationStatus Status      `json:"operationStatus,omitempty"`
-	resourceModel   interface{} `json:"resourceModel,omitempty"`
-	errorCode       error       `json:"errorCode,omitempty"`
-	bearerToken     string      `json:"bearerToken,omitempty"`
+type response struct {
+	message         string         `json:"message,omitempty"`
+	operationStatus handler.Status `json:"operationStatus,omitempty"`
+	resourceModel   interface{}    `json:"resourceModel,omitempty"`
+	errorCode       error          `json:"errorCode,omitempty"`
+	bearerToken     string         `json:"bearerToken,omitempty"`
 }
 
-// NewFailedResponse returns a Response pre-filled with the supplied error
-func NewFailedResponse(err error) Response {
-	return Response{
-		operationStatus: Failed,
+// newFailedResponse returns a response pre-filled with the supplied error
+func newFailedResponse(err error) response {
+	return response{
+		operationStatus: handler.Failed,
 		errorCode:       err,
 		message:         err.Error(),
 	}
 }
 
+// marshalResponse converts a progress event into a useable reponse
+// for the CloudFormation Resource Provider service to understand.
+func marshalResponse(pevt *handler.ProgressEvent) (response, error) {
+	resp := response{
+		operationStatus: pevt.OperationStatus,
+		message:         pevt.Message,
+		bearerToken:     pevt.BearerToken,
+	}
+
+	if len(pevt.HandlerErrorCode) == 0 {
+		resp.errorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
+	}
+
+	if pevt.ResourceModel != nil {
+		resp.resourceModel = pevt.ResourceModel
+	}
+
+	return resp, nil
+}
+
 // MarshalJSON returns the response object as a JSON string
-func (r *Response) MarshalJSON() ([]byte, error) {
+func (r *response) MarshalJSON() ([]byte, error) {
 	var resp struct {
 		Message         string      `json:"message,omitempty"`
 		OperationStatus string      `json:"operationStatus,omitempty"`
@@ -58,21 +79,21 @@ func (r *Response) MarshalJSON() ([]byte, error) {
 }
 
 // Message returns the response's message
-func (r *Response) Message() string {
+func (r *response) Message() string {
 	return r.message
 }
 
 // OperationStatus returns the response's operation status
-func (r *Response) OperationStatus() Status {
+func (r *response) OperationStatus() handler.Status {
 	return r.operationStatus
 }
 
 // Error returns the response's error code
-func (r *Response) Error() error {
+func (r *response) Error() error {
 	return r.errorCode
 }
 
 // ResourceModel returns the response's resource model
-func (r *Response) ResourceModel() interface{} {
+func (r *response) ResourceModel() interface{} {
 	return r.resourceModel
 }

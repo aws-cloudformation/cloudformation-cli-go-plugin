@@ -13,24 +13,24 @@ import (
 // This implementation of the handlers is only used for testing.
 type EmptyHandler struct{}
 
-func (h *EmptyHandler) Create(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return handler.ProgressEvent{}, nil
+func (h *EmptyHandler) Create(ctx context.Context, request handler.Request) handler.ProgressEvent {
+	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) Read(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return handler.ProgressEvent{}, nil
+func (h *EmptyHandler) Read(ctx context.Context, request handler.Request) handler.ProgressEvent {
+	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) Update(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return handler.ProgressEvent{}, nil
+func (h *EmptyHandler) Update(ctx context.Context, request handler.Request) handler.ProgressEvent {
+	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) Delete(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return handler.ProgressEvent{}, nil
+func (h *EmptyHandler) Delete(ctx context.Context, request handler.Request) handler.ProgressEvent {
+	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) List(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
-	return handler.ProgressEvent{}, nil
+func (h *EmptyHandler) List(ctx context.Context, request handler.Request) handler.ProgressEvent {
+	return handler.ProgressEvent{}
 }
 
 //MockedMetrics mocks the call to AWS CloudWatch Metrics

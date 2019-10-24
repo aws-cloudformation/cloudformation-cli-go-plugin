@@ -148,9 +148,9 @@ func TestInvoke(t *testing.T) {
 		wantErr   bool
 		wantCount int
 	}{
-		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) (handler.ProgressEvent, error) {
+		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) handler.ProgressEvent {
 			time.Sleep(2 * time.Hour)
-			return handler.ProgressEvent{}, nil
+			return handler.ProgressEvent{}
 		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, handler.Create,
 		}, handler.NewEvent(), true, 3,
 		},

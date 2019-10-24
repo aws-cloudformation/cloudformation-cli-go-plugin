@@ -12,9 +12,6 @@ const (
 
 	// bodyEmptyError happens when the resource body is empty
 	bodyEmptyError = "BodyEmpty"
-
-	// sessionNotFoundError occurs when the AWS SDK session isn't available in the context
-	sessionNotFoundError = "SessionNotFound"
 )
 
 // Request is passed to actions with customer related data

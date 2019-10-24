@@ -152,7 +152,7 @@ func TestInvoke(t *testing.T) {
 			time.Sleep(2 * time.Hour)
 			return handler.ProgressEvent{}
 		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, createAction,
-		}, handler.NewProgressEvent(), true, 3,
+		}, handler.ProgressEvent{}, true, 3,
 		},
 	}
 	for _, tt := range tests {

@@ -40,16 +40,18 @@ type ProgressEvent struct {
 
 // NewEvent creates a new event
 // with a default OperationStatus of Unkown
-func NewProgressEvent() ProgressEvent {
+func NewProgressEvent(req Request) ProgressEvent {
 	return ProgressEvent{
 		OperationStatus: UnknownStatus,
+		BearerToken:     req.bearerToken,
 	}
 }
 
 // NewFailedEvent creates a generic failure progress event based on
 // the error passed in.
-func NewFailedEvent(err cfnerr.Error) ProgressEvent {
+func NewFailedEvent(req Request, err cfnerr.Error) ProgressEvent {
 	return ProgressEvent{
+		BearerToken:      req.bearerToken,
 		OperationStatus:  Failed,
 		Message:          err.Message(),
 		HandlerErrorCode: err.Code(),

@@ -33,12 +33,12 @@ func TestNewRequest(t *testing.T) {
 			t.Fatalf("Properties don't match: %v", curr.Color)
 		}
 
-		if req.BearerToken() != "123" {
-			t.Fatalf("Invalid Bearer Token: %v", req.BearerToken())
+		if req.bearerToken != "123" {
+			t.Fatalf("Invalid Bearer Token: %v", req.bearerToken)
 		}
 
-		if req.LogicalResourceID() != "foo" {
-			t.Fatalf("Invalid Logical Resource ID: %v", req.LogicalResourceID())
+		if req.LogicalResourceID != "foo" {
+			t.Fatalf("Invalid Logical Resource ID: %v", req.LogicalResourceID)
 		}
 
 	})

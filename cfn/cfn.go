@@ -18,12 +18,21 @@ import (
 )
 
 const (
-	invalidRequestError  string = "InvalidRequest"
-	serviceInternalError string = "ServiceInternal"
-	unmarshalingError    string = "UnmarshalingError"
-	marshalingError      string = "MarshalingError"
-	validationError      string = "Validation"
-	timeoutError         string = "Timeout"
+	invalidRequestError  = "InvalidRequest"
+	serviceInternalError = "ServiceInternal"
+	unmarshalingError    = "UnmarshalingError"
+	marshalingError      = "MarshalingError"
+	validationError      = "Validation"
+	timeoutError         = "Timeout"
+)
+
+const (
+	unknownAction = "UNKNOWN"
+	createAction  = "CREATE"
+	readAction    = "READ"
+	updateAction  = "UPDATE"
+	deleteAction  = "DELETE"
+	listAction    = "LIST"
 )
 
 // MaxRetries is the number of times to try to call the Handler after it fails to respond.
@@ -63,18 +72,18 @@ type handlerFunc func(ctx context.Context, request handler.Request) handler.Prog
 
 // router decides which handler should be invoked based on the action
 // It will return a route or an error depending on the action passed in
-func router(a handler.Action, h Handler) (handlerFunc, error) {
+func router(a string, h Handler) (handlerFunc, error) {
 	// Figure out which action was called and have a "catch-all"
 	switch a {
-	case handler.Create:
+	case createAction:
 		return h.Create, nil
-	case handler.Read:
+	case readAction:
 		return h.Read, nil
-	case handler.Update:
+	case updateAction:
 		return h.Update, nil
-	case handler.Delete:
+	case deleteAction:
 		return h.Update, nil
-	case handler.List:
+	case listAction:
 		return h.List, nil
 	default:
 		// No action matched, we should fail and return an InvalidRequestErrorCode
@@ -83,7 +92,7 @@ func router(a handler.Action, h Handler) (handlerFunc, error) {
 }
 
 //Invoke handles the invocation of the handerFn.
-func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestContext, metricsPublisher *metrics.Publisher, action handler.Action) (handler.ProgressEvent, error) {
+func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestContext, metricsPublisher *metrics.Publisher, action string) (handler.ProgressEvent, error) {
 	attempts := 0
 
 	for {

@@ -7,14 +7,13 @@ import (
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 
 	"gopkg.in/validator.v2"
 )
 
 // Event base structure, it will be internal to the RPDK.
 type event struct {
-	Action              handler.Action
+	Action              string
 	AWSAccountID        string `validate:"min=12"`
 	BearerToken         string `validate:"nonzero"`
 	Context             *requestContext
@@ -66,7 +65,7 @@ func (e *event) UnmarshalJSON(b []byte) error {
 
 	reqContext.Session(credentials.SessionFromCredentialsProvider(reqData.CallerCredentials))
 
-	e.Action = handler.Action(d.Action)
+	e.Action = d.Action
 	e.AWSAccountID = d.AWSAccountID
 	e.BearerToken = d.BearerToken
 	e.Context = reqContext

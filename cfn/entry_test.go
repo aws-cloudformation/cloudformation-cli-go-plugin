@@ -27,8 +27,8 @@ func TestMarshalling(t *testing.T) {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
-		if evt.Action != handler.Read {
-			t.Fatalf("Incorrect action (%v), expected: %v", evt.Action, handler.Read)
+		if evt.Action != readAction {
+			t.Fatalf("Incorrect action (%v), expected: %v", evt.Action, readAction)
 		}
 
 		if evt.RequestData.LogicalResourceID != "myBucket" {
@@ -51,12 +51,12 @@ func TestMarshalling(t *testing.T) {
 
 func Testrouter(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
-		actions := []handler.Action{
-			handler.Create,
-			handler.Read,
-			handler.Update,
-			handler.Delete,
-			handler.List,
+		actions := []string{
+			createAction,
+			readAction,
+			updateAction,
+			deleteAction,
+			listAction,
 		}
 
 		for _, a := range actions {
@@ -72,7 +72,7 @@ func Testrouter(t *testing.T) {
 	})
 
 	t.Run("Failed Path", func(t *testing.T) {
-		fn, err := router(handler.UnknownAction, &EmptyHandler{})
+		fn, err := router(unknownAction, &EmptyHandler{})
 		cfnErr := err.(cfnerr.Error)
 		if cfnErr != nil && cfnErr.Code() != invalidRequestError {
 			t.Errorf("Unspecified error returned: %v", err)
@@ -139,7 +139,7 @@ func TestInvoke(t *testing.T) {
 		request          handler.Request
 		reqContext       *requestContext
 		metricsPublisher *metrics.Publisher
-		action           handler.Action
+		action           string
 	}
 	tests := []struct {
 		name      string
@@ -151,7 +151,7 @@ func TestInvoke(t *testing.T) {
 		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) handler.ProgressEvent {
 			time.Sleep(2 * time.Hour)
 			return handler.ProgressEvent{}
-		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, handler.Create,
+		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, createAction,
 		}, handler.NewEvent(), true, 3,
 		},
 	}

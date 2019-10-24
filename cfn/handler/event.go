@@ -33,8 +33,8 @@ type ProgressEvent struct {
 	// and by CREATE/UPDATE/DELETE for final response validation/confirmation
 	ResourceModel interface{}
 
-	//The BearerToken is used to report progress back to CloudFormation and is
-	//passed back to CloudFormation
+	// The BearerToken is used to report progress back to CloudFormation and is
+	// passed back to CloudFormation
 	BearerToken string
 }
 

@@ -57,7 +57,7 @@ func TestNewRequest(t *testing.T) {
 			}
 
 			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != BodyEmptyError {
+			if cfnErr.Code() != bodyEmptyError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})
@@ -75,7 +75,7 @@ func TestNewRequest(t *testing.T) {
 			}
 
 			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != MarshalingError {
+			if cfnErr.Code() != marshalingError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})
@@ -95,7 +95,7 @@ func TestNewRequest(t *testing.T) {
 			}
 
 			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != BodyEmptyError {
+			if cfnErr.Code() != bodyEmptyError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})
@@ -113,7 +113,7 @@ func TestNewRequest(t *testing.T) {
 			}
 
 			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != MarshalingError {
+			if cfnErr.Code() != marshalingError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})

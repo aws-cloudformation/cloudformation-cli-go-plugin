@@ -22,7 +22,7 @@ type ProgressEvent struct {
 	// IN_PROGRESS event to allow the passing through of additional state or
 	// metadata between subsequent retries; for example to pass through a Resource
 	// identifier which can be used to continue polling for stabilization
-	CallbackContext CallbackContextValues
+	CallbackContext map[string]interface{}
 
 	// A callback will be scheduled with an initial delay of no less than the number
 	// of seconds specified in the progress event. Set this value to <= 0 to
@@ -56,10 +56,4 @@ func NewFailedEvent(req Request, err cfnerr.Error) ProgressEvent {
 		Message:          err.Message(),
 		HandlerErrorCode: err.Code(),
 	}
-}
-
-// MarshalCallback allows for the ProgressEvent to be parsed into something
-// the RPDK can use to reinvoke the resource provider with the same context.
-func (pevt *ProgressEvent) MarshalCallback() (CallbackContextValues, int64) {
-	return pevt.CallbackContext, pevt.CallbackDelaySeconds
 }

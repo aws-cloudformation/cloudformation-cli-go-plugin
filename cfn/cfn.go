@@ -24,6 +24,7 @@ const (
 	marshalingError      = "MarshalingError"
 	validationError      = "Validation"
 	timeoutError         = "Timeout"
+	sessionNotFoundError = "SessionNotFound"
 )
 
 const (
@@ -117,8 +118,8 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 				cherror <- err
 			}
 
-			customerCtx := handler.ContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = handler.ContextInjectSession(customerCtx, reqContext.GetSession())
+			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
+			customerCtx = setContextSession(customerCtx, reqContext.GetSession())
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)
@@ -209,7 +210,7 @@ func makeEventFunc(h Handler) eventFunc {
 				return r, nil
 			case handler.InProgress:
 
-				customerCtx, delay := progEvt.MarshalCallback()
+				customerCtx, delay := marshalCallback(&progEvt)
 
 				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
 				if err != nil {

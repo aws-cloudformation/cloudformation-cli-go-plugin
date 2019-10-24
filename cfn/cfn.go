@@ -1,4 +1,3 @@
-// Package cfn defines the common interfaces and values used by the RPDK
 package cfn
 
 import (
@@ -41,13 +40,12 @@ var MaxRetries int = 3
 // Timeout is the length of time to wait before giving up on a request.
 var Timeout time.Duration = 60 * time.Second
 
-// Handler represents the actions from the AWS CloudFormation service
+// Handler is the interface that all resource providers must implement
 //
-// Each action maps directly to a CloudFormation action. Every action is
-// expected to return a response and/or an error.
-//
-// A valid error condition would be met if the resource operation failed or
-// an API is no longer available.
+// Each method of Handler maps directly to a CloudFormation action.
+// Every action must return a progress event containing details of
+// any actions that were undertaken by the resource provider
+// or of any error that occurred during operation.
 type Handler interface {
 	Create(ctx context.Context, request handler.Request) handler.ProgressEvent
 	Read(ctx context.Context, request handler.Request) handler.ProgressEvent
@@ -56,7 +54,7 @@ type Handler interface {
 	List(ctx context.Context, request handler.Request) handler.ProgressEvent
 }
 
-// Start is the entry point called from a resource's lambda function
+// Start is the entry point called from a resource's main function
 func Start(h Handler) {
 	lambda.Start(makeEventFunc(h))
 }

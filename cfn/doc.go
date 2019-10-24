@@ -7,23 +7,23 @@ An empty example Handler would look like this:
 	type MyHandler struct{}
 
 	func (m *MyHandler) Create(ctx context.Context, req handler.Request) handler.ProgressEvent {
-		return handler.NewProgressEvent()
+		return handler.NewProgressEvent(req)
 	}
 
 	func (m *MyHandler) Read(ctx context.Context, req handler.Request) handler.ProgressEvent {
-		return handler.NewProgressEvent()
+		return handler.NewProgressEvent(req)
 	}
 
 	func (m *MyHandler) Update(ctx context.Context, req handler.Request) handler.ProgressEvent {
-		return handler.NewProgressEvent()
+		return handler.NewProgressEvent(req)
 	}
 
 	func (m *MyHandler) Delete(ctx context.Context, req handler.Request) handler.ProgressEvent {
-		return handler.NewProgressEvent()
+		return handler.NewProgressEvent(req)
 	}
 
 	func (m *MyHandler) List(ctx context.Context, req handler.Request) handler.ProgressEvent {
-		return handler.NewProgressEvent()
+		return handler.NewProgressEvent(req)
 	}
 
 You need to then implement code for each method of the handler.

@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 
 	sdkCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -117,7 +116,7 @@ func (rd *requestData) MarshalJSON() ([]byte, error) {
 // Updating the requestContext key will do nothing in subsequent requests or retries,
 // instead you should opt to return your context items in the action
 type requestContext struct {
-	CallbackContext          handler.CallbackContextValues
+	CallbackContext          callbackContextValues
 	CloudWatchEventsRuleName string
 	CloudWatchEventsTargetID string
 	Invocation               int64
@@ -138,18 +137,18 @@ func (rc *requestContext) GetSession() *session.Session {
 // UnmarshalJSON parses the request context into a usable struct
 func (rc *requestContext) UnmarshalJSON(b []byte) error {
 	var d struct {
-		CallbackContext          handler.CallbackContextValues `json:"callbackContext,omitempty"`
-		CloudWatchEventsRuleName string                        `json:"cloudWatchEventsRuleName,omitempty"`
-		CloudWatchEventsTargetID string                        `json:"cloudWatchEventsTargetId,omitempty"`
-		Invocation               int64                         `json:"invocation,omitempty"`
+		CallbackContext          callbackContextValues `json:"callbackContext,omitempty"`
+		CloudWatchEventsRuleName string                `json:"cloudWatchEventsRuleName,omitempty"`
+		CloudWatchEventsTargetID string                `json:"cloudWatchEventsTargetId,omitempty"`
+		Invocation               int64                 `json:"invocation,omitempty"`
 	}
 
 	if err := json.Unmarshal(b, &d); err != nil {
 		return cfnerr.New(unmarshalingError, "Unable to unmarshal the request data", err)
 	}
 
-	ctx := handler.ContextValues(context.Background(), d.CallbackContext)
-	callbackCtx, err := handler.ContextCallback(ctx)
+	ctx := setContextValues(context.Background(), d.CallbackContext)
+	callbackCtx, err := getContextValues(ctx)
 
 	if err != nil {
 		return err
@@ -166,10 +165,10 @@ func (rc *requestContext) UnmarshalJSON(b []byte) error {
 // MarshalJSON ...
 func (rc *requestContext) MarshalJSON() ([]byte, error) {
 	var d struct {
-		CallbackContext          handler.CallbackContextValues `json:"callbackContext,omitempty"`
-		CloudWatchEventsRuleName string                        `json:"cloudWatchEventsRuleName,omitempty"`
-		CloudWatchEventsTargetID string                        `json:"cloudWatchEventsTargetId,omitempty"`
-		Invocation               int64                         `json:"invocation,omitempty"`
+		CallbackContext          callbackContextValues `json:"callbackContext,omitempty"`
+		CloudWatchEventsRuleName string                `json:"cloudWatchEventsRuleName,omitempty"`
+		CloudWatchEventsTargetID string                `json:"cloudWatchEventsTargetId,omitempty"`
+		Invocation               int64                 `json:"invocation,omitempty"`
 	}
 
 	d.CallbackContext = rc.CallbackContext

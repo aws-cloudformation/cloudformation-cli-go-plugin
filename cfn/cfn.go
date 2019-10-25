@@ -1,4 +1,3 @@
-// Package cfn defines the common interfaces and values used by the RPDK
 package cfn
 
 import (
@@ -24,6 +23,7 @@ const (
 	marshalingError      = "MarshalingError"
 	validationError      = "Validation"
 	timeoutError         = "Timeout"
+	sessionNotFoundError = "SessionNotFound"
 )
 
 const (
@@ -41,13 +41,12 @@ var MaxRetries int = 3
 // Timeout is the length of time to wait before giving up on a request.
 var Timeout time.Duration = 60 * time.Second
 
-// Handler represents the actions from the AWS CloudFormation service
+// Handler is the interface that all resource providers must implement
 //
-// Each action maps directly to a CloudFormation action. Every action is
-// expected to return a response and/or an error.
-//
-// A valid error condition would be met if the resource operation failed or
-// an API is no longer available.
+// Each method of Handler maps directly to a CloudFormation action.
+// Every action must return a progress event containing details of
+// any actions that were undertaken by the resource provider
+// or of any error that occurred during operation.
 type Handler interface {
 	Create(ctx context.Context, request handler.Request) handler.ProgressEvent
 	Read(ctx context.Context, request handler.Request) handler.ProgressEvent
@@ -56,7 +55,7 @@ type Handler interface {
 	List(ctx context.Context, request handler.Request) handler.ProgressEvent
 }
 
-// Start is the entry point called from a resource's lambda function
+// Start is the entry point called from a resource's main function
 func Start(h Handler) {
 	lambda.Start(makeEventFunc(h))
 }
@@ -117,8 +116,8 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 				cherror <- err
 			}
 
-			customerCtx := handler.ContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = handler.ContextInjectSession(customerCtx, reqContext.GetSession())
+			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
+			customerCtx = setContextSession(customerCtx, reqContext.GetSession())
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)
@@ -165,7 +164,6 @@ func makeEventFunc(h Handler) eventFunc {
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
-		var resp response
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
@@ -184,32 +182,32 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
 			event.RequestData.LogicalResourceID,
-			event.BearerToken,
 		)
+
 		for {
 			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
-
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
 
-			r, err := marshalResponse(&progEvt)
+			r, err := newResponse(&progEvt, event.BearerToken)
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
 
-			switch r.OperationStatus() {
+			switch r.OperationStatus {
 			case handler.Success:
 				return r, nil
+
 			case handler.Failed:
 				return r, nil
-			case handler.InProgress:
 
-				customerCtx, delay := progEvt.MarshalCallback()
+			case handler.InProgress:
+				customerCtx, delay := marshalCallback(&progEvt)
 
 				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
 				if err != nil {
@@ -223,7 +221,6 @@ func makeEventFunc(h Handler) eventFunc {
 				event.Context.CloudWatchEventsTargetID = invocationIDS.Target
 
 				callbackRequest, err := event.MarshalJSON()
-
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -231,7 +228,6 @@ func makeEventFunc(h Handler) eventFunc {
 				}
 
 				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
-
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -245,11 +241,7 @@ func makeEventFunc(h Handler) eventFunc {
 
 				//Rebuild the context
 				event.Context.CallbackContext = customerCtx
-
 			}
-
 		}
-
-		return resp, nil
 	}
 }

@@ -15,7 +15,7 @@ func TestNewRequest(t *testing.T) {
 		prev := Props{}
 		curr := Props{}
 
-		req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo", "123")
+		req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo")
 
 		if err := req.UnmarshalPrevious(&prev); err != nil {
 			t.Fatalf("Unable to unmarshal props: %v", err)
@@ -33,19 +33,15 @@ func TestNewRequest(t *testing.T) {
 			t.Fatalf("Properties don't match: %v", curr.Color)
 		}
 
-		if req.BearerToken() != "123" {
-			t.Fatalf("Invalid Bearer Token: %v", req.BearerToken())
-		}
-
-		if req.LogicalResourceID() != "foo" {
-			t.Fatalf("Invalid Logical Resource ID: %v", req.LogicalResourceID())
+		if req.LogicalResourceID != "foo" {
+			t.Fatalf("Invalid Logical Resource ID: %v", req.LogicalResourceID)
 		}
 
 	})
 
 	t.Run("ResourceProps", func(t *testing.T) {
 		t.Run("Invalid Body", func(t *testing.T) {
-			req := NewRequest([]byte(``), []byte(``), "foo", "123")
+			req := NewRequest([]byte(``), []byte(``), "foo")
 
 			invalid := struct {
 				Color int `json:"color"`
@@ -63,7 +59,7 @@ func TestNewRequest(t *testing.T) {
 		})
 
 		t.Run("Invalid Marshal", func(t *testing.T) {
-			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo", "123")
+			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo")
 
 			invalid := struct {
 				Color int `json:"color"`
@@ -83,7 +79,7 @@ func TestNewRequest(t *testing.T) {
 
 	t.Run("PreviousResourceProps", func(t *testing.T) {
 		t.Run("Invalid Body", func(t *testing.T) {
-			req := NewRequest([]byte(``), []byte(``), "foo", "123")
+			req := NewRequest([]byte(``), []byte(``), "foo")
 
 			invalid := struct {
 				Color int `json:"color"`
@@ -101,7 +97,7 @@ func TestNewRequest(t *testing.T) {
 		})
 
 		t.Run("Invalid Marshal", func(t *testing.T) {
-			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo", "123")
+			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo")
 
 			invalid := struct {
 				Color int `json:"color"`

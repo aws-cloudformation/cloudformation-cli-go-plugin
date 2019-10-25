@@ -12,27 +12,22 @@ const (
 
 	// bodyEmptyError happens when the resource body is empty
 	bodyEmptyError = "BodyEmpty"
-
-	// sessionNotFoundError occurs when the AWS SDK session isn't available in the context
-	sessionNotFoundError = "SessionNotFound"
 )
 
 // Request is passed to actions with customer related data
 // such as resource states
 type Request struct {
+	LogicalResourceID              string
 	previousResourcePropertiesBody json.RawMessage
 	resourcePropertiesBody         json.RawMessage
-	logicalResourceID              string
-	bearerToken                    string
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string, bearerToken string) Request {
+func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string) Request {
 	return Request{
+		LogicalResourceID:              logicalResourceID,
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
-		logicalResourceID:              logicalResourceID,
-		bearerToken:                    bearerToken,
 	}
 }
 
@@ -62,14 +57,4 @@ func (r *Request) Unmarshal(v interface{}) error {
 	}
 
 	return nil
-}
-
-// LogicalResourceID returns the logical ID of the related resource
-func (r *Request) LogicalResourceID() string {
-	return r.logicalResourceID
-}
-
-// BearerToken returns the bearer token related to the request
-func (r *Request) BearerToken() string {
-	return r.bearerToken
 }

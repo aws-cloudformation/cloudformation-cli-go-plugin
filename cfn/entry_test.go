@@ -49,7 +49,7 @@ func TestMarshalling(t *testing.T) {
 	})
 }
 
-func Testrouter(t *testing.T) {
+func TestRouter(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		actions := []string{
 			createAction,
@@ -86,7 +86,7 @@ func Testrouter(t *testing.T) {
 	})
 }
 
-func TestvalidateEvent(t *testing.T) {
+func TestValidateEvent(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		validevent, err := openFixture("request.read.json")
 		if err != nil {
@@ -151,8 +151,8 @@ func TestInvoke(t *testing.T) {
 		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) handler.ProgressEvent {
 			time.Sleep(2 * time.Hour)
 			return handler.ProgressEvent{}
-		}, handler.NewRequest(nil, nil, "foo", "bar"), &requestContext{}, mockPub, createAction,
-		}, handler.NewProgressEvent(), true, 3,
+		}, handler.NewRequest(nil, nil, "foo"), &requestContext{}, mockPub, createAction,
+		}, handler.ProgressEvent{}, true, 3,
 		},
 	}
 	for _, tt := range tests {

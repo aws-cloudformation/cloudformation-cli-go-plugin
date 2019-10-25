@@ -193,14 +193,14 @@ func makeEventFunc(h Handler) eventFunc {
 				return newFailedResponse(cfnErr), err
 			}
 
-			r, err := marshalResponse(&progEvt, event.BearerToken)
+			r, err := newResponse(&progEvt, event.BearerToken)
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
 
-			switch r.OperationStatus() {
+			switch r.OperationStatus {
 			case handler.Success:
 				return r, nil
 			case handler.Failed:

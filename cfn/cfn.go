@@ -164,7 +164,6 @@ func makeEventFunc(h Handler) eventFunc {
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
-		var resp response
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
@@ -184,9 +183,9 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestData.ResourceProperties,
 			event.RequestData.LogicalResourceID,
 		)
+
 		for {
 			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
-
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -203,10 +202,11 @@ func makeEventFunc(h Handler) eventFunc {
 			switch r.OperationStatus {
 			case handler.Success:
 				return r, nil
+
 			case handler.Failed:
 				return r, nil
-			case handler.InProgress:
 
+			case handler.InProgress:
 				customerCtx, delay := marshalCallback(&progEvt)
 
 				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
@@ -221,7 +221,6 @@ func makeEventFunc(h Handler) eventFunc {
 				event.Context.CloudWatchEventsTargetID = invocationIDS.Target
 
 				callbackRequest, err := event.MarshalJSON()
-
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -229,7 +228,6 @@ func makeEventFunc(h Handler) eventFunc {
 				}
 
 				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
-
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -243,11 +241,7 @@ func makeEventFunc(h Handler) eventFunc {
 
 				//Rebuild the context
 				event.Context.CallbackContext = customerCtx
-
 			}
-
 		}
-
-		return resp, nil
 	}
 }

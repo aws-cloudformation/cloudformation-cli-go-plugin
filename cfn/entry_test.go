@@ -49,7 +49,7 @@ func TestMarshalling(t *testing.T) {
 	})
 }
 
-func Testrouter(t *testing.T) {
+func TestRouter(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		actions := []string{
 			createAction,
@@ -86,7 +86,7 @@ func Testrouter(t *testing.T) {
 	})
 }
 
-func TestvalidateEvent(t *testing.T) {
+func TestValidateEvent(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		validevent, err := openFixture("request.read.json")
 		if err != nil {

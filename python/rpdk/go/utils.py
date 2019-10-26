@@ -37,13 +37,13 @@ def safe_reserved(string):
         return string + "_"
     return string
 
-def validate_path(default):
 
+def validate_path(default):
     def _validate_namespace(value):
         if not value:
             return default
 
-        if not Path('/' +value).exists():
+        if not Path("/" + value).exists():
             raise WizardValidationError("Path does not exists")
 
         namespace = value

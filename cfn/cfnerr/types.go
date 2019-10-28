@@ -84,12 +84,12 @@ func (b baseError) Code() string {
 
 // Message returns the error details message.
 func (b baseError) Message() string {
-	return b.message
+	return fmt.Sprintf("%s: %s", b.message, errorList(b.errs))
 }
 
 // MarshalJSON returns the error code as JSON.
 func (b baseError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(b.Code())
+	return json.Marshal(fmt.Sprintf("%s - %s", b.Code(), b.Message()))
 }
 
 // OrigErr returns the original error if one was set. Nil is returned if no

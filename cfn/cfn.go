@@ -184,6 +184,12 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestData.LogicalResourceID,
 		)
 
+		if (len(event.Context.CallbackContext) == 0 || event.Context.Invocation == 0) {
+            // Acknowledge the task for first time invocation
+
+        }
+
+
 		for {
 			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
 			if err != nil {

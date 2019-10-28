@@ -157,6 +157,18 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 	}
 }
 
+func isMutatingAction(action string) bool{
+	switch action {
+	case createAction:
+		return true
+	case updateAction:
+		return true
+	case deleteAction:
+		return true
+	}
+	return false
+}
+
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
@@ -195,6 +207,8 @@ func makeEventFunc(h Handler) eventFunc {
 			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
+				callbackAdapter.reportProgress(event.BearerToken, HandlerErrorCode.InvalidRequest,
+                    handler.Failed, handler.InProgress, r.ResourceModel, r.Message);
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
@@ -205,7 +219,9 @@ func makeEventFunc(h Handler) eventFunc {
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr), err
 			}
-
+            if (isMutatingAction(event.Action)) {
+			callbackAdapter.reportProgress(event.BearerToken, r.ErrorCode.Error(), r.OperationStatus, handler.InProgress, r.ResourceModel, r.Message);
+			}
 			switch r.OperationStatus {
 			case handler.Success:
 				return r, nil

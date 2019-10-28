@@ -185,7 +185,8 @@ func makeEventFunc(h Handler) eventFunc {
 		)
 
 		if (len(event.Context.CallbackContext) == 0 || event.Context.Invocation == 0) {
-            // Acknowledge the task for first time invocation
+			// Acknowledge the task for first time invocation
+			callbackAdapter.ReportProgress(event.BearerToken, nil, handler.InProgress, handler.Pending, nil, nil);
 
         }
 

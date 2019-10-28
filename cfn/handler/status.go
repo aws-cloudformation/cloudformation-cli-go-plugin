@@ -3,7 +3,7 @@ package handler
 type Status string
 
 const (
-	// Unknown represents all states that aren't covered
+	// UnknownStatus represents all states that aren't covered
 	// elsewhere
 	UnknownStatus Status = "UNKNOWN"
 
@@ -18,4 +18,8 @@ const (
 	// Failed should be returned when the resource provider
 	// has failed
 	Failed Status = "FAILED"
+
+	// Pending should be returned when the resource provider
+	// is pending creation.
+	Pending Status = "PENDING"
 )

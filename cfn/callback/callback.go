@@ -7,6 +7,7 @@ import (
 
 	"github.com/avast/retry-go"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
@@ -21,12 +22,18 @@ const (
 
 //CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
 type CloudFormationCallbackAdapter struct {
+	logger *log.Logger
 	client cloudformationiface.CloudFormationAPI
 }
 
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
 func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAdapter {
+	l, err := logging.New("callback")
+	if err != nil {
+		panic(err)
+	}
 	return &CloudFormationCallbackAdapter{
+		logger: l,
 		client: client,
 	}
 }
@@ -58,7 +65,7 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code 
 			return nil
 		}, retry.OnRetry(func(n uint, err error) {
 			s := fmt.Sprintf("Failed to record progress: try:#%d: %s\n ", n+1, err)
-			log.Println(s)
+			c.logger.Println(s)
 
 		}), retry.Attempts(MaxRetries),
 	)

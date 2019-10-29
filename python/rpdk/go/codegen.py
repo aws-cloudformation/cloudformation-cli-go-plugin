@@ -1,6 +1,7 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
+import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -46,13 +47,10 @@ class GoLanguagePlugin(LanguagePlugin):
         if "github.com" in namespace.parts:
             projectpath = namespace.parents[namespace.parts.index("github.com") - 2]
             namepath = namespace.relative_to(projectpath)
-            prompt = "Enter the GO Import path (empty for default '{}'): ".format(
-                str(namespace.relative_to(projectpath))
-            )
-
         else:
-            prompt = "Enter the GO Import path"
+            namepath = os.environ.get("GOPATH", "")
 
+        prompt = f"Enter the GO Import path (empty for default '{namepath}'): "
         self.import_path = input_with_validation(prompt, validate_path(namepath))
         project.settings["importpath"] = str(self.import_path)
 

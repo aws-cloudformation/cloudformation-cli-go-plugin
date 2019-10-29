@@ -25,13 +25,13 @@ type CloudFormationCredentialsProvider struct {
 	retrieved bool
 
 	// AccessKeyID ...
-	AccessKeyID string
+	AccessKeyID string `json:"accessKeyId"`
 
 	// SecretAccessKey ...
-	SecretAccessKey string
+	SecretAccessKey string `json:"secretAccessKey"`
 
 	// SessionToken ...
-	SessionToken string
+	SessionToken string `json:"sessionToken"`
 }
 
 // Retrieve ...

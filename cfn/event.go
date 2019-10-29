@@ -2,119 +2,56 @@ package cfn
 
 import (
 	"encoding/json"
-	"fmt"
-	"strconv"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/encoding"
+	"github.com/aws/aws-sdk-go/aws/session"
 
 	"gopkg.in/validator.v2"
 )
 
 // Event base structure, it will be internal to the RPDK.
 type event struct {
-	Action              string
-	AWSAccountID        string `validate:"min=12"`
-	BearerToken         string `validate:"nonzero"`
-	Context             *requestContext
-	NextToken           string
-	Region              string `validate:"nonzero"`
-	RequestData         *requestData
-	ResourceType        string `validate:"nonzero"`
-	ResourceTypeVersion float64
-	ResponseEndpoint    string `validate:"nonzero"`
-	StackID             string `validate:"nonzero"`
+	AWSAccountID        string         `json:"awsAccountId" validate:"min=12"`
+	BearerToken         string         `json:"bearerToken" validate:"nonzero"`
+	Region              string         `json:"region" validate:"nonzero"`
+	Action              string         `json:"action"`
+	ResponseEndpoint    string         `json:"responseEndpoint" validate:"nonzero"`
+	ResourceType        string         `json:"resourceType" validate:"nonzero"`
+	ResourceTypeVersion encoding.Float `json:"resourceTypeVersion"`
+	RequestContext      requestContext `json:"requestContext"`
+	RequestData         requestData    `json:"requestData"`
+	StackID             string         `json:"stackId" validate:"nonzero"`
+
+	NextToken string
 }
 
-// UnmarshalJSON formats the event into a struct
-func (e *event) UnmarshalJSON(b []byte) error {
-	var d struct {
-		Action              string
-		AWSAccountID        string
-		BearerToken         string
-		Context             json.RawMessage
-		NextToken           string
-		Region              string
-		RequestData         json.RawMessage
-		ResourceType        string
-		ResourceTypeVersion string
-		ResponseEndpoint    string
-		StackID             string
-	}
-
-	if err := json.Unmarshal(b, &d); err != nil {
-		return cfnerr.New(unmarshalingError, "Unable to unmarshal the event", err)
-	}
-
-	resourceTypeVersion, err := strconv.ParseFloat(d.ResourceTypeVersion, 64)
-	if err != nil {
-		return cfnerr.New(unmarshalingError, "Unable to format float64", err)
-	}
-
-	reqData := &requestData{}
-	if err := json.Unmarshal(d.RequestData, reqData); err != nil {
-		return cfnerr.New(unmarshalingError, "Unable to unmarshal the request data", err)
-	}
-
-	reqContext := &requestContext{}
-	if len(d.Context) > 0 {
-		if err := json.Unmarshal(d.Context, reqContext); err != nil {
-			return cfnerr.New(unmarshalingError, "Unable to unmarshal the request context", err)
-		}
-	}
-
-	reqContext.Session(credentials.SessionFromCredentialsProvider(reqData.CallerCredentials))
-
-	e.Action = d.Action
-	e.AWSAccountID = d.AWSAccountID
-	e.BearerToken = d.BearerToken
-	e.Context = reqContext
-	e.NextToken = d.NextToken
-	e.Region = d.Region
-	e.RequestData = reqData
-	e.ResourceType = d.ResourceType
-	e.ResourceTypeVersion = resourceTypeVersion
-	e.ResponseEndpoint = d.ResponseEndpoint
-	e.StackID = d.StackID
-
-	return nil
+// RequestData is internal to the RPDK. It contains a number of fields that are for
+// internal use only.
+type requestData struct {
+	CallerCredentials          credentials.CloudFormationCredentialsProvider `json:"callerCredentials"`
+	PlatformCredentials        credentials.CloudFormationCredentialsProvider `json:"platformCredentials"`
+	LogicalResourceID          string                                        `json:"logicalResourceId"`
+	ResourceProperties         json.RawMessage                               `json:"resourceProperties"`
+	PreviousResourceProperties json.RawMessage                               `json:"previousResourceProperties"`
+	PreviousStackTags          tags                                          `json:"previousStackTags"`
+	ProviderLogGroupName       string                                        `json:"providerLogGroupName"`
+	StackTags                  tags                                          `json:"stackTags"`
+	SystemTags                 tags                                          `json:"systemTags"`
 }
 
-// MarshalJSON ...
-func (e *event) MarshalJSON() ([]byte, error) {
-	var d struct {
-		Action              string
-		AWSAccountID        string
-		BearerToken         string
-		Context             interface{}
-		NextToken           string
-		Region              string
-		RequestData         interface{}
-		ResourceType        string
-		ResourceTypeVersion string
-		ResponseEndpoint    string
-		StackID             string
-	}
+// requestContext handles elements such as reties and long running creations.
+//
+// Updating the requestContext key will do nothing in subsequent requests or retries,
+// instead you should opt to return your context items in the action
+type requestContext struct {
+	CallbackContext          callbackContextValues `json:"callbackContext,omitempty"`
+	CloudWatchEventsRuleName string                `json:"cloudWatchEventsRuleName,omitempty"`
+	CloudWatchEventsTargetID string                `json:"cloudWatchEventsTargetId,omitempty"`
+	Invocation               encoding.Int          `json:"invocation,omitempty"`
 
-	d.Action = string(e.Action)
-	d.AWSAccountID = e.AWSAccountID
-	d.BearerToken = e.BearerToken
-	d.NextToken = e.NextToken
-	d.Region = e.Region
-	d.ResourceType = e.ResourceType
-	d.ResourceTypeVersion = fmt.Sprintf("%.2f", e.ResourceTypeVersion)
-	d.ResponseEndpoint = e.ResponseEndpoint
-	d.StackID = e.StackID
-	d.RequestData = e.RequestData
-	d.Context = e.Context
-
-	b, err := json.Marshal(d)
-	if err != nil {
-		cfnErr := cfnerr.New(marshalingError, "Unable to marshal event", err)
-		return nil, cfnErr
-	}
-
-	return b, nil
+	Session *session.Session
 }
 
 // validateEvent ensures the event struct generated from the Lambda SDK is correct

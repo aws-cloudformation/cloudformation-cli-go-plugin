@@ -21,9 +21,10 @@ func TestMarshalling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
+
 		evt := &event{}
 
-		if err := json.Unmarshal([]byte(validevent), evt); err != nil {
+		if err := json.Unmarshal(validevent, evt); err != nil {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
@@ -43,7 +44,7 @@ func TestMarshalling(t *testing.T) {
 		}
 
 		evt := &event{}
-		if err := json.Unmarshal([]byte(invalidevent), evt); err == nil {
+		if err := json.Unmarshal(invalidevent, evt); err == nil {
 			t.Fatalf("Marshaling failed to throw an error: %#v", err)
 		}
 	})
@@ -95,7 +96,7 @@ func TestValidateEvent(t *testing.T) {
 
 		evt := &event{}
 
-		if err := json.Unmarshal([]byte(validevent), evt); err != nil {
+		if err := json.Unmarshal(validevent, evt); err != nil {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
@@ -105,14 +106,14 @@ func TestValidateEvent(t *testing.T) {
 	})
 
 	t.Run("Failed Validation", func(t *testing.T) {
-		validevent, err := openFixture("request.read.invalid.validation.json")
+		invalidevent, err := openFixture("request.read.invalid.validation.json")
 		if err != nil {
 			t.Fatalf("Unable to read fixture: %v", err)
 		}
 
 		evt := &event{}
 
-		if err := json.Unmarshal([]byte(validevent), evt); err != nil {
+		if err := json.Unmarshal(invalidevent, evt); err != nil {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 

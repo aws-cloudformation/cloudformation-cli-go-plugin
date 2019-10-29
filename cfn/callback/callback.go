@@ -32,7 +32,7 @@ func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAd
 }
 
 //ReportProgress reports the current status back to the Cloudformation service.
-func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code string, status string, resourceModel interface{}, statusMessage string) error {
+func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code string, status string, currentOperationStatus string, resourceModel interface{}, statusMessage string) error {
 
 	b, err := json.Marshal(resourceModel)
 

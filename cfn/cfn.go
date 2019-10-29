@@ -9,12 +9,14 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/metrics"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
 const (
@@ -166,6 +168,21 @@ func makeEventFunc(h Handler) eventFunc {
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
+
+		customerSession := credentials.SessionFromCredentialsProvider(event.RequestData.CallerCredentials)
+		logsProvider, err := logging.NewCloudWatchLogsProvider(
+			cloudwatchlogs.New(customerSession),
+			event.RequestData.ProviderLogGroupName,
+		)
+
+		if err != nil {
+			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
+			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
+			return newFailedResponse(cfnErr), cfnErr
+		}
+
+		// set default logger to output to CWL in the customer account
+		logging.SetCustomerLogOutput(logsProvider)
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {

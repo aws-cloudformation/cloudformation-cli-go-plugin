@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"syscall"
-
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 )
 
 // define a new stdErr since we'll over-write the default stdout/err
@@ -28,11 +26,15 @@ func SetCustomerLogOutput(w io.Writer) {
 }
 
 // New sets up a logger that writes to the stderr
-func New(prefix string) (*log.Logger, error) {
-	if customerLogOutput == nil {
-		return nil, cfnerr.New(loggerError, "Customer log output not defined", nil)
+func New(prefix string) *log.Logger {
+	var w io.Writer
+
+	if customerLogOutput != nil {
+		w = io.MultiWriter(stdErr, customerLogOutput)
+	} else {
+		w = stdErr
 	}
 
 	// we create our own stderr since we're going to nuke the existing one
-	return log.New(io.MultiWriter(stdErr, customerLogOutput), prefix, log.LstdFlags), nil
+	return log.New(w, prefix, log.LstdFlags)
 }

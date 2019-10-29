@@ -54,13 +54,8 @@ type Scheduler struct {
 
 // New creates a CloudWatchScheduler and returns a pointer to the struct.
 func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
-	l, err := logging.New("scheduler")
-	if err != nil {
-		panic(err)
-	}
-
 	return &Scheduler{
-		logger: l,
+		logger: logging.New("scheduler"),
 		client: client,
 	}
 }

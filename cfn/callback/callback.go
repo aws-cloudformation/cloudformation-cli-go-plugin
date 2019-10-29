@@ -28,12 +28,8 @@ type CloudFormationCallbackAdapter struct {
 
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
 func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAdapter {
-	l, err := logging.New("callback")
-	if err != nil {
-		panic(err)
-	}
 	return &CloudFormationCallbackAdapter{
-		logger: l,
+		logger: logging.New("callback"),
 		client: client,
 	}
 }

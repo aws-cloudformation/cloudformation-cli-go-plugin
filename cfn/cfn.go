@@ -176,9 +176,9 @@ func makeEventFunc(h Handler) eventFunc {
 		)
 
 		if err != nil {
+			// we will log the error in the metric, but carry on.
 			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return newFailedResponse(cfnErr), cfnErr
 		}
 
 		// set default logger to output to CWL in the customer account

@@ -1,13 +1,13 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
-import shutil
 import zipfile
 from pathlib import Path
+from subprocess import CalledProcessError, run as subprocess_run
 from tempfile import TemporaryFile
 
 from rpdk.core.data_loaders import resource_stream
-from rpdk.core.exceptions import InternalError, SysExitRecommendedError
+from rpdk.core.exceptions import DownstreamError, InternalError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
@@ -146,6 +146,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
         # project folder structure
         src = root / "resource"
+        format_paths = []
 
         LOG.debug("Writing Types")
         models = resolve_models(project.schema)
@@ -153,6 +154,7 @@ class GoLanguagePlugin(LanguagePlugin):
         path = src / "{}.go".format("model")
         contents = template.render(models=models)
         project.overwrite(path, contents)
+        format_paths.append(path)
 
         path = root / "main.go"
         LOG.debug("Writing project: %s", path)
@@ -160,6 +162,14 @@ class GoLanguagePlugin(LanguagePlugin):
         importpath = Path(project.settings["importpath"])
         contents = template.render(path=importpath / "cmd" / "resource")
         project.overwrite(path, contents)
+        format_paths.append(path)
+
+        # named files must all be in one directory
+        for path in format_paths:
+            try:
+                subprocess_run(["go", "fmt", path], cwd=root, check=True)
+            except (FileNotFoundError, CalledProcessError) as e:
+                raise DownstreamError("go fmt failed") from e
 
     @staticmethod
     def pre_package(project):

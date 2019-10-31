@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"io"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,6 +32,11 @@ import (
 //	log.SetOutput(provider)
 //	log.Printf("Eric loves pineapple pizza!")
 func NewCloudWatchLogsProvider(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) (io.Writer, error) {
+	// If we're running in SAM CLI, we can return the stdout
+	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
+		return stdErr, nil
+	}
+
 	ok, err := CloudWatchLogGroupExists(client, logGroupName)
 	if err != nil {
 		return nil, err

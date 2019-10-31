@@ -11,26 +11,26 @@ import (
 // to prevent data leaking into the service account
 var stdErr = os.NewFile(uintptr(syscall.Stderr), "/dev/stderr")
 
-var customerLogOutput io.Writer
+var providerLogOutput io.Writer
 
 const (
 	loggerError = "Logger"
 )
 
-// SetCustomerLogOutput ...
-func SetCustomerLogOutput(w io.Writer) {
+// SetProviderLogOutput ...
+func SetProviderLogOutput(w io.Writer) {
 	os.Stderr = nil
 	os.Stdout = nil
 
-	customerLogOutput = w
+	providerLogOutput = w
 }
 
 // New sets up a logger that writes to the stderr
 func New(prefix string) *log.Logger {
 	var w io.Writer
 
-	if customerLogOutput != nil {
-		w = io.MultiWriter(stdErr, customerLogOutput)
+	if providerLogOutput != nil {
+		w = io.MultiWriter(stdErr, providerLogOutput)
 	} else {
 		w = stdErr
 	}

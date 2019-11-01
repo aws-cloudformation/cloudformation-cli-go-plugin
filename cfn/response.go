@@ -30,9 +30,10 @@ func newFailedResponse(err error, bearerToken string) response {
 // for the CloudFormation Resource Provider service to understand.
 func newResponse(pevt *handler.ProgressEvent, bearerToken string) (response, error) {
 	resp := response{
-		OperationStatus: pevt.OperationStatus,
-		Message:         pevt.Message,
 		BearerToken:     bearerToken,
+		Message:         pevt.Message,
+		OperationStatus: pevt.OperationStatus,
+		ResourceModel:   pevt.ResourceModel,
 	}
 
 	if pevt.HandlerErrorCode == "" {

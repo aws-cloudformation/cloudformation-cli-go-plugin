@@ -36,7 +36,7 @@ func newResponse(pevt *handler.ProgressEvent, bearerToken string) (response, err
 		ResourceModel:   pevt.ResourceModel,
 	}
 
-	if pevt.HandlerErrorCode == "" {
+	if pevt.HandlerErrorCode != "" {
 		resp.ErrorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
 	}
 

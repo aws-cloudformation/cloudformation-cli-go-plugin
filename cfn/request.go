@@ -19,6 +19,7 @@ type requestData struct {
 	PlatformCredentials        sdkCredentials.Provider
 	PreviousResourceProperties json.RawMessage
 	PreviousStackTags          tags
+	ProviderCredentials        sdkCredentials.Provider
 	ProviderLogGroupName       string
 	ResourceProperties         json.RawMessage
 	StackTags                  tags
@@ -28,11 +29,12 @@ type requestData struct {
 // UnmarshalJSON formats the request data into a usable struct
 func (rd *requestData) UnmarshalJSON(b []byte) error {
 	var d struct {
-		CallerCredentials          map[string]string
+		CallerCredentials          map[string]string `json:",omitempty"`
 		LogicalResourceID          string
 		PlatformCredentials        map[string]string
 		PreviousResourceProperties json.RawMessage
 		PreviousStackTags          tags
+		ProviderCredentials        map[string]string `json:",omitempty"`
 		ProviderLogGroupName       string
 		ResourceProperties         json.RawMessage
 		StackTags                  tags
@@ -51,11 +53,21 @@ func (rd *requestData) UnmarshalJSON(b []byte) error {
 	rd.StackTags = d.StackTags
 	rd.SystemTags = d.SystemTags
 
-	rd.CallerCredentials = credentials.NewProvider(
-		d.CallerCredentials["accessKeyId"],
-		d.CallerCredentials["secretAccessKey"],
-		d.CallerCredentials["sessionToken"],
-	)
+	if len(d.CallerCredentials) > 0 {
+		rd.CallerCredentials = credentials.NewProvider(
+			d.CallerCredentials["accessKeyId"],
+			d.CallerCredentials["secretAccessKey"],
+			d.CallerCredentials["sessionToken"],
+		)
+	}
+
+	if len(d.ProviderCredentials) > 0 {
+		rd.ProviderCredentials = credentials.NewProvider(
+			d.CallerCredentials["accessKeyId"],
+			d.CallerCredentials["secretAccessKey"],
+			d.CallerCredentials["sessionToken"],
+		)
+	}
 
 	rd.PlatformCredentials = credentials.NewProvider(
 		d.PlatformCredentials["accessKeyId"],

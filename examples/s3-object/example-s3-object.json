@@ -1,0 +1,78 @@
+{
+    "typeName": "Example::S3::Object",
+    "description": "An object in an existing S3 bucket",
+    "sourceUrl": "git@github.com:aws-cloudformation/aws-cloudformation-rpdk.git",
+    "properties": {
+        "BucketName": {
+            "description": "The name of the S3 bucket in which to store this object",
+            "type": "string"
+        },
+        "Key": {
+            "description": "The path and filename of the S3 object to be created",
+            "type": "string"
+        },
+        "Content": {
+            "description": "A base64-encoded representation of the contents of the object to be created",
+            "type": "string"
+        },
+        "ACL": {
+            "description": "A canned ACL to assign to the object. Defaults to private.",
+            "type": "string",
+            "enum": [
+                "private",
+                "public-read",
+                "public-read-write",
+                "aws-exec-read",
+                "authenticated-read",
+                "bucket-owner-read",
+                "bucket-owner-full-control",
+                "log-delivery-write"
+            ]
+        }
+    },
+    "required": [
+        "BucketName",
+        "Key",
+        "Content"
+    ],
+    "readOnlyProperties": [
+        "/properties/BucketName",
+        "/properties/Key"
+    ],
+    "primaryIdentifier": [
+        "/properties/BucketName",
+        "/properties/Key"
+    ],
+    "handlers": {
+        "create": {
+            "permissions": [
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ]
+        },
+        "read": {
+            "permissions": [
+                "s3:GetObject",
+                "s3:GetObjectAcl"
+            ]
+        },
+        "update": {
+            "permissions": [
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ]
+        },
+        "delete": {
+            "permissions": [
+                "s3:DeleteObject"
+            ]
+        },
+        "list": {
+            "permissions": [
+                "s3:ListBucket",
+                "s3:GetObject",
+                "s3:GetObjectAcl"
+            ]
+        }
+    }
+}

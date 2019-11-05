@@ -2,6 +2,7 @@ package cfn
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -117,7 +118,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 			}
 
 			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = setContextSession(customerCtx, reqContext.GetSession())
+			customerCtx = setContextSession(customerCtx, reqContext.Session)
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)
@@ -160,7 +161,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
-		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
+		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
@@ -185,7 +186,7 @@ func makeEventFunc(h Handler) eventFunc {
 		)
 
 		for {
-			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
+			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; invoke error", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -217,10 +218,10 @@ func makeEventFunc(h Handler) eventFunc {
 				}
 
 				//Add IDs to recall the function with Cloudwatch events
-				event.Context.CloudWatchEventsRuleName = invocationIDS.Handler
-				event.Context.CloudWatchEventsTargetID = invocationIDS.Target
+				event.RequestContext.CloudWatchEventsRuleName = invocationIDS.Handler
+				event.RequestContext.CloudWatchEventsTargetID = invocationIDS.Target
 
-				callbackRequest, err := event.MarshalJSON()
+				callbackRequest, err := json.Marshal(event)
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; marshaling error", err)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -240,7 +241,7 @@ func makeEventFunc(h Handler) eventFunc {
 				}
 
 				//Rebuild the context
-				event.Context.CallbackContext = customerCtx
+				event.RequestContext.CallbackContext = customerCtx
 			}
 		}
 	}

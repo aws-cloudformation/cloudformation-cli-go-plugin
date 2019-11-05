@@ -103,8 +103,8 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"TestRetryMaxReturnErr", fields{NewMockedCallback(6)}, args{"123456", "ACCESSDENIED", "FAILED", "test", "retry"}, true},
-		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", "ACCESSDENIED", "FAILED", "test", "retry"}, false},
+		{"TestRetryMaxReturnErr", fields{NewMockedCallback(6)}, args{"123456", "ACCESSDENIED", "FAILED", map[string]interface{}{"foo": "bar"}, "retry"}, true},
+		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", "ACCESSDENIED", "FAILED", map[string]interface{}{"foo": "bar"}, "retry"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

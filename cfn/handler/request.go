@@ -18,12 +18,12 @@ const (
 // such as resource states
 type Request struct {
 	LogicalResourceID              string
-	previousResourcePropertiesBody json.RawMessage
-	resourcePropertiesBody         json.RawMessage
+	previousResourcePropertiesBody []byte
+	resourcePropertiesBody         []byte
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string) Request {
+func NewRequest(previousBody, body []byte, logicalResourceID string) Request {
 	return Request{
 		LogicalResourceID:              logicalResourceID,
 		previousResourcePropertiesBody: previousBody,

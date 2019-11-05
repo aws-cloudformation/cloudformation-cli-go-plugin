@@ -87,7 +87,7 @@ func (b baseError) Message() string {
 	return b.message
 }
 
-// MarshalJSON returns the error code as JSON.
+// MarshalJSON returns the error as a JSON string.
 func (b baseError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b.Code())
 }

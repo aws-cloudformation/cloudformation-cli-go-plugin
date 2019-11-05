@@ -17,11 +17,12 @@ type response struct {
 }
 
 // newFailedResponse returns a response pre-filled with the supplied error
-func newFailedResponse(err error) response {
+func newFailedResponse(err error, bearerToken string) response {
 	return response{
 		OperationStatus: handler.Failed,
 		ErrorCode:       cfnerr.New(cfnerr.InternalFailure, "Unpexected error", err),
 		Message:         err.Error(),
+		BearerToken:     bearerToken,
 	}
 }
 
@@ -29,16 +30,15 @@ func newFailedResponse(err error) response {
 // for the CloudFormation Resource Provider service to understand.
 func newResponse(pevt *handler.ProgressEvent, bearerToken string) (response, error) {
 	resp := response{
-		OperationStatus: pevt.OperationStatus,
-		Message:         pevt.Message,
 		BearerToken:     bearerToken,
+		Message:         pevt.Message,
+		OperationStatus: pevt.OperationStatus,
+		ResourceModel:   pevt.ResourceModel,
 	}
 
-	if pevt.HandlerErrorCode == "" {
+	if pevt.HandlerErrorCode != "" {
 		resp.ErrorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
 	}
-
-	resp.ResourceModel = pevt.ResourceModel
 
 	return resp, nil
 }

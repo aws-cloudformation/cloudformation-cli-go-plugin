@@ -1,28 +1,29 @@
-
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
-import shutil
 import zipfile
+from pathlib import Path
+from subprocess import CalledProcessError, run as subprocess_run
 from tempfile import TemporaryFile
 
 from rpdk.core.data_loaders import resource_stream
-from rpdk.core.exceptions import InternalError, SysExitRecommendedError
+from rpdk.core.exceptions import DownstreamError, InternalError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
 from .resolver import translate_type
 from .utils import safe_reserved, validate_path
-from pathlib import Path
 
 LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn-cli"
 
+
 class GoExecutableNotFoundError(SysExitRecommendedError):
     pass
+
 
 class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
@@ -42,17 +43,18 @@ class GoLanguagePlugin(LanguagePlugin):
     def _prompt_for_go_path(self, project):
         namespace = project.root
 
-        if ('github.com' in namespace.parts) :
-            projectpath = namespace.parents[namespace.parts.index('github.com')- 2]
+        if "github.com" in namespace.parts:
+            projectpath = namespace.parents[namespace.parts.index("github.com") - 2]
             namepath = namespace.relative_to(projectpath)
-            prompt = "Enter the GO Import path (empty for default '{}'): ".format(str(namespace.relative_to(projectpath)))
+            prompt = "Enter the GO Import path (empty for default '{}'): ".format(
+                str(namespace.relative_to(projectpath))
+            )
 
-        else :
+        else:
             prompt = "Enter the GO Import path"
 
-
         self.import_path = input_with_validation(prompt, validate_path(namepath))
-        project.settings["importpath"] = str(self.import_path )
+        project.settings["importpath"] = str(self.import_path)
 
     def init(self, project):
         LOG.debug("Init started")
@@ -68,13 +70,12 @@ class GoLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
 
         # project folder structure
-        src = (project.root / "cmd"  / "resource")
+        src = project.root / "cmd" / "resource"
         LOG.debug("Making source folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
 
-        inter = (project.root / "internal")
+        inter = project.root / "internal"
         inter.mkdir(parents=True, exist_ok=True)
-
 
         # Makefile
         path = project.root / "Makefile"
@@ -118,7 +119,7 @@ class GoLanguagePlugin(LanguagePlugin):
             type_name=project.type_name,
             schema_path=project.schema_path,
             executable=EXECUTABLE,
-            files="model.go and main.go"
+            files="model.go and main.go",
         )
         project.safewrite(path, contents)
 
@@ -136,35 +137,39 @@ class GoLanguagePlugin(LanguagePlugin):
         contents = template.render()
         project.safewrite(path, contents)
 
-
     def _get_generated_root(self, project):
         LOG.debug("Init started")
-
 
     def generate(self, project):
         LOG.debug("Generate started")
         root = project.root / "cmd"
 
-         # project folder structure
-        src = (root  / "resource")
+        # project folder structure
+        src = root / "resource"
+        format_paths = []
 
         LOG.debug("Writing Types")
         models = resolve_models(project.schema)
         template = self.env.get_template("types.go.tple")
         path = src / "{}.go".format("model")
-        contents = template.render(
-            models=models,
-            )
+        contents = template.render(models=models)
         project.overwrite(path, contents)
+        format_paths.append(path)
 
-        path = root  / "main.go"
+        path = root / "main.go"
         LOG.debug("Writing project: %s", path)
         template = self.env.get_template("main.go.tple")
         importpath = Path(project.settings["importpath"])
-        contents = template.render(
-            path=importpath / 'cmd' / 'resource'
-        )
+        contents = template.render(path=importpath / "cmd" / "resource")
         project.overwrite(path, contents)
+        format_paths.append(path)
+
+        # named files must all be in one directory
+        for path in format_paths:
+            try:
+                subprocess_run(["go", "fmt", path], cwd=root, check=True)
+            except (FileNotFoundError, CalledProcessError) as e:
+                raise DownstreamError("go fmt failed") from e
 
     @staticmethod
     def pre_package(project):
@@ -181,11 +186,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _find_exe(project):
-        exe_glob = list(
-            (project.root / "bin").glob(
-                "{}".format('handler')
-            )
-        )
+        exe_glob = list((project.root / "bin").glob("{}".format("handler")))
         if not exe_glob:
             LOG.debug("No Go executable match")
             raise GoExecutableNotFoundError(
@@ -204,8 +205,10 @@ class GoLanguagePlugin(LanguagePlugin):
         return exe_glob[0]
 
         LOG.debug("Generate complete")
+
     def package(self, project, zip_file):
         LOG.info("Packaging Go project")
+
         def write_with_relative_path(path):
             relative = path.relative_to(project.root)
             zip_file.write(path.resolve(), str(relative))
@@ -225,4 +228,3 @@ class GoLanguagePlugin(LanguagePlugin):
         for path in (project.root / "internal").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
-

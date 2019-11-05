@@ -18,12 +18,12 @@ const (
 // such as resource states
 type Request struct {
 	LogicalResourceID              string
-	previousResourcePropertiesBody json.RawMessage
-	resourcePropertiesBody         json.RawMessage
+	previousResourcePropertiesBody []byte
+	resourcePropertiesBody         []byte
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResourceID string) Request {
+func NewRequest(previousBody, body []byte, logicalResourceID string) Request {
 	return Request{
 		LogicalResourceID:              logicalResourceID,
 		previousResourcePropertiesBody: previousBody,
@@ -34,7 +34,7 @@ func NewRequest(previousBody json.RawMessage, body json.RawMessage, logicalResou
 // UnmarshalPrevious populates the provided interface
 // with the previous properties of the resource
 func (r *Request) UnmarshalPrevious(v interface{}) error {
-	if len(r.resourcePropertiesBody) == 0 {
+	if len(r.previousResourcePropertiesBody) == 0 {
 		return cfnerr.New(bodyEmptyError, "Body is empty", nil)
 	}
 

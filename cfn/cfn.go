@@ -2,6 +2,7 @@ package cfn
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -119,7 +120,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 			}
 
 			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = setContextSession(customerCtx, reqContext.GetSession())
+			customerCtx = setContextSession(customerCtx, reqContext.Session)
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)
@@ -174,7 +175,7 @@ func isMutatingAction(action string) bool {
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
-		platformSession := credentials.SessionFromCredentialsProvider(event.RequestData.PlatformCredentials)
+		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		callbackAdapter := callback.New(cloudformation.New(platformSession))
@@ -182,15 +183,15 @@ func makeEventFunc(h Handler) eventFunc {
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
-			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
+			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; router error", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return newFailedResponse(cfnErr), cfnErr
+			return newFailedResponse(cfnErr, event.BearerToken), cfnErr
 		}
 
 		if err := validateEvent(event); err != nil {
-			cfnErr := cfnerr.New(invalidRequestError, "Failed to validate input", err)
+			cfnErr := cfnerr.New(invalidRequestError, "Failed to validate input; validation error", err)
 			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return newFailedResponse(cfnErr), cfnErr
+			return newFailedResponse(cfnErr, event.BearerToken), cfnErr
 		}
 
 		request := handler.NewRequest(
@@ -206,20 +207,28 @@ func makeEventFunc(h Handler) eventFunc {
 		}
 
 		for {
-			progEvt, err := invoke(handlerFn, request, event.Context, metricsPublisher, event.Action)
+			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
 			if err != nil {
+<<<<<<< HEAD
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+=======
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; invoke error", err)
+>>>>>>> upstream/master
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-				return newFailedResponse(cfnErr), err
+				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
 
 			r, err := newResponse(&progEvt, event.BearerToken)
 			if err != nil {
+<<<<<<< HEAD
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+=======
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; response error", err)
+>>>>>>> upstream/master
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-				return newFailedResponse(cfnErr), err
+				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
 
 			if isMutatingAction(event.Action) && r.OperationStatus == "PENDING" {
@@ -244,30 +253,42 @@ func makeEventFunc(h Handler) eventFunc {
 
 				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
 				if err != nil {
+<<<<<<< HEAD
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+=======
+					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; IDS error", err)
+>>>>>>> upstream/master
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-					return newFailedResponse(cfnErr), err
+					return newFailedResponse(cfnErr, event.BearerToken), err
 				}
 
 				//Add IDs to recall the function with Cloudwatch events
-				event.Context.CloudWatchEventsRuleName = invocationIDS.Handler
-				event.Context.CloudWatchEventsTargetID = invocationIDS.Target
+				event.RequestContext.CloudWatchEventsRuleName = invocationIDS.Handler
+				event.RequestContext.CloudWatchEventsTargetID = invocationIDS.Target
 
-				callbackRequest, err := event.MarshalJSON()
+				callbackRequest, err := json.Marshal(event)
 				if err != nil {
+<<<<<<< HEAD
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+=======
+					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; marshaling error", err)
+>>>>>>> upstream/master
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-					return newFailedResponse(cfnErr), err
+					return newFailedResponse(cfnErr, event.BearerToken), err
 				}
 
 				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
 				if err != nil {
+<<<<<<< HEAD
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
 					callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), nil, "Unable to complete request")
+=======
+					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; scheduler error", err)
+>>>>>>> upstream/master
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-					return newFailedResponse(cfnErr), err
+					return newFailedResponse(cfnErr, event.BearerToken), err
 				}
 
 				//If not computing local, exit and return response
@@ -276,7 +297,7 @@ func makeEventFunc(h Handler) eventFunc {
 				}
 
 				//Rebuild the context
-				event.Context.CallbackContext = customerCtx
+				event.RequestContext.CallbackContext = customerCtx
 			}
 		}
 	}

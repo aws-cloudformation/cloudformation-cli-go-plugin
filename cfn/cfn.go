@@ -14,6 +14,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -178,8 +179,15 @@ func makeEventFunc(h Handler) eventFunc {
 		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
-		callbackAdapter := callback.New(cloudformation.New(platformSession))
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
+		callbackPlatformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
+
+		//Set custom enpoint for callback session
+		callbackPlatformSession.Config = &aws.Config{
+			Region:   aws.String(event.Region),
+			Endpoint: aws.String(event.ResponseEndpoint),
+		}
+		callbackAdapter := callback.New(cloudformation.New(callbackPlatformSession))
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {

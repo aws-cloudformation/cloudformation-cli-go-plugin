@@ -6,98 +6,137 @@ import (
 	"strconv"
 )
 
-type String string
+type String struct {
+	value *string
+}
 
-func NewString(s string) *String {
-	out := String(s)
-	return &out
+func NewString(s string) String {
+	return String{&s}
+}
+
+func (s String) Value() *string {
+	return s.value
 }
 
 func (s String) MarshalJSON() ([]byte, error) {
-	return json.Marshal(string(s))
+	return json.Marshal(s.value)
 }
 
 func (s *String) UnmarshalJSON(data []byte) error {
-	var ss string
+	var ss *string
 	err := json.Unmarshal(data, &ss)
-
-	if err == nil {
-		*s = String(ss)
+	if err != nil {
+		return err
 	}
-	return err
+
+	s.value = ss
+	return nil
 }
 
-type Bool bool
+type Bool struct {
+	value *bool
+}
 
-func NewBool(b bool) *Bool {
-	out := Bool(b)
-	return &out
+func NewBool(b bool) Bool {
+	return Bool{&b}
+}
+
+func (b Bool) Value() *bool {
+	return b.value
 }
 
 func (b Bool) MarshalJSON() ([]byte, error) {
-	return json.Marshal(fmt.Sprint(b))
+	return json.Marshal(fmt.Sprint(b.value))
 }
 
 func (b *Bool) UnmarshalJSON(data []byte) error {
-	var s string
+	var s *string
 	err := json.Unmarshal(data, &s)
 	if err != nil {
 		return err
 	}
 
-	val, err := strconv.ParseBool(s)
-	if err == nil {
-		*b = Bool(val)
-	}
-	return err
-}
-
-type Float float64
-
-func NewFloat(f float64) *Float {
-	out := Float(f)
-	return &out
-}
-
-func (f Float) MarshalJSON() ([]byte, error) {
-	return json.Marshal(fmt.Sprint(f))
-}
-
-func (f *Float) UnmarshalJSON(data []byte) error {
-	var s string
-	err := json.Unmarshal(data, &s)
-	if err != nil {
-		return err
+	if s == nil {
+		b.value = nil
+	} else {
+		val, err := strconv.ParseBool(*s)
+		if err != nil {
+			return err
+		}
+		b.value = &val
 	}
 
-	num, err := strconv.ParseFloat(s, 64)
-	if err == nil {
-		*f = Float(num)
-	}
-	return err
+	return nil
 }
 
-type Int int64
+type Int struct {
+	value *int64
+}
 
-func NewInt(i int64) *Int {
-	out := Int(i)
-	return &out
+func NewInt(i int64) Int {
+	return Int{&i}
+}
+
+func (i Int) Value() *int64 {
+	return i.value
 }
 
 func (i Int) MarshalJSON() ([]byte, error) {
-	return json.Marshal(fmt.Sprint(i))
+	return json.Marshal(fmt.Sprint(i.value))
 }
 
 func (i *Int) UnmarshalJSON(data []byte) error {
-	var s string
+	var s *string
 	err := json.Unmarshal(data, &s)
 	if err != nil {
 		return err
 	}
 
-	num, err := strconv.ParseInt(s, 0, 64)
-	if err == nil {
-		*i = Int(num)
+	if s == nil {
+		i.value = nil
+	} else {
+		val, err := strconv.ParseInt(*s, 0, 64)
+		if err != nil {
+			return err
+		}
+		i.value = &val
 	}
-	return err
+
+	return nil
+}
+
+type Float struct {
+	value *float64
+}
+
+func NewFloat(f float64) Float {
+	return Float{&f}
+}
+
+func (f Float) Value() *float64 {
+	return f.value
+}
+
+func (f Float) MarshalJSON() ([]byte, error) {
+	return json.Marshal(fmt.Sprint(f.value))
+}
+
+func (f *Float) UnmarshalJSON(data []byte) error {
+	var s *string
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return err
+	}
+
+	if s == nil {
+		f.value = nil
+	} else {
+		val, err := strconv.ParseFloat(*s, 64)
+		if err != nil {
+			return err
+		}
+		f.value = &val
+	}
+
+	return nil
 }

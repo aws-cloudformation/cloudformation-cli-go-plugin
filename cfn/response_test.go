@@ -15,16 +15,16 @@ import (
 
 func TestMarshalJSON(t *testing.T) {
 	type Model struct {
-		Name    string
-		Version encoding.Float
+		Name    *encoding.String
+		Version *encoding.Float
 	}
 
 	r := response{
 		Message:         "foo",
 		OperationStatus: handler.Success,
 		ResourceModel: Model{
-			Name:    "Douglas",
-			Version: 42.1,
+			Name:    encoding.NewString("Douglas"),
+			Version: encoding.NewFloat(42.1),
 		},
 		ErrorCode:   cfnerr.New("baz", "quux", errors.New("mooz")),
 		BearerToken: "xyzzy",

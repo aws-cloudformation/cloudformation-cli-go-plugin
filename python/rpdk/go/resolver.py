@@ -1,10 +1,10 @@
 from rpdk.core.jsonutils.resolver import UNDEFINED, ContainerType
 
 PRIMITIVE_TYPES = {
-    "string": "encoding.String",
-    "integer": "encoding.Int",
-    "boolean": "encoding.Bool",
-    "number": "encoding.Float",
+    "string": "*encoding.String",
+    "integer": "*encoding.Int",
+    "boolean": "*encoding.Bool",
+    "number": "*encoding.Float",
     UNDEFINED: "Type",
 }
 

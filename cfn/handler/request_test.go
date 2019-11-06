@@ -10,13 +10,13 @@ import (
 
 func TestUnmarshal(t *testing.T) {
 	type Detail struct {
-		Build        encoding.Int
-		IsProduction encoding.Bool
+		Build        *encoding.Int
+		IsProduction *encoding.Bool
 	}
 
 	type Model struct {
-		Name    string
-		Version encoding.Float
+		Name    *encoding.String
+		Version *encoding.Float
 		Detail  Detail
 	}
 
@@ -27,20 +27,20 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	expectedPrevious := Model{
-		Name:    "bar",
-		Version: 0.1,
+		Name:    encoding.NewString("bar"),
+		Version: encoding.NewFloat(0.1),
 		Detail: Detail{
-			Build:        57,
-			IsProduction: false,
+			Build:        encoding.NewInt(57),
+			IsProduction: encoding.NewBool(false),
 		},
 	}
 
 	expectedCurrent := Model{
-		Name:    "baz",
-		Version: 2.3,
+		Name:    encoding.NewString("baz"),
+		Version: encoding.NewFloat(2.3),
 		Detail: Detail{
-			Build:        69,
-			IsProduction: true,
+			Build:        encoding.NewInt(69),
+			IsProduction: encoding.NewBool(true),
 		},
 	}
 

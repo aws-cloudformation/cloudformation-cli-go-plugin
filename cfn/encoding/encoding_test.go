@@ -10,55 +10,50 @@ import (
 )
 
 type Model struct {
-	ModelString encoding.String  `json:"modelString"`
-	ModelBool   encoding.Bool    `json:"modelBool"`
-	ModelInt    encoding.Int     `json:"modelInt"`
-	ModelFloat  encoding.Float   `json:"modelFloat"`
-	ModelSlice  []Inner          `json:"modelSlice"`
-	ModelMap    map[string]Inner `json:"modelMap"`
-	ModelNested json.RawMessage  `json:"embedded"`
+	ModelString *encoding.String `json:"modelString,omitempty"`
+	ModelBool   *encoding.Bool   `json:"modelBool,omitempty"`
+	ModelInt    *encoding.Int    `json:"modelInt,omitempty"`
+	ModelFloat  *encoding.Float  `json:"modelFloat,omitempty"`
+	ModelSlice  []Inner          `json:"modelSlice,omitempty"`
+	ModelMap    map[string]Inner `json:"modelMap,omitempty"`
+	ModelNested json.RawMessage  `json:"embedded,omitempty"`
 }
 
 type Inner struct {
-	InnerString encoding.String `json:"innerString,omitempty"`
-	InnerBool   encoding.Bool   `json:"innerBool"`
-	InnerInt    encoding.Int    `json:"innerInt"`
-	InnerFloat  encoding.Float  `json:"innerFloat"`
+	InnerString *encoding.String `json:"innerString,omitempty"`
+	InnerBool   *encoding.Bool   `json:"innerBool,omitempty"`
+	InnerInt    *encoding.Int    `json:"innerInt,omitempty"`
+	InnerFloat  *encoding.Float  `json:"innerFloat"` // No omitempty
 }
 
 var model = Model{
-	ModelString: "foo",
-	ModelBool:   false,
-	ModelInt:    42,
-	ModelFloat:  3.14,
+	ModelBool:  encoding.NewBool(false),
+	ModelInt:   encoding.NewInt(42),
+	ModelFloat: encoding.NewFloat(3.14),
 	ModelSlice: []Inner{
 		{
-			InnerString: "bar",
-			InnerBool:   true,
-			InnerInt:    43,
-			InnerFloat:  6.28,
+			InnerString: encoding.NewString("bar"),
+			InnerInt:    encoding.NewInt(43),
+			InnerFloat:  encoding.NewFloat(6.28),
 		},
 	},
 	ModelMap: map[string]Inner{
 		"ModelMapInner": {
-			InnerString: "baz",
-			InnerBool:   false,
-			InnerInt:    44,
-			InnerFloat:  9.42,
+			InnerString: encoding.NewString("baz"),
+			InnerBool:   encoding.NewBool(false),
+			InnerFloat:  encoding.NewFloat(9.42),
 		},
 	},
-	ModelNested: []byte(`{"innerBool":"true","innerFloat":"12.56","innerInt":"45"}`),
+	ModelNested: []byte(`{"innerBool":"true","innerFloat":null,"innerInt":"45"}`),
 }
 
 var stringified = map[string]interface{}{
-	"modelString": "foo",
-	"modelBool":   "false",
-	"modelInt":    "42",
-	"modelFloat":  "3.14",
+	"modelBool":  "false",
+	"modelInt":   "42",
+	"modelFloat": "3.14",
 	"modelSlice": []interface{}{
 		map[string]interface{}{
 			"innerString": "bar",
-			"innerBool":   "true",
 			"innerInt":    "43",
 			"innerFloat":  "6.28",
 		},
@@ -67,14 +62,13 @@ var stringified = map[string]interface{}{
 		"ModelMapInner": map[string]interface{}{
 			"innerString": "baz",
 			"innerBool":   "false",
-			"innerInt":    "44",
 			"innerFloat":  "9.42",
 		},
 	},
 	"embedded": map[string]interface{}{
 		"innerBool":  "true",
 		"innerInt":   "45",
-		"innerFloat": "12.56",
+		"innerFloat": nil,
 	},
 }
 

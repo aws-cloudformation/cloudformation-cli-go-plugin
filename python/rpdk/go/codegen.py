@@ -44,7 +44,7 @@ class GoLanguagePlugin(LanguagePlugin):
         namespace = project.root
 
         if "github.com" in namespace.parts:
-            projectpath = namespace.parents[namespace.parts.index("github.com") - 2]
+            projectpath = namespace.parents[namespace.parts.index("github.com") ]
             namepath = namespace.relative_to(projectpath)
             prompt = "Enter the GO Import path (empty for default '{}'): ".format(
                 str(namespace.relative_to(projectpath))

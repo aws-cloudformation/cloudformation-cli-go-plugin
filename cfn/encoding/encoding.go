@@ -13,9 +13,8 @@ func NewString(ss string) *String {
 	return &s
 }
 
-func (s String) Value() *string {
-	ss := string(s)
-	return &ss
+func (s *String) Value() *string {
+	return (*string)(s)
 }
 
 func (s String) MarshalJSON() ([]byte, error) {
@@ -40,9 +39,8 @@ func NewBool(bb bool) *Bool {
 	return &b
 }
 
-func (b Bool) Value() *bool {
-	bb := bool(b)
-	return &bb
+func (b *Bool) Value() *bool {
+	return (*bool)(b)
 }
 
 func (b Bool) MarshalJSON() ([]byte, error) {
@@ -72,9 +70,8 @@ func NewInt(ii int64) *Int {
 	return &i
 }
 
-func (i Int) Value() *int64 {
-	ii := int64(i)
-	return &ii
+func (i *Int) Value() *int64 {
+	return (*int64)(i)
 }
 
 func (i Int) MarshalJSON() ([]byte, error) {
@@ -104,9 +101,8 @@ func NewFloat(ff float64) *Float {
 	return &f
 }
 
-func (f Float) Value() *float64 {
-	ff := float64(f)
-	return &ff
+func (f *Float) Value() *float64 {
+	return (*float64)(f)
 }
 
 func (f Float) MarshalJSON() ([]byte, error) {

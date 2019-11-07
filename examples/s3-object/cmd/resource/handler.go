@@ -3,20 +3,13 @@ package resource
 import (
 	"bytes"
 	"context"
+	"fmt"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
-
-var sess *session.Session
-var client *s3.S3
-
-func init() {
-	sess = session.Must(session.NewSession())
-	client = s3.New(sess)
-}
 
 // Handler implements the cfn.Handler interface.
 // The zero value is ready to use.
@@ -32,8 +25,21 @@ func (r *Handler) Create(ctx context.Context, req handler.Request) handler.Progr
 		return handler.NewFailedEvent(cfnErr)
 	}
 
+	session, err := cfn.GetContextSession(ctx)
+	if err != nil {
+		return handler.NewFailedEvent(cfnerr.New(
+			cfnerr.GeneralServiceException,
+			"Unable to create AWS SDK session: "+err.Error(),
+			err,
+		))
+	}
+
+	fmt.Println(session)
+
+	client := s3.New(session)
+
 	// Create the object
-	_, err := client.PutObject(&s3.PutObjectInput{
+	_, err = client.PutObject(&s3.PutObjectInput{
 		ACL:    m.ACL.Value(),
 		Body:   bytes.NewReader([]byte(*m.Content.Value())),
 		Bucket: m.BucketName.Value(),
@@ -84,8 +90,19 @@ func (r *Handler) Update(ctx context.Context, req handler.Request) handler.Progr
 		return handler.NewFailedEvent(cfnErr)
 	}
 
+	session, err := cfn.GetContextSession(ctx)
+	if err != nil {
+		return handler.NewFailedEvent(cfnerr.New(
+			cfnerr.GeneralServiceException,
+			"Unable to create AWS SDK session: "+err.Error(),
+			err,
+		))
+	}
+
+	client := s3.New(session)
+
 	// Create the object
-	_, err := client.PutObject(&s3.PutObjectInput{
+	_, err = client.PutObject(&s3.PutObjectInput{
 		ACL:    m.ACL.Value(),
 		Body:   bytes.NewReader([]byte(*m.Content.Value())),
 		Bucket: m.BucketName.Value(),
@@ -118,8 +135,19 @@ func (r *Handler) Delete(ctx context.Context, req handler.Request) handler.Progr
 		return handler.NewFailedEvent(cfnErr)
 	}
 
+	session, err := cfn.GetContextSession(ctx)
+	if err != nil {
+		return handler.NewFailedEvent(cfnerr.New(
+			cfnerr.GeneralServiceException,
+			"Unable to create AWS SDK session: "+err.Error(),
+			err,
+		))
+	}
+
+	client := s3.New(session)
+
 	// Create the object
-	_, err := client.DeleteObject(&s3.DeleteObjectInput{
+	_, err = client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: m.BucketName.Value(),
 		Key:    m.Key.Value(),
 	})

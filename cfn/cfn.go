@@ -82,7 +82,7 @@ func router(a string, h Handler) (handlerFunc, error) {
 	case updateAction:
 		return h.Update, nil
 	case deleteAction:
-		return h.Update, nil
+		return h.Delete, nil
 	case listAction:
 		return h.List, nil
 	default:

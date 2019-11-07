@@ -14,7 +14,6 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -180,14 +179,7 @@ func makeEventFunc(h Handler) eventFunc {
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
-		callbackPlatformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
-
-		//Set custom enpoint for callback session
-		callbackPlatformSession.Config = &aws.Config{
-			Region:   aws.String(event.Region),
-			Endpoint: aws.String(event.ResponseEndpoint),
-		}
-		callbackAdapter := callback.New(cloudformation.New(callbackPlatformSession))
+		callbackAdapter := callback.New(cloudformation.New(platformSession))
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
@@ -210,7 +202,10 @@ func makeEventFunc(h Handler) eventFunc {
 
 		if len(event.RequestContext.CallbackContext) == 0 || event.RequestContext.Invocation == 0 {
 			// Acknowledge the task for first time invocation
-			callbackAdapter.ReportProgress(event.BearerToken, "", string(handler.InProgress), string(handler.Pending), "", "")
+			if err := callbackAdapter.ReportProgress(event.BearerToken, "", string(handler.InProgress), string(handler.Pending), "", ""); err != nil {
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; Callback falure", err)
+				return newFailedResponse(cfnErr, event.BearerToken), cfnErr
+			}
 
 		}
 

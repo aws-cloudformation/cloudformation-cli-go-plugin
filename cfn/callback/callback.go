@@ -34,12 +34,24 @@ func New(client cloudformationiface.CloudFormationAPI) *CloudFormationCallbackAd
 func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code string, operationStatus string, currentOperationStatus string, resourceModel string, statusMessage string) error {
 
 	in := cloudformation.RecordHandlerProgressInput{
-		BearerToken:            aws.String(bearerToken),
-		OperationStatus:        aws.String(TranslateOperationStatus(operationStatus)),
-		StatusMessage:          aws.String(statusMessage),
-		ResourceModel:          aws.String(resourceModel),
-		CurrentOperationStatus: aws.String(currentOperationStatus),
-		ErrorCode:              aws.String(TranslateErrorCode(code)),
+		BearerToken:     aws.String(bearerToken),
+		OperationStatus: aws.String(TranslateOperationStatus(operationStatus)),
+	}
+
+	if len(statusMessage) != 0 {
+		in.SetStatusMessage(statusMessage)
+	}
+
+	if len(resourceModel) != 0 {
+		in.SetResourceModel(resourceModel)
+	}
+
+	if len(code) != 0 {
+		in.SetErrorCode(code)
+	}
+
+	if len(currentOperationStatus) != 0 {
+		in.SetCurrentOperationStatus(currentOperationStatus)
 	}
 
 	// Do retries and emit logs.
@@ -58,7 +70,7 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code 
 	)
 
 	if rerr != nil {
-		return cfnerr.New(ServiceInternalError, "Callback Error error", rerr)
+		return cfnerr.New(ServiceInternalError, "Callback ReportProgress Error", rerr)
 	}
 
 	return nil

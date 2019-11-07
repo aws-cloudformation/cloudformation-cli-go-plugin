@@ -37,8 +37,8 @@ func setContextSession(ctx context.Context, sess *session.Session) context.Conte
 	return context.WithValue(ctx, contextKey("aws_session"), sess)
 }
 
-// getContextSession unwraps a session from a given context
-func contextSession(ctx context.Context) (*session.Session, error) {
+// ContextSession unwraps a session from a given context
+func ContextSession(ctx context.Context) (*session.Session, error) {
 	val, ok := ctx.Value(contextKey("aws_session")).(*session.Session)
 	if !ok {
 		cfnErr := cfnerr.New(sessionNotFoundError, "Session not found", nil)

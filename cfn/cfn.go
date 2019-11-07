@@ -117,8 +117,8 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 				cherror <- err
 			}
 
-			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = setContextSession(customerCtx, reqContext.Session)
+			customerCtx := SetContextValues(context.Background(), reqContext.CallbackContext)
+			customerCtx = SetContextSession(customerCtx, reqContext.Session)
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)
@@ -161,6 +161,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
+		event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
 		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)

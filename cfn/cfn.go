@@ -117,8 +117,8 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 				cherror <- err
 			}
 
-			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = setContextSession(customerCtx, reqContext.Session)
+			customerCtx := SetContextValues(context.Background(), reqContext.CallbackContext)
+			customerCtx = SetContextSession(customerCtx, reqContext.Session)
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)

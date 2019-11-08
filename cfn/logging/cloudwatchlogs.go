@@ -1,5 +1,3 @@
-// +build logging
-
 package logging
 
 import (

@@ -1,188 +1,35 @@
 package resource
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-// Handler implements the cfn.Handler interface.
-// The zero value is ready to use.
-type Handler struct {
-}
+type Handler struct{}
 
-// Create handles the Create event from the Cloudformation service.
 func (r *Handler) Create(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	//***Add code here: Make your API call, modify the model, etc..
-	m := &Model{}
-	if err := req.Unmarshal(m); err != nil {
-		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(cfnErr)
-	}
-
-	session, err := cfn.GetContextSession(ctx)
-	if err != nil {
-		return handler.NewFailedEvent(cfnerr.New(
-			cfnerr.GeneralServiceException,
-			"Unable to create AWS SDK session: "+err.Error(),
-			err,
-		))
-	}
-
-	fmt.Println(session)
-
-	client := s3.New(session)
-
-	// Create the object
-	_, err = client.PutObject(&s3.PutObjectInput{
-		ACL:    m.ACL.Value(),
-		Body:   bytes.NewReader([]byte(*m.Content.Value())),
-		Bucket: m.BucketName.Value(),
-		Key:    m.Key.Value(),
-	})
-
-	if err != nil {
-		return handler.NewFailedEvent(cfnerr.New(
-			cfnerr.GeneralServiceException,
-			"Unable to create object: "+err.Error(),
-			err,
-		))
-	}
-
-	p := handler.NewProgressEvent()
-	p.ResourceModel = m
-	p.OperationStatus = handler.Success
-	p.Message = "Create complete"
-
-	// return the status
-	return p
+	return wrap(ctx, req, createResource)
 }
 
-// Read handles the Read event from the Cloudformation service.
 func (r *Handler) Read(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	//***Add code here: Make your API call, modify the model, etc..
-	m := &Model{}
-	if err := req.Unmarshal(m); err != nil {
-		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(cfnErr)
-	}
-
-	p := handler.NewProgressEvent()
-	p.ResourceModel = m
-	p.OperationStatus = handler.Success
-	p.Message = "Read complete"
-
-	// return the status
-	return p
+	return wrap(ctx, req, readResource)
 }
 
-// Update handles the Update event from the Cloudformation service.
 func (r *Handler) Update(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	//***Add code here: Make your API call, modify the model, etc..
-	m := &Model{}
-	if err := req.Unmarshal(m); err != nil {
-		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(cfnErr)
-	}
-
-	session, err := cfn.GetContextSession(ctx)
-	if err != nil {
-		return handler.NewFailedEvent(cfnerr.New(
-			cfnerr.GeneralServiceException,
-			"Unable to create AWS SDK session: "+err.Error(),
-			err,
-		))
-	}
-
-	client := s3.New(session)
-
-	// Create the object
-	_, err = client.PutObject(&s3.PutObjectInput{
-		ACL:    m.ACL.Value(),
-		Body:   bytes.NewReader([]byte(*m.Content.Value())),
-		Bucket: m.BucketName.Value(),
-		Key:    m.Key.Value(),
-	})
-
-	if err != nil {
-		return handler.NewFailedEvent(cfnerr.New(
-			cfnerr.GeneralServiceException,
-			"Unable to create object: "+err.Error(),
-			err,
-		))
-	}
-
-	p := handler.NewProgressEvent()
-	p.ResourceModel = m
-	p.OperationStatus = handler.Success
-	p.Message = "Update complete"
-
-	// return the status
-	return p
+	return wrap(ctx, req, updateResource)
 }
 
-// Delete handles the Delete event from the Cloudformation service.
 func (r *Handler) Delete(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	//***Add code here: Make your API call, modify the model, etc..
-	m := &Model{}
-	if err := req.Unmarshal(m); err != nil {
-		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(cfnErr)
-	}
-
-	session, err := cfn.GetContextSession(ctx)
-	if err != nil {
-		return handler.NewFailedEvent(cfnerr.New(
-			cfnerr.GeneralServiceException,
-			"Unable to create AWS SDK session: "+err.Error(),
-			err,
-		))
-	}
-
-	client := s3.New(session)
-
-	// Create the object
-	_, err = client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: m.BucketName.Value(),
-		Key:    m.Key.Value(),
-	})
-
-	if err != nil {
-		return handler.NewFailedEvent(cfnerr.New(
-			cfnerr.GeneralServiceException,
-			"Unable to delete object: "+err.Error(),
-			err,
-		))
-	}
-
-	p := handler.NewProgressEvent()
-	p.ResourceModel = m
-	p.OperationStatus = handler.Success
-	p.Message = "Delete complete"
-
-	// return the status
-	return p
+	return wrap(ctx, req, deleteResource)
 }
 
 // List handles the List event from the Cloudformation service.
 func (r *Handler) List(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	//***Add code here: Make your API call, modify the model, etc..
-	m := &Model{}
-	if err := req.Unmarshal(m); err != nil {
-		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(cfnErr)
-	}
-
-	p := handler.NewProgressEvent()
-	p.ResourceModel = m
-	p.OperationStatus = handler.Success
-	p.Message = "List complete"
-
-	// return the status
-	return p
+	return handler.NewFailedEvent(cfnerr.New(
+		cfnerr.GeneralServiceException,
+		"Not implemented",
+		nil,
+	))
 }

@@ -72,6 +72,42 @@ var stringified = map[string]interface{}{
 	},
 }
 
+func TestString(t *testing.T) {
+	v := "Hello, world!"
+	s := encoding.NewString(v)
+
+	// Value
+	if *s.Value() != v {
+		t.Errorf("Value failed: %v", s.Value())
+	}
+
+	// Marshal
+	data, err := json.Marshal(s)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(data) != `"Hello, world!"` {
+		t.Error("Marshal failed: " + string(data))
+	}
+
+	// Unmarshal value
+	v = "Unmarshal me"
+	data, err = json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.Unmarshal(data, s)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if *s.Value() != v {
+		t.Errorf("Unmarshal value failed: %v", s.Value())
+	}
+}
+
 func TestMarshal(t *testing.T) {
 	data, err := json.Marshal(model)
 	if err != nil {
@@ -84,7 +120,7 @@ func TestMarshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	if diff := cmp.Diff(actual, stringified); diff != "" {
+	if diff := cmp.Diff(stringified, actual); diff != "" {
 		t.Error(diff)
 	}
 }
@@ -102,7 +138,7 @@ func TestUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 
-	if diff := cmp.Diff(actual, model); diff != "" {
+	if diff := cmp.Diff(model, actual); diff != "" {
 		t.Error(diff)
 	}
 }

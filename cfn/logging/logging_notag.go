@@ -8,6 +8,10 @@ import (
 	"os"
 )
 
+// define a new stdErr since we'll over-write the default stdout/err
+// to prevent data leaking into the service account
+var stdErr = os.NewFile(uintptr(syscall.Stderr), "/dev/stderr")
+
 // SetProviderLogOutput ...
 func SetProviderLogOutput(w io.Writer) {
 	// no-op

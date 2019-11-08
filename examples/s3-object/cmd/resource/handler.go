@@ -57,7 +57,7 @@ func (r *Handler) Create(ctx context.Context, req handler.Request) handler.Progr
 	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.OperationStatus = handler.Success
-	p.Message = "Completed"
+	p.Message = "Create complete"
 
 	// return the status
 	return p
@@ -75,7 +75,7 @@ func (r *Handler) Read(ctx context.Context, req handler.Request) handler.Progres
 	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.OperationStatus = handler.Success
-	p.Message = "Completed"
+	p.Message = "Read complete"
 
 	// return the status
 	return p
@@ -120,7 +120,7 @@ func (r *Handler) Update(ctx context.Context, req handler.Request) handler.Progr
 	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.OperationStatus = handler.Success
-	p.Message = "Completed"
+	p.Message = "Update complete"
 
 	// return the status
 	return p
@@ -155,7 +155,7 @@ func (r *Handler) Delete(ctx context.Context, req handler.Request) handler.Progr
 	if err != nil {
 		return handler.NewFailedEvent(cfnerr.New(
 			cfnerr.GeneralServiceException,
-			"Unable to create object: "+err.Error(),
+			"Unable to delete object: "+err.Error(),
 			err,
 		))
 	}
@@ -163,7 +163,7 @@ func (r *Handler) Delete(ctx context.Context, req handler.Request) handler.Progr
 	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.OperationStatus = handler.Success
-	p.Message = "Completed"
+	p.Message = "Delete complete"
 
 	// return the status
 	return p
@@ -181,7 +181,7 @@ func (r *Handler) List(ctx context.Context, req handler.Request) handler.Progres
 	p := handler.NewProgressEvent()
 	p.ResourceModel = m
 	p.OperationStatus = handler.Success
-	p.Message = "Completed"
+	p.Message = "List complete"
 
 	// return the status
 	return p

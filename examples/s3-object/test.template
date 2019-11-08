@@ -1,0 +1,10 @@
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+
+  MyObject:
+    Type: Example::S3::Object
+    Properties:
+      BucketName: !Ref MyBucket
+      Key: hello.txt
+      Content: Hello, World!

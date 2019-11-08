@@ -35,7 +35,7 @@ func NewRequest(previousBody, body []byte, logicalResourceID string) Request {
 // with the previous properties of the resource
 func (r *Request) UnmarshalPrevious(v interface{}) error {
 	if len(r.previousResourcePropertiesBody) == 0 {
-		return cfnerr.New(bodyEmptyError, "Body is empty", nil)
+		return nil
 	}
 
 	if err := json.Unmarshal(r.previousResourcePropertiesBody, v); err != nil {

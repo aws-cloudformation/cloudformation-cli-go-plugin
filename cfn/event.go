@@ -36,6 +36,7 @@ type requestData struct {
 	ResourceProperties         json.RawMessage                               `json:"resourceProperties"`
 	PreviousResourceProperties json.RawMessage                               `json:"previousResourceProperties"`
 	PreviousStackTags          tags                                          `json:"previousStackTags"`
+	ProviderCredentials        credentials.CloudFormationCredentialsProvider `json:"providerCredentials"`
 	ProviderLogGroupName       string                                        `json:"providerLogGroupName"`
 	StackTags                  tags                                          `json:"stackTags"`
 	SystemTags                 tags                                          `json:"systemTags"`

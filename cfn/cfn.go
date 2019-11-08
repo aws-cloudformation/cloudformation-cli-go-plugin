@@ -169,7 +169,7 @@ func makeEventFunc(h Handler) eventFunc {
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
 
-		providerSession := credentials.SessionFromCredentialsProvider(event.RequestData.ProviderCredentials)
+		providerSession := credentials.SessionFromCredentialsProvider(&event.RequestData.ProviderCredentials)
 		logsProvider, err := logging.NewCloudWatchLogsProvider(
 			cloudwatchlogs.New(providerSession),
 			event.RequestData.ProviderLogGroupName,

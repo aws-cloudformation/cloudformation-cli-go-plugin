@@ -163,7 +163,6 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
-		event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
 		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
@@ -204,7 +203,10 @@ func makeEventFunc(h Handler) eventFunc {
 		)
 
 		for {
+			event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
+
 			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
+
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; invoke error", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
@@ -238,6 +240,9 @@ func makeEventFunc(h Handler) eventFunc {
 				//Add IDs to recall the function with Cloudwatch events
 				event.RequestContext.CloudWatchEventsRuleName = invocationIDS.Handler
 				event.RequestContext.CloudWatchEventsTargetID = invocationIDS.Target
+
+				//Set the session to nil to prevent marshaling
+				event.RequestContext.Session = nil
 
 				callbackRequest, err := json.Marshal(event)
 				if err != nil {

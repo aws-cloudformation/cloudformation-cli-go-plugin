@@ -10,6 +10,7 @@ import (
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/metrics"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
 const (
@@ -84,7 +86,7 @@ func router(a string, h Handler) (handlerFunc, error) {
 	case updateAction:
 		return h.Update, nil
 	case deleteAction:
-		return h.Update, nil
+		return h.Delete, nil
 	case listAction:
 		return h.List, nil
 	default:
@@ -119,8 +121,8 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 				cherror <- err
 			}
 
-			customerCtx := setContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = setContextSession(customerCtx, reqContext.Session)
+			customerCtx := SetContextValues(context.Background(), reqContext.CallbackContext)
+			customerCtx = SetContextSession(customerCtx, reqContext.Session)
 
 			// Report the work is done.
 			progEvt := handlerFn(customerCtx, request)
@@ -181,6 +183,21 @@ func makeEventFunc(h Handler) eventFunc {
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
 		callbackAdapter := callback.New(cloudformation.New(platformSession))
 
+		providerSession := credentials.SessionFromCredentialsProvider(&event.RequestData.ProviderCredentials)
+		logsProvider, err := logging.NewCloudWatchLogsProvider(
+			cloudwatchlogs.New(providerSession),
+			event.RequestData.ProviderLogGroupName,
+		)
+
+		if err != nil {
+			// we will log the error in the metric, but carry on.
+			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
+			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
+		}
+
+		// set default logger to output to CWL in the provider account
+		logging.SetProviderLogOutput(logsProvider)
+
 		handlerFn, err := router(event.Action, h)
 		if err != nil {
 			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; router error", err)
@@ -206,11 +223,25 @@ func makeEventFunc(h Handler) eventFunc {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; Callback falure", err)
 				return newFailedResponse(cfnErr, event.BearerToken), cfnErr
 			}
+		}
 
+		// If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
+		if event.RequestContext.CallbackContext != nil {
+			err := invokeScheduler.CleanupEvents(event.RequestContext.CloudWatchEventsRuleName, event.RequestContext.CloudWatchEventsTargetID)
+
+			if err != nil {
+				// we will log the error in the metric, but carry on.
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
+				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
+			}
 		}
 
 		for {
+			event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
+			event.RequestContext.Invocation = event.RequestContext.Invocation + 1
+
 			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
+
 			if err != nil {
 				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; invoke error", err)
 				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
@@ -268,6 +299,12 @@ func makeEventFunc(h Handler) eventFunc {
 				event.RequestContext.CloudWatchEventsRuleName = invocationIDS.Handler
 				event.RequestContext.CloudWatchEventsTargetID = invocationIDS.Target
 
+				//Set the session to nil to prevent marshaling
+				event.RequestContext.Session = nil
+
+				//Rebuild the context
+				event.RequestContext.CallbackContext = customerCtx
+
 				callbackRequest, err := json.Marshal(event)
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; marshaling error", err)
@@ -289,8 +326,6 @@ func makeEventFunc(h Handler) eventFunc {
 					return r, nil
 				}
 
-				//Rebuild the context
-				event.RequestContext.CallbackContext = customerCtx
 			}
 		}
 	}

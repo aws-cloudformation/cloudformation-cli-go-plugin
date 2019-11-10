@@ -202,8 +202,20 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestData.LogicalResourceID,
 		)
 
+		// If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
+		if event.RequestContext.CallbackContext != nil {
+			err := invokeScheduler.CleanupEvents(event.RequestContext.CloudWatchEventsRuleName, event.RequestContext.CloudWatchEventsTargetID)
+
+			if err != nil {
+				// we will log the error in the metric, but carry on.
+				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
+				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
+			}
+		}
+
 		for {
 			event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
+			event.RequestContext.Invocation = event.RequestContext.Invocation + 1
 
 			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
 
@@ -244,6 +256,9 @@ func makeEventFunc(h Handler) eventFunc {
 				//Set the session to nil to prevent marshaling
 				event.RequestContext.Session = nil
 
+				//Rebuild the context
+				event.RequestContext.CallbackContext = customerCtx
+
 				callbackRequest, err := json.Marshal(event)
 				if err != nil {
 					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; marshaling error", err)
@@ -263,8 +278,6 @@ func makeEventFunc(h Handler) eventFunc {
 					return r, nil
 				}
 
-				//Rebuild the context
-				event.RequestContext.CallbackContext = customerCtx
 			}
 		}
 	}

@@ -51,7 +51,7 @@ type requestContext struct {
 	CloudWatchEventsRuleName string                 `json:"cloudWatchEventsRuleName,omitempty"`
 	CloudWatchEventsTargetID string                 `json:"cloudWatchEventsTargetId,omitempty"`
 	Invocation               encoding.Int           `json:"invocation,omitempty"`
-	Session                  *session.Session       `json:"omitempty"`
+	Session                  *session.Session       `json:"session,omitempty"`
 }
 
 // validateEvent ensures the event struct generated from the Lambda SDK is correct

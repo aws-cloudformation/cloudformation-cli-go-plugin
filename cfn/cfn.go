@@ -297,7 +297,7 @@ func makeEventFunc(h Handler) eventFunc {
 				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
 
-			if isMutatingAction(event.Action) && r.OperationStatus == "PENDING" {
+			if !isMutatingAction(event.Action) && r.OperationStatus == "PENDING" {
 				errs := []error{err}
 				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, string(modelString)); reportErr != nil {
 					errs = append(errs, reportErr)
@@ -307,7 +307,7 @@ func makeEventFunc(h Handler) eventFunc {
 				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
 
-			if !isMutatingAction(event.Action) {
+			if isMutatingAction(event.Action) {
 				callbackAdapter.ReportProgress(event.BearerToken, progEvt.HandlerErrorCode, string(progEvt.OperationStatus), string(handler.InProgress), string(modelString), progEvt.Message)
 			}
 			switch r.OperationStatus {

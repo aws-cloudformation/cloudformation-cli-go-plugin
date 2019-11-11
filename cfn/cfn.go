@@ -40,6 +40,10 @@ const (
 	listAction    = "LIST"
 )
 
+const (
+	zeroString = ""
+)
+
 // MaxRetries is the number of times to try to call the Handler after it fails to respond.
 var MaxRetries int = 3
 
@@ -174,6 +178,24 @@ func isMutatingAction(action string) bool {
 	return false
 }
 
+func reportInitialStatus(event *event, metricsPublisher *metrics.Publisher, callbackAdapter *callback.CloudFormationCallbackAdapter) error {
+	if err := callbackAdapter.ReportProgress(event.BearerToken, zeroString, string(handler.InProgress), string(handler.Pending), zeroString, zeroString); err != nil {
+		cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; Callback falure", err)
+		metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
+		return cfnErr
+	}
+	return nil
+}
+
+func reportFailureStatus(event *event, metricsPublisher *metrics.Publisher, callbackAdapter *callback.CloudFormationCallbackAdapter, model string) error {
+	if err := callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), model, "Unable to complete request"); err != nil {
+		cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; Callback falure", err)
+		metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
+		return cfnErr
+	}
+	return nil
+}
+
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
@@ -219,9 +241,8 @@ func makeEventFunc(h Handler) eventFunc {
 
 		if len(event.RequestContext.CallbackContext) == 0 || event.RequestContext.Invocation == 0 {
 			// Acknowledge the task for first time invocation
-			if err := callbackAdapter.ReportProgress(event.BearerToken, "", string(handler.InProgress), string(handler.Pending), "", ""); err != nil {
-				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; Callback falure", err)
-				return newFailedResponse(cfnErr, event.BearerToken), cfnErr
+			if err := reportInitialStatus(event, metricsPublisher, callbackAdapter); err != nil {
+				return newFailedResponse(err, event.BearerToken), err
 			}
 		}
 
@@ -243,8 +264,11 @@ func makeEventFunc(h Handler) eventFunc {
 			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
 
 			if err != nil {
-				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; invoke error", err)
-				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+				errs := []error{err}
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, zeroString); reportErr != nil {
+					errs = append(errs, reportErr)
+				}
+				cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; invoke error", errs)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
@@ -252,8 +276,11 @@ func makeEventFunc(h Handler) eventFunc {
 			r, err := newResponse(&progEvt, event.BearerToken)
 
 			if err != nil {
-				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; response error", err)
-				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+				errs := []error{err}
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, zeroString); reportErr != nil {
+					errs = append(errs, reportErr)
+				}
+				cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; invoke error", errs)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
@@ -261,21 +288,27 @@ func makeEventFunc(h Handler) eventFunc {
 			modelString, err := json.Marshal(r.ResourceModel)
 
 			if err != nil {
-				cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; invoke error", err)
-				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), "", "Unable to complete request")
+				errs := []error{err}
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, zeroString); reportErr != nil {
+					errs = append(errs, reportErr)
+				}
+				cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; invoke error", errs)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
 
 			if isMutatingAction(event.Action) && r.OperationStatus == "PENDING" {
-				cfnErr := cfnerr.New(serviceInternalError, "READ and LIST handlers must return synchronously", err)
-				callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), string(modelString), "READ and LIST handlers must return synchronously")
+				errs := []error{err}
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, string(modelString)); reportErr != nil {
+					errs = append(errs, reportErr)
+				}
+				cfnErr := cfnerr.NewBatchError(serviceInternalError, "READ and LIST handlers must return synchronously", errs)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 				return newFailedResponse(cfnErr, event.BearerToken), err
 			}
 
-			if isMutatingAction(event.Action) {
-				callbackAdapter.ReportProgress(event.BearerToken, r.ErrorCode.Code(), string(r.OperationStatus), string(handler.InProgress), string(modelString), r.Message)
+			if !isMutatingAction(event.Action) {
+				callbackAdapter.ReportProgress(event.BearerToken, progEvt.HandlerErrorCode, string(progEvt.OperationStatus), string(handler.InProgress), string(modelString), progEvt.Message)
 			}
 			switch r.OperationStatus {
 			case handler.Success:
@@ -289,8 +322,11 @@ func makeEventFunc(h Handler) eventFunc {
 
 				invocationIDS, err := scheduler.GenerateCloudWatchIDS()
 				if err != nil {
-					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; IDS error", err)
-					callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), string(modelString), "Unable to complete request")
+					errs := []error{err}
+					if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, string(modelString)); reportErr != nil {
+						errs = append(errs, reportErr)
+					}
+					cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; IDS error", errs)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 					return newFailedResponse(cfnErr, event.BearerToken), err
 				}
@@ -307,16 +343,22 @@ func makeEventFunc(h Handler) eventFunc {
 
 				callbackRequest, err := json.Marshal(event)
 				if err != nil {
-					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; marshaling error", err)
-					callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), string(modelString), "Unable to complete request")
+					errs := []error{err}
+					if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, string(modelString)); reportErr != nil {
+						errs = append(errs, reportErr)
+					}
+					cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; marshaling error", errs)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 					return newFailedResponse(cfnErr, event.BearerToken), err
 				}
 
 				scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), invocationIDS)
 				if err != nil {
-					cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; scheduler error", err)
-					callbackAdapter.ReportProgress(event.BearerToken, cfnerr.InvalidRequest, string(handler.Failed), string(handler.InProgress), string(modelString), "Unable to complete request")
+					errs := []error{err}
+					if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, string(modelString)); reportErr != nil {
+						errs = append(errs, reportErr)
+					}
+					cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; scheduler error", errs)
 					metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 					return newFailedResponse(cfnErr, event.BearerToken), err
 				}

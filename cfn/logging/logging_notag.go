@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"syscall"
 )
 
 // define a new stdErr since we'll over-write the default stdout/err

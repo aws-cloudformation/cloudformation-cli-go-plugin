@@ -20,11 +20,11 @@ var prevousModel *Model
 
 func setup() {
 	model = &Model{
-		Code: encoding.NewString("test"),
+		Title: encoding.NewString("test"),
 	}
 
 	prevousModel = &Model{
-		Code: encoding.NewString("test"),
+		Title: encoding.NewString("test"),
 	}
 
 	//Create a session.

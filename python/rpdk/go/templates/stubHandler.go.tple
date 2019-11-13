@@ -10,7 +10,7 @@ import (
 {% for method in ("Create", "Read", "Update", "Delete", "List") %}
 
 // {{ method }} handles the {{ method }} event from the Cloudformation service.
-func {{ method }}(prevModel, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+func {{ method }}(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
     // Add your code here:
     // * Make API calls
     // * Mutate the model

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
@@ -113,6 +114,7 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &CloudFormationCallbackAdapter{
 				client: tt.fields.client,
+				logger: logging.New("callback: "),
 			}
 			if err := c.ReportProgress(tt.args.bearerToken, tt.args.code, tt.args.status, tt.args.operationStatus, tt.args.resourceModel, tt.args.statusMessage); (err != nil) != tt.wantErr {
 				t.Errorf("CloudFormationCallbackAdapter.ReportProgress() error = %v, wantErr %v", err, tt.wantErr)

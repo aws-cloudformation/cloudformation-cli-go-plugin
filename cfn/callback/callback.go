@@ -3,12 +3,22 @@
 package callback
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/avast/retry-go"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+)
+
+const (
+	//ServiceInternalError ...
+	ServiceInternalError string = "ServiceInternal"
+	//MaxRetries is the number of retries allowed to report status.
+	MaxRetries uint = 3
 )
 
 //CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
@@ -49,7 +59,24 @@ func (c *CloudFormationCallbackAdapter) ReportProgress(bearerToken string, code 
 		in.SetCurrentOperationStatus(currentOperationStatus)
 	}
 
-	c.logger.Printf("Record progress: %v", &in)
+	// Do retries and emit logs.
+	rerr := retry.Do(
+		func() error {
+			_, err := c.client.RecordHandlerProgress(&in)
+			if err != nil {
+				return err
+			}
+			return nil
+		}, retry.OnRetry(func(n uint, err error) {
+			s := fmt.Sprintf("Failed to record progress: try:#%d: %s\n ", n+1, err)
+			c.logger.Println(s)
+
+		}), retry.Attempts(MaxRetries),
+	)
+
+	if rerr != nil {
+		return cfnerr.New(ServiceInternalError, "Callback ReportProgress Error", rerr)
+	}
 
 	return nil
 }

@@ -44,10 +44,16 @@ func NewProgressEvent() ProgressEvent {
 
 // NewFailedEvent creates a generic failure progress event
 // based on the error passed in.
-func NewFailedEvent(err cfnerr.Error) ProgressEvent {
+func NewFailedEvent(err error) ProgressEvent {
+	cerr := cfnerr.New(
+		cfnerr.GeneralServiceException,
+		"Unable to complete request: "+err.Error(),
+		err,
+	)
+
 	return ProgressEvent{
 		OperationStatus:  Failed,
-		Message:          err.Message(),
-		HandlerErrorCode: err.Code(),
+		Message:          cerr.Message(),
+		HandlerErrorCode: cerr.Code(),
 	}
 }

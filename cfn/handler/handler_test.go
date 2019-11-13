@@ -78,24 +78,6 @@ func TestNewRequest(t *testing.T) {
 	})
 
 	t.Run("PreviousResourceProps", func(t *testing.T) {
-		t.Run("Invalid Body", func(t *testing.T) {
-			req := NewRequest([]byte(``), []byte(``), "foo")
-
-			invalid := struct {
-				Color int `json:"color"`
-			}{}
-
-			err := req.UnmarshalPrevious(&invalid)
-			if err == nil {
-				t.Fatalf("Didn't throw an error")
-			}
-
-			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != bodyEmptyError {
-				t.Fatalf("Wrong error returned: %v", err)
-			}
-		})
-
 		t.Run("Invalid Marshal", func(t *testing.T) {
 			req := NewRequest([]byte(`{"color": "red"}`), []byte(`{"color": "green"}`), "foo")
 

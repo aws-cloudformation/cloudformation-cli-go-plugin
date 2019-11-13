@@ -1,0 +1,190 @@
+package resource
+
+import (
+	"context"
+	"encoding/json"
+	"reflect"
+	"testing"
+
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/encoding"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+)
+
+var testReq handler.Request
+var requestctx context.Context
+var model *Model
+var prevousModel *Model
+
+func setup() {
+	model = &Model{
+		Code: encoding.NewString("test"),
+	}
+
+	prevousModel = &Model{
+		Code: encoding.NewString("test"),
+	}
+
+	//Create a session.
+	sess, _ := session.NewSession(&aws.Config{Region: aws.String("us-west-2")})
+
+	//Create the Callback Context. Add any necessary values.
+	callbackContext := make(map[string]interface{})
+	callbackContext["sync"] = true
+
+	//Marshal the Model.
+	testResource, _ := json.Marshal(model)
+	privousTestResource, _ := json.Marshal(prevousModel)
+	//Create a new request.
+	testReq = handler.NewRequest(testResource, privousTestResource, "1234567")
+
+	requestctx = cfn.SetContextValues(context.Background(), callbackContext)
+	requestctx = cfn.SetContextSession(requestctx, sess)
+}
+
+func TestHandler_Create(t *testing.T) {
+	setup()
+	result := handler.NewProgressEvent()
+	result.ResourceModel = model
+	result.OperationStatus = handler.Success
+	result.Message = "Completed"
+
+	type args struct {
+		ctx context.Context
+		req handler.Request
+	}
+	tests := []struct {
+		name string
+		r    *Handler
+		args args
+		want handler.ProgressEvent
+	}{
+		{"Simple Create test", &Handler{}, args{requestctx, testReq}, result},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Handler{}
+			if got := r.Create(tt.args.ctx, tt.args.req); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Handler.Create() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandler_Read(t *testing.T) {
+	setup()
+	result := handler.NewProgressEvent()
+	result.ResourceModel = model
+	result.OperationStatus = handler.Success
+	result.Message = "Completed"
+
+	type args struct {
+		ctx context.Context
+		req handler.Request
+	}
+	tests := []struct {
+		name string
+		r    *Handler
+		args args
+		want handler.ProgressEvent
+	}{
+		{"Simple Read test", &Handler{}, args{requestctx, testReq}, result},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Handler{}
+			if got := r.Read(tt.args.ctx, tt.args.req); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Handler.Read() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandler_Update(t *testing.T) {
+	setup()
+	result := handler.NewProgressEvent()
+	result.ResourceModel = model
+	result.OperationStatus = handler.Success
+	result.Message = "Completed"
+
+	type args struct {
+		ctx context.Context
+		req handler.Request
+	}
+	tests := []struct {
+		name string
+		r    *Handler
+		args args
+		want handler.ProgressEvent
+	}{
+		{"Simple Update test", &Handler{}, args{requestctx, testReq}, result},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Handler{}
+			if got := r.Update(tt.args.ctx, tt.args.req); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Handler.Update() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandler_Delete(t *testing.T) {
+	setup()
+	result := handler.NewProgressEvent()
+	result.ResourceModel = model
+	result.OperationStatus = handler.Success
+	result.Message = "Completed"
+
+	type args struct {
+		ctx context.Context
+		req handler.Request
+	}
+	tests := []struct {
+		name string
+		r    *Handler
+		args args
+		want handler.ProgressEvent
+	}{
+		{"Simple Delete test", &Handler{}, args{requestctx, testReq}, result},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Handler{}
+			if got := r.Delete(tt.args.ctx, tt.args.req); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Handler.Delete() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandler_List(t *testing.T) {
+	setup()
+	result := handler.NewProgressEvent()
+	result.ResourceModel = model
+	result.OperationStatus = handler.Success
+	result.Message = "Completed"
+
+	type args struct {
+		ctx context.Context
+		req handler.Request
+	}
+	tests := []struct {
+		name string
+		r    *Handler
+		args args
+		want handler.ProgressEvent
+	}{
+		{"Simple List test", &Handler{}, args{requestctx, testReq}, result},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Handler{}
+			if got := r.List(tt.args.ctx, tt.args.req); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Handler.List() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

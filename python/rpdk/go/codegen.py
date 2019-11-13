@@ -110,6 +110,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Writing handlers and tests")
         self.init_handlers(project, src)
+        self.init_test(project,src)
 
         # README
         path = project.root / "README.md"
@@ -134,6 +135,13 @@ class GoLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing stub handlers")
         template = self.env.get_template("stubHandler.go.tple")
         path = src / "handler.go"
+        contents = template.render()
+        project.safewrite(path, contents)
+
+    def init_test(self, project, src):
+        LOG.debug("Writing test handlers")
+        template = self.env.get_template("test.go.tple")
+        path = src / "handler_test.go"
         contents = template.render()
         project.safewrite(path, contents)
 

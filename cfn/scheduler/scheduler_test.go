@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
@@ -116,6 +117,7 @@ func TestCloudWatchSchedulerRescheduleAfterMinutes(t *testing.T) {
 			{
 				c := &Scheduler{
 					client: tt.fields.Client,
+					logger: logging.New("scheduler: "),
 				}
 
 				ids, _ := GenerateCloudWatchIDS()
@@ -164,6 +166,7 @@ func TestCloudWatchSchedulerCleanupCloudWatchEvents(t *testing.T) {
 			{
 				c := &Scheduler{
 					client: tt.fields.Client,
+					logger: logging.New("scheduler: "),
 				}
 				if err := c.CleanupEvents(tt.args.cloudWatchEventsRuleName, tt.args.cloudWatchEventsTargetID); (err != nil) != tt.wantErr {
 					t.Errorf("\t%s\tShould be able to make the cloudWatchEventsRuleName call : %v", Failed, err)

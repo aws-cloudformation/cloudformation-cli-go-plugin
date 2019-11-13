@@ -40,10 +40,6 @@ const (
 	listAction    = "LIST"
 )
 
-const (
-	zeroString = ""
-)
-
 // MaxRetries is the number of times to try to call the Handler after it fails to respond.
 var MaxRetries int = 3
 
@@ -179,7 +175,7 @@ func isMutatingAction(action string) bool {
 }
 
 func reportInitialStatus(event *event, metricsPublisher *metrics.Publisher, callbackAdapter *callback.CloudFormationCallbackAdapter) error {
-	if err := callbackAdapter.ReportProgress(event.BearerToken, zeroString, string(handler.InProgress), string(handler.Pending), zeroString, zeroString); err != nil {
+	if err := callbackAdapter.ReportProgress(event.BearerToken, "", string(handler.InProgress), string(handler.Pending), "", ""); err != nil {
 		cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; Callback falure", err)
 		metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 		return cfnErr
@@ -265,7 +261,7 @@ func makeEventFunc(h Handler) eventFunc {
 
 			if err != nil {
 				errs := []error{err}
-				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, zeroString); reportErr != nil {
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, ""); reportErr != nil {
 					errs = append(errs, reportErr)
 				}
 				cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; invoke error", errs)
@@ -277,7 +273,7 @@ func makeEventFunc(h Handler) eventFunc {
 
 			if err != nil {
 				errs := []error{err}
-				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, zeroString); reportErr != nil {
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, ""); reportErr != nil {
 					errs = append(errs, reportErr)
 				}
 				cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; invoke error", errs)
@@ -289,7 +285,7 @@ func makeEventFunc(h Handler) eventFunc {
 
 			if err != nil {
 				errs := []error{err}
-				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, zeroString); reportErr != nil {
+				if reportErr := reportFailureStatus(event, metricsPublisher, callbackAdapter, ""); reportErr != nil {
 					errs = append(errs, reportErr)
 				}
 				cfnErr := cfnerr.NewBatchError(serviceInternalError, "Unable to complete request; invoke error", errs)

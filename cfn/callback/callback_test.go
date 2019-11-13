@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
+const MockModel string = "{\"foo\": \"bar\"}"
+
 //MockedEvents mocks the call to AWS CloudWatch Events
 type MockedCallback struct {
 	cloudformationiface.CloudFormationAPI
@@ -91,11 +93,12 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 		client cloudformationiface.CloudFormationAPI
 	}
 	type args struct {
-		bearerToken   string
-		code          string
-		status        string
-		resourceModel interface{}
-		statusMessage string
+		bearerToken     string
+		code            string
+		status          string
+		operationStatus string
+		resourceModel   string
+		statusMessage   string
 	}
 	tests := []struct {
 		name    string
@@ -103,15 +106,15 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"TestRetryMaxReturnErr", fields{NewMockedCallback(6)}, args{"123456", "ACCESSDENIED", "FAILED", map[string]interface{}{"foo": "bar"}, "retry"}, true},
-		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", "ACCESSDENIED", "FAILED", map[string]interface{}{"foo": "bar"}, "retry"}, false},
+		{"TestRetryMaxReturnErr", fields{NewMockedCallback(6)}, args{"123456", "ACCESSDENIED", "FAILED", "IN_PROGRESS", MockModel, "retry"}, true},
+		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", "ACCESSDENIED", "FAILED", "IN_PROGRESS", MockModel, "retry"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &CloudFormationCallbackAdapter{
 				client: tt.fields.client,
 			}
-			if err := c.ReportProgress(tt.args.bearerToken, tt.args.code, tt.args.status, tt.args.resourceModel, tt.args.statusMessage); (err != nil) != tt.wantErr {
+			if err := c.ReportProgress(tt.args.bearerToken, tt.args.code, tt.args.status, tt.args.operationStatus, tt.args.resourceModel, tt.args.statusMessage); (err != nil) != tt.wantErr {
 				t.Errorf("CloudFormationCallbackAdapter.ReportProgress() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

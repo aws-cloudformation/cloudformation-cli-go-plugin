@@ -139,7 +139,7 @@ class GoLanguagePlugin(LanguagePlugin):
         project.safewrite(path, contents)
 
     def init_test(self, project, src):
-        LOG.debug("Writing test handlers")
+        LOG.debug("Writing tests")
         template = self.env.get_template("test.go.tple")
         path = src / "handler_test.go"
         contents = template.render()

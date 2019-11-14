@@ -61,7 +61,7 @@ func wrap(ctx context.Context, req handler.Request, f handlerFunc) (response han
 	}()
 
 	// Populate the previous model
-	var prevModel *resource.Model
+	prevModel := &resource.Model{}
 	if err := req.UnmarshalPrevious(prevModel); err != nil {
 		return handler.NewFailedEvent(err)
 	}

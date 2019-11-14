@@ -307,11 +307,6 @@ func makeEventFunc(h Handler) eventFunc {
 				callbackAdapter.ReportProgress(event.BearerToken, progEvt.HandlerErrorCode, string(progEvt.OperationStatus), string(handler.InProgress), string(modelString), progEvt.Message)
 			}
 			switch r.OperationStatus {
-			case handler.Success:
-				return r, nil
-
-			case handler.Failed:
-				return r, nil
 
 			case handler.InProgress:
 				customerCtx, delay := marshalCallback(&progEvt)
@@ -363,7 +358,8 @@ func makeEventFunc(h Handler) eventFunc {
 				if !scheResult.ComputeLocal {
 					return r, nil
 				}
-
+			default:
+				return r, nil
 			}
 		}
 	}

@@ -1,11 +1,8 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
@@ -19,25 +16,24 @@ changes will be undone by the next 'cfn generate' command.
 
 type Handler struct{}
 
-func (r *Handler) Create(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	return wrap(ctx, req, resource.Create)
+func (r *Handler) Create(req handler.Request) handler.ProgressEvent {
+	return wrap(req, resource.Create)
 }
 
-func (r *Handler) Read(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	return wrap(ctx, req, resource.Read)
+func (r *Handler) Read(req handler.Request) handler.ProgressEvent {
+	return wrap(req, resource.Read)
 }
 
-func (r *Handler) Update(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	return wrap(ctx, req, resource.Update)
+func (r *Handler) Update(req handler.Request) handler.ProgressEvent {
+	return wrap(req, resource.Update)
 }
 
-func (r *Handler) Delete(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	return wrap(ctx, req, resource.Delete)
+func (r *Handler) Delete(req handler.Request) handler.ProgressEvent {
+	return wrap(req, resource.Delete)
 }
 
-// List handles the List event from the Cloudformation service.
-func (r *Handler) List(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	return wrap(ctx, req, resource.List)
+func (r *Handler) List(req handler.Request) handler.ProgressEvent {
+	return wrap(req, resource.List)
 }
 
 // main is the entry point of the applicaton.
@@ -45,9 +41,9 @@ func main() {
 	cfn.Start(&Handler{})
 }
 
-type handlerFunc func(*resource.Model, *resource.Model, *session.Session) (handler.ProgressEvent, error)
+type handlerFunc func(handler.Request, *resource.Model, *resource.Model) (handler.ProgressEvent, error)
 
-func wrap(ctx context.Context, req handler.Request, f handlerFunc) (response handler.ProgressEvent) {
+func wrap(req handler.Request, f handlerFunc) (response handler.ProgressEvent) {
 	defer func() {
 		// Catch any panics and return a failed ProgressEvent
 		if r := recover(); r != nil {
@@ -61,7 +57,7 @@ func wrap(ctx context.Context, req handler.Request, f handlerFunc) (response han
 	}()
 
 	// Populate the previous model
-	var prevModel *resource.Model
+	prevModel := &resource.Model{}
 	if err := req.UnmarshalPrevious(prevModel); err != nil {
 		return handler.NewFailedEvent(err)
 	}
@@ -72,13 +68,7 @@ func wrap(ctx context.Context, req handler.Request, f handlerFunc) (response han
 		return handler.NewFailedEvent(err)
 	}
 
-	// Retrieve the session
-	session, err := cfn.GetContextSession(ctx)
-	if err != nil {
-		return handler.NewFailedEvent(err)
-	}
-
-	response, err = f(prevModel, currentModel, session)
+	response, err := f(req, prevModel, currentModel)
 	if err != nil {
 		return handler.NewFailedEvent(err)
 	}

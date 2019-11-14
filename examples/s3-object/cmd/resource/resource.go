@@ -5,14 +5,13 @@ import (
 	"errors"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // Create handles the Create event from the Cloudformation service.
-func Create(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+func Create(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
 	// Create the object
-	_, err := s3.New(session).PutObject(&s3.PutObjectInput{
+	_, err := s3.New(req.Session).PutObject(&s3.PutObjectInput{
 		ACL:    currentModel.ACL.Value(),
 		Body:   bytes.NewReader([]byte(*currentModel.Content.Value())),
 		Bucket: currentModel.BucketName.Value(),
@@ -31,18 +30,18 @@ func Create(prevModel *Model, currentModel *Model, session *session.Session) (ha
 }
 
 // Read handles the Read event from the Cloudformation service.
-func Read(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+func Read(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
 	return handler.ProgressEvent{}, errors.New("Not implemented: Read")
 }
 
 // Update handles the Update event from the Cloudformation service.
-func Update(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
-	_, err := Delete(prevModel, prevModel, session)
+func Update(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
+	_, err := Delete(req, prevModel, prevModel)
 	if err != nil {
 		return handler.ProgressEvent{}, err
 	}
 
-	_, err = Create(prevModel, currentModel, session)
+	_, err = Create(req, prevModel, currentModel)
 	if err != nil {
 		return handler.ProgressEvent{}, err
 	}
@@ -55,9 +54,9 @@ func Update(prevModel *Model, currentModel *Model, session *session.Session) (ha
 }
 
 // Delete handles the Delete event from the Cloudformation service.
-func Delete(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+func Delete(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
 	// Delete the object
-	_, err := s3.New(session).DeleteObject(&s3.DeleteObjectInput{
+	_, err := s3.New(req.Session).DeleteObject(&s3.DeleteObjectInput{
 		Bucket: currentModel.BucketName.Value(),
 		Key:    currentModel.Key.Value(),
 	})
@@ -73,6 +72,6 @@ func Delete(prevModel *Model, currentModel *Model, session *session.Session) (ha
 }
 
 // List handles the List event from the Cloudformation service.
-func List(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+func List(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
 	return handler.ProgressEvent{}, errors.New("Not implemented: List")
 }

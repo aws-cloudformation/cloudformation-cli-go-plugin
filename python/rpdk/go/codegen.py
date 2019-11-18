@@ -78,9 +78,7 @@ class GoLanguagePlugin(LanguagePlugin):
         path = project.root / "go.mod"
         LOG.debug("Writing go.mod: %s", path)
         template = self.env.get_template("go.mod.tple")
-        contents = template.render(
-            path=Path(project.settings["importpath"])
-        )
+        contents = template.render(path=Path(project.settings["importpath"]))
         project.safewrite(path, contents)
 
         # CloudFormation/SAM template for handler lambda

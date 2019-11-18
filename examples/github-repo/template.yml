@@ -13,8 +13,8 @@ Resources:
       Handler: handler
       Runtime: go1.x
       CodeUri: bin/
-      # Uncomment to test with AWS resources  
-      # Environment:  
+      # Uncomment to test with AWS resources
+      # Environment:
       #   Variables:
       #     AWS_FORCE_INTEGRATIONS: "true"
 
@@ -24,4 +24,3 @@ Resources:
       Handler: handler
       Runtime: go1.x
       CodeUri: bin/
-

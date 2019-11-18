@@ -42,18 +42,8 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def _prompt_for_go_path(self, project):
         namespace = project.root
-
-        if "github.com" in namespace.parts:
-            projectpath = namespace.parents[namespace.parts.index("github.com") - 2]
-            namepath = namespace.relative_to(projectpath)
-            prompt = "Enter the GO Import path (empty for default '{}'): ".format(
-                str(namespace.relative_to(projectpath))
-            )
-
-        else:
-            prompt = "Enter the GO Import path"
-
-        self.import_path = input_with_validation(prompt, validate_path(namepath))
+        prompt = "Enter the GO Import path"
+        self.import_path = input_with_validation(prompt, validate_path(""))
         project.settings["importpath"] = str(self.import_path)
 
     def init(self, project):

@@ -1,0 +1,48 @@
+{
+    "typeName": "Example::GitHub::Repo",
+    "description": "Manages a GitHub Repo",
+    "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+    "properties": {
+        "Name": {
+            "description": "Name of the repository on GitHub",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+        },
+        "Owner": {
+            "description": "Where to create the repository, either a user or an organization",
+            "type": "string"
+        },
+        "Description": {
+            "description": "The title of the TPS report is a mandatory element.",
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 250
+        },
+        "Homepage": {
+            "description": "Homepage of the project",
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 250
+        },
+        "OauthToken": {
+            "description": "OAuth token from GitHub",
+            "type": "string"
+        },
+        "URL": {
+            "description": "URL to the repository",
+            "type": "string"
+        }
+    },
+    "required": [
+        "Name",
+        "OauthToken",
+        "Owner"
+    ],
+    "readOnlyProperties": [
+        "/properties/URL"
+    ],
+    "primaryIdentifier": [
+        "/properties/URL"
+    ]
+}

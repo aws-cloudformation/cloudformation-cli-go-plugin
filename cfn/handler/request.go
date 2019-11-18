@@ -19,9 +19,18 @@ const (
 // Request is passed to actions with customer related data
 // such as resource states
 type Request struct {
-	LogicalResourceID              string
-	CallbackContext                map[string]interface{}
-	Session                        *session.Session
+	// The logical ID of the resource in the CloudFormation stack
+	LogicalResourceID string
+
+	// The callback context is an arbitrary datum which the handler can return in an
+	// IN_PROGRESS event to allow the passing through of additional state or
+	// metadata between subsequent retries; for example to pass through a Resource
+	// identifier which can be used to continue polling for stabilization
+	CallbackContext map[string]interface{}
+
+	// An authenticated AWS session that can be used with the AWS Go SDK
+	Session *session.Session
+
 	previousResourcePropertiesBody []byte
 	resourcePropertiesBody         []byte
 }

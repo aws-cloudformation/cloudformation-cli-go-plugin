@@ -1,3 +1,7 @@
+/*
+Package encoding defines custom types for strings, bools, ints, and floats
+that must be used my resource provider model structs.
+*/
 package encoding
 
 import (

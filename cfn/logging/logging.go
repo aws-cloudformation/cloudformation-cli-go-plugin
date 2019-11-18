@@ -1,6 +1,10 @@
-// +build logging
-
+/*
+Package logging provides support for logging to cloudwatch
+within resource providers.
+*/
 package logging
+
+// +build logging
 
 import (
 	"io"

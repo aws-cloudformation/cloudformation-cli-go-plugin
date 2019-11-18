@@ -1,3 +1,7 @@
+/*
+Package credentials providers helper functions for dealing with AWS credentials
+passed in to resource providers from CloudFormation
+*/
 package credentials
 
 import (

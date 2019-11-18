@@ -13,9 +13,10 @@ Resources:
       Handler: handler
       Runtime: go1.x
       CodeUri: bin/
-      Environment:
-        Variables:
-          AWS_FORCE_INTEGRATIONS: "oh ffs"
+      # Uncomment to test with AWS resources
+      # Environment:
+      #   Variables:
+      #     AWS_FORCE_INTEGRATIONS: "true"
 
   TestEntrypoint:
     Type: AWS::Serverless::Function

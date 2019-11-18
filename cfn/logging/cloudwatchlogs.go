@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"io"
+	"log"
 	"os"
 	"time"
 
@@ -32,8 +33,10 @@ import (
 //	log.SetOutput(provider)
 //	log.Printf("Eric loves pineapple pizza!")
 func NewCloudWatchLogsProvider(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) (io.Writer, error) {
+	logger := New("internal: ")
+
 	// If we're running in SAM CLI, we can return the stdout
-	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
+	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 && len(os.Getenv("AWS_FORCE_INTEGRATIONS")) == 0 {
 		return stdErr, nil
 	}
 
@@ -43,18 +46,29 @@ func NewCloudWatchLogsProvider(client cloudwatchlogsiface.CloudWatchLogsAPI, log
 	}
 
 	if !ok {
+		logger.Printf("Need to create loggroup: %v", logGroupName)
 		if err := CreateNewCloudWatchLogGroup(client, logGroupName); err != nil {
 			return nil, err
 		}
 	}
 
 	logStreamName := ksuid.New()
+	// need to create logstream
+	if err := CreateNewLogStream(client, logGroupName, logStreamName.String()); err != nil {
+		return nil, err
+	}
 
 	provider := &cloudWatchLogsProvider{
 		client: client,
 
 		logGroupName:  logGroupName,
 		logStreamName: logStreamName.String(),
+
+		logger: logger,
+	}
+
+	if _, err := provider.Write([]byte("Initialization of log stream")); err != nil {
+		return nil, err
 	}
 
 	return provider, nil
@@ -65,25 +79,38 @@ type cloudWatchLogsProvider struct {
 
 	logGroupName  string
 	logStreamName string
+
+	sequence string
+
+	logger *log.Logger
 }
 
 func (p *cloudWatchLogsProvider) Write(b []byte) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
-	defer cancel()
+	p.logger.Printf("Need to write: %v", string(b))
 
-	if _, err := p.client.PutLogEventsWithContext(ctx, &cloudwatchlogs.PutLogEventsInput{
+	input := &cloudwatchlogs.PutLogEventsInput{
 		LogGroupName:  aws.String(p.logGroupName),
 		LogStreamName: aws.String(p.logStreamName),
 
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
 			&cloudwatchlogs.InputLogEvent{
 				Message:   aws.String(string(b)),
-				Timestamp: aws.Int64(time.Now().Unix()),
+				Timestamp: aws.Int64(time.Now().UnixNano() / int64(time.Millisecond)),
 			},
 		},
-	}); err != nil {
+	}
+
+	if len(p.sequence) != 0 {
+		input.SetSequenceToken(p.sequence)
+	}
+
+	resp, err := p.client.PutLogEvents(input)
+
+	if err != nil {
 		return 0, err
 	}
+
+	p.sequence = *resp.NextSequenceToken
 
 	return len(b), nil
 }
@@ -146,4 +173,17 @@ func CreateNewCloudWatchLogGroup(client cloudwatchlogsiface.CloudWatchLogsAPI, l
 	}
 
 	return nil
+}
+
+// CreateNewLogStream creates a log stream inside of a LogGroup
+func CreateNewLogStream(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string, logStreamName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+	defer cancel()
+
+	_, err := client.CreateLogStreamWithContext(ctx, &cloudwatchlogs.CreateLogStreamInput{
+		LogGroupName:  aws.String(logGroupName),
+		LogStreamName: aws.String(logStreamName),
+	})
+
+	return err
 }

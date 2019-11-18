@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -24,6 +25,16 @@ func TestCloudWatchLogProvider(t *testing.T) {
 			CreateLogGroupFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, nil
 			},
+
+			CreateLogStreamFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+				return nil, nil
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				return &cloudwatchlogs.PutLogEventsOutput{
+					NextSequenceToken: aws.String("zomg"),
+				}, nil
+			},
 		}
 
 		_, err := NewCloudWatchLogsProvider(client, "pineapple-pizza")
@@ -40,6 +51,16 @@ func TestCloudWatchLogProvider(t *testing.T) {
 
 			CreateLogGroupFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, nil
+			},
+
+			CreateLogStreamFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+				return nil, nil
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				return &cloudwatchlogs.PutLogEventsOutput{
+					NextSequenceToken: aws.String("zomg"),
+				}, nil
 			},
 		}
 
@@ -59,6 +80,16 @@ func TestCloudWatchLogProvider(t *testing.T) {
 
 			CreateLogGroupFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, awserr.New("Invalid", "Invalid", nil)
+			},
+
+			CreateLogStreamFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+				return nil, nil
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				return &cloudwatchlogs.PutLogEventsOutput{
+					NextSequenceToken: aws.String("zomg"),
+				}, nil
 			},
 		}
 
@@ -82,8 +113,14 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				return nil, nil
 			},
 
-			PutLogEventsFn: func(ctx context.Context, input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+			CreateLogStreamFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
 				return nil, nil
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				return &cloudwatchlogs.PutLogEventsOutput{
+					NextSequenceToken: aws.String("zomg"),
+				}, nil
 			},
 		}
 
@@ -104,6 +141,7 @@ func TestCloudWatchLogProvider(t *testing.T) {
 	})
 
 	t.Run("Write Error", func(t *testing.T) {
+		writeCount := 0
 		client := CallbackCloudWatchLogs{
 			DescribeLogGroupsFn: func(ctx context.Context, input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
 				return &cloudwatchlogs.DescribeLogGroupsOutput{
@@ -117,7 +155,18 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				return nil, nil
 			},
 
-			PutLogEventsFn: func(ctx context.Context, input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+			CreateLogStreamFn: func(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+				return nil, nil
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				if writeCount == 0 {
+					writeCount++
+					return &cloudwatchlogs.PutLogEventsOutput{
+						NextSequenceToken: aws.String("zomg"),
+					}, nil
+				}
+
 				return nil, awserr.New("Invalid", "Invalid", nil)
 			},
 		}
@@ -196,7 +245,8 @@ type CallbackCloudWatchLogs struct {
 
 	DescribeLogGroupsFn func(ctx context.Context, input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error)
 	CreateLogGroupFn    func(ctx context.Context, input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error)
-	PutLogEventsFn      func(ctx context.Context, input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error)
+	CreateLogStreamFn   func(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error)
+	PutLogEventsFn      func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error)
 }
 
 func (cwl CallbackCloudWatchLogs) DescribeLogGroupsWithContext(ctx context.Context, input *cloudwatchlogs.DescribeLogGroupsInput, opts ...request.Option) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
@@ -207,6 +257,10 @@ func (cwl CallbackCloudWatchLogs) CreateLogGroupWithContext(ctx context.Context,
 	return cwl.CreateLogGroupFn(ctx, input)
 }
 
-func (cwl CallbackCloudWatchLogs) PutLogEventsWithContext(ctx context.Context, input *cloudwatchlogs.PutLogEventsInput, opts ...request.Option) (*cloudwatchlogs.PutLogEventsOutput, error) {
-	return cwl.PutLogEventsFn(ctx, input)
+func (cwl CallbackCloudWatchLogs) CreateLogStreamWithContext(ctx context.Context, input *cloudwatchlogs.CreateLogStreamInput, opts ...request.Option) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+	return cwl.CreateLogStreamFn(ctx, input)
+}
+
+func (cwl CallbackCloudWatchLogs) PutLogEvents(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+	return cwl.PutLogEventsFn(input)
 }

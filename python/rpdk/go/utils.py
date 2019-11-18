@@ -43,9 +43,6 @@ def validate_path(default):
         if not value:
             return default
 
-        if not Path("/" + value).exists():
-            raise WizardValidationError("Path does not exists")
-
         namespace = value
 
         return namespace

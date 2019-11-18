@@ -13,7 +13,7 @@ Resources:
       Handler: handler
       Runtime: go1.x
       CodeUri: bin/
-      Environment:  
+      Environment:
         Variables:
           AWS_FORCE_INTEGRATIONS: "oh ffs"
 
@@ -23,4 +23,3 @@ Resources:
       Handler: handler
       Runtime: go1.x
       CodeUri: bin/
-

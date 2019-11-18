@@ -1,6 +1,6 @@
 /*
 Package scheduler handles rescheduling resource provider handlers
-when required by in_progress events
+when required by in_progress events.
 */
 package scheduler
 

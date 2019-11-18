@@ -1,4 +1,4 @@
 /*
-Package examples contains example resource provider implementations
+Package examples contains example resource provider implementations.
 */
 package examples

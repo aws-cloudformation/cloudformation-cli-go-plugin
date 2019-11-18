@@ -7,11 +7,11 @@ This plugin library helps to provide Go runtime bindings for the execution of yo
 Usage
 -----
 
-If you are using this package to build resource providers for CloudFormation, simply install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation RPDK Go Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin]
+If you are using this package to build resource providers for CloudFormation, install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation CLI Go Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin]
 
 ```
-pip install -e ../cloudformation-cli
-pip install -e ../aws-cloudformation-rpdk-go-plugin
+pip install cloudformation-cli
+pip install cloudformation-cli-go-plugin
 ```
 
 Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
@@ -19,12 +19,18 @@ Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-c
 Development
 -----------
 
-For changes to the plugin, a Python virtual environment is recommended. You also need to download [`aws-cloudformation-rpdk`](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) and install it first, as it isn't currently available on PyPI, but is a required dependency:
+First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk], as it is a required dependency:
+
+```
+pip install cloudformation-cli
+```
+
+For changes to the plugin, a Python virtual environment is recommended.
 
 ```
 python3 -m venv env
 source env/bin/activate
-# assuming aws-cloudformation-rpdk has already been cloned/downloaded
+# assuming cloudformation-cli has already been cloned/downloaded
 pip3 install -e ../aws-cloudformation/aws-cloudformation-rpdk-go-plugin
 ```
 

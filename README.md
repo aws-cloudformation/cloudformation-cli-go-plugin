@@ -10,8 +10,8 @@ Usage
 If you are using this package to build resource providers for CloudFormation, install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation CLI Go Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin]
 
 ```
-pip install cloudformation-cli
-pip install cloudformation-cli-go-plugin
+pip3 install cloudformation-cli
+pip3 install cloudformation-cli-go-plugin
 ```
 
 Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
@@ -22,7 +22,7 @@ Development
 First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk], as it is a required dependency:
 
 ```
-pip install cloudformation-cli
+pip3 install cloudformation-cli
 ```
 
 For changes to the plugin, a Python virtual environment is recommended.

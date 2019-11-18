@@ -1,19 +1,37 @@
-## AWS CloudFormation RPDK Go Plugin
+## AWS CloudFormation Resource Provider Go Plugin
 
-The CloudFormation Provider Development Toolkit Go Plugin allows you to autogenerate Go code based on an input schema.
+The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
 
-This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation.
+This plugin library helps to provide Go runtime bindings for the execution of your providers by CloudFormation.
+
+Usage
+-----
+
+If you are using this package to build resource providers for CloudFormation, install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation CLI Go Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin]
+
+```
+pip3 install cloudformation-cli
+pip3 install cloudformation-cli-go-plugin
+```
+
+Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
 
 Development
 -----------
 
-For changes to the plugin, a Python virtual environment is recommended. You also need to download `cloudformation-cli` and install it first:
+First, you will need to install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk], as it is a required dependency:
+
+```
+pip3 install cloudformation-cli
+```
+
+For changes to the plugin, a Python virtual environment is recommended.
 
 ```
 python3 -m venv env
 source env/bin/activate
-pip3 install cloudformation-cli
-pip3 install -e .
+# assuming cloudformation-cli has already been cloned/downloaded
+pip3 install -e /path/to/aws-cloudformation-rpdk-go-plugin
 ```
 
 Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):

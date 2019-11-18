@@ -31,7 +31,7 @@ For changes to the plugin, a Python virtual environment is recommended.
 python3 -m venv env
 source env/bin/activate
 # assuming cloudformation-cli has already been cloned/downloaded
-pip3 install -e ../aws-cloudformation/aws-cloudformation-rpdk-go-plugin
+pip3 install -e /path/to/aws-cloudformation-rpdk-go-plugin
 ```
 
 Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):

@@ -22,12 +22,14 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cloudformation-rpdk-go-plugin",
+    name="cloudformation-cli-go-plugin",
     version=find_version("python", "rpdk", "go", "__init__.py"),
     description=__doc__,
     long_description=read("README.md"),
+    long_description_content_type="text/markdown",
     author="Amazon Web Services",
-    url="https://aws.amazon.com/cloudformation/",
+    author_email="aws-cloudformation-developers@amazon.com",
+    url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.go"],
     package_dir={"": "python"},
@@ -35,10 +37,11 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=["cloudformation-cli>=0.1,<0.2"],
+    python_requires=">=3.6",
     entry_points={"rpdk.v1.languages": ["go = rpdk.go.codegen:GoLanguagePlugin"]},
     license="Apache License 2.0",
-    classifiers=(
-        "Development Status :: 2 - Pre-Alpha",
+    classifiers=[
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
@@ -48,6 +51,6 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-    ),
+    ],
     keywords="Amazon Web Services AWS CloudFormation",
 )

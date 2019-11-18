@@ -193,25 +193,19 @@ func reportFailureStatus(event *event, metricsPublisher *metrics.Publisher, call
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
 		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
-		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
-		metricsPublisher.SetResourceTypeName(event.ResourceType)
-		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
-		callbackAdapter := callback.New(cloudformation.New(platformSession))
-
 		providerSession := credentials.SessionFromCredentialsProvider(&event.RequestData.ProviderCredentials)
 		logsProvider, err := logging.NewCloudWatchLogsProvider(
 			cloudwatchlogs.New(providerSession),
 			event.RequestData.ProviderLogGroupName,
 		)
 
-		if err != nil {
-			// we will log the error in the metric, but carry on.
-			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request", err)
-			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-		}
-
 		// set default logger to output to CWL in the provider account
 		logging.SetProviderLogOutput(logsProvider)
+
+		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
+		metricsPublisher.SetResourceTypeName(event.ResourceType)
+		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
+		callbackAdapter := callback.New(cloudformation.New(platformSession))
 
 		handlerFn, err := router(event.Action, h)
 		if err != nil {

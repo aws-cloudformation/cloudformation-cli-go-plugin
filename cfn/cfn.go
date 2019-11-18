@@ -53,11 +53,11 @@ var Timeout time.Duration = 60 * time.Second
 // any actions that were undertaken by the resource provider
 // or of any error that occurred during operation.
 type Handler interface {
-	Create(ctx context.Context, request handler.Request) handler.ProgressEvent
-	Read(ctx context.Context, request handler.Request) handler.ProgressEvent
-	Update(ctx context.Context, request handler.Request) handler.ProgressEvent
-	Delete(ctx context.Context, request handler.Request) handler.ProgressEvent
-	List(ctx context.Context, request handler.Request) handler.ProgressEvent
+	Create(request handler.Request) handler.ProgressEvent
+	Read(request handler.Request) handler.ProgressEvent
+	Update(request handler.Request) handler.ProgressEvent
+	Delete(request handler.Request) handler.ProgressEvent
+	List(request handler.Request) handler.ProgressEvent
 }
 
 // Start is the entry point called from a resource's main function
@@ -72,7 +72,7 @@ type tags map[string]string
 type eventFunc func(ctx context.Context, event *event) (response, error)
 
 // handlerFunc is the signature required for all actions
-type handlerFunc func(ctx context.Context, request handler.Request) handler.ProgressEvent
+type handlerFunc func(request handler.Request) handler.ProgressEvent
 
 // router decides which handler should be invoked based on the action
 // It will return a route or an error depending on the action passed in
@@ -96,7 +96,7 @@ func router(a string, h Handler) (handlerFunc, error) {
 }
 
 //Invoke handles the invocation of the handerFn.
-func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestContext, metricsPublisher *metrics.Publisher, action string) (handler.ProgressEvent, error) {
+func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *metrics.Publisher, action string) (handler.ProgressEvent, error) {
 	attempts := 0
 
 	for {
@@ -121,11 +121,8 @@ func invoke(handlerFn handlerFunc, request handler.Request, reqContext *requestC
 				cherror <- err
 			}
 
-			customerCtx := SetContextValues(context.Background(), reqContext.CallbackContext)
-			customerCtx = SetContextSession(customerCtx, reqContext.Session)
-
 			// Report the work is done.
-			progEvt := handlerFn(customerCtx, request)
+			progEvt := handlerFn(request)
 
 			elapsed := time.Since(start)
 
@@ -230,9 +227,11 @@ func makeEventFunc(h Handler) eventFunc {
 		}
 
 		request := handler.NewRequest(
+			event.RequestData.LogicalResourceID,
+			event.RequestContext.CallbackContext,
+			event.RequestContext.Session,
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
-			event.RequestData.LogicalResourceID,
 		)
 
 		if len(event.RequestContext.CallbackContext) == 0 || event.RequestContext.Invocation == 0 {
@@ -257,7 +256,7 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
 			event.RequestContext.Invocation = event.RequestContext.Invocation + 1
 
-			progEvt, err := invoke(handlerFn, request, &event.RequestContext, metricsPublisher, event.Action)
+			progEvt, err := invoke(handlerFn, request, metricsPublisher, event.Action)
 
 			if err != nil {
 				errs := []error{err}

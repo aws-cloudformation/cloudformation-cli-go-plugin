@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 )
 
@@ -18,14 +20,18 @@ const (
 // such as resource states
 type Request struct {
 	LogicalResourceID              string
+	CallbackContext                map[string]interface{}
+	Session                        *session.Session
 	previousResourcePropertiesBody []byte
 	resourcePropertiesBody         []byte
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(previousBody, body []byte, logicalResourceID string) Request {
+func NewRequest(id string, ctx map[string]interface{}, sess *session.Session, previousBody, body []byte) Request {
 	return Request{
-		LogicalResourceID:              logicalResourceID,
+		LogicalResourceID:              id,
+		CallbackContext:                ctx,
+		Session:                        sess,
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
 	}
@@ -35,7 +41,7 @@ func NewRequest(previousBody, body []byte, logicalResourceID string) Request {
 // with the previous properties of the resource
 func (r *Request) UnmarshalPrevious(v interface{}) error {
 	if len(r.previousResourcePropertiesBody) == 0 {
-		return cfnerr.New(bodyEmptyError, "Body is empty", nil)
+		return nil
 	}
 
 	if err := json.Unmarshal(r.previousResourcePropertiesBody, v); err != nil {

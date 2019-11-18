@@ -1,7 +1,6 @@
 package cfn
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -149,16 +148,16 @@ func TestInvoke(t *testing.T) {
 		wantErr   bool
 		wantCount int
 	}{
-		{"TestMaxTriesShouldReturnError ", args{func(ctx context.Context, request handler.Request) handler.ProgressEvent {
+		{"TestMaxTriesShouldReturnError ", args{func(request handler.Request) handler.ProgressEvent {
 			time.Sleep(2 * time.Hour)
 			return handler.ProgressEvent{}
-		}, handler.NewRequest(nil, nil, "foo"), &requestContext{}, mockPub, createAction,
+		}, handler.NewRequest("foo", nil, nil, nil, nil), &requestContext{}, mockPub, createAction,
 		}, handler.ProgressEvent{}, true, 3,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := invoke(tt.args.handlerFn, tt.args.request, tt.args.reqContext, tt.args.metricsPublisher, tt.args.action)
+			got, err := invoke(tt.args.handlerFn, tt.args.request, tt.args.metricsPublisher, tt.args.action)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Invoke() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -1,33 +1,33 @@
 package resource
 
 import (
-	"context"
+	"errors"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-// Handler implements the cfn.Handler interface.
-// The zero value is ready to use.
-type Handler struct {
-}
 {% for method in ("Create", "Read", "Update", "Delete", "List") %}
 
 // {{ method }} handles the {{ method }} event from the Cloudformation service.
-func (r *Handler) {{ method }}(ctx context.Context, req handler.Request) handler.ProgressEvent {
-	//***Add code here: Make your API call, modify the model, etc..
-	m := &Model{}
-	if err := req.Unmarshal(m); err != nil {
-		cfnErr := cfnerr.New(cfnerr.GeneralServiceException, "Unable to complete request", err)
-		return handler.NewFailedEvent(cfnErr)
-	}
+func {{ method }}(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+    // Add your code here:
+    // * Make API calls
+    // * Mutate the model
 
-	p := handler.NewProgressEvent()
-	p.ResourceModel = m
-	p.OperationStatus = handler.Success
-	p.Message = "Completed"
+    /*
+        // Construct a new handler.ProgressEvent and return it
+        response := handler.ProgressEvent{
+            OperationStatus: handler.Success,
+            Message: "{{ method }} complete",
+            ResourceModel: currentModel,
+        }
 
-	// return the status
-	return p
+        return response, nil
+    */
+
+    // Not implemented, return an empty handler.ProgressEvent
+    // and an error
+    return handler.ProgressEvent{}, errors.New("Not implemented: {{ method }}")
 }
 {% endfor %}

@@ -1,8 +1,6 @@
 package cfn
 
 import (
-	"context"
-
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -13,23 +11,23 @@ import (
 // This implementation of the handlers is only used for testing.
 type EmptyHandler struct{}
 
-func (h *EmptyHandler) Create(ctx context.Context, request handler.Request) handler.ProgressEvent {
+func (h *EmptyHandler) Create(request handler.Request) handler.ProgressEvent {
 	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) Read(ctx context.Context, request handler.Request) handler.ProgressEvent {
+func (h *EmptyHandler) Read(request handler.Request) handler.ProgressEvent {
 	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) Update(ctx context.Context, request handler.Request) handler.ProgressEvent {
+func (h *EmptyHandler) Update(request handler.Request) handler.ProgressEvent {
 	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) Delete(ctx context.Context, request handler.Request) handler.ProgressEvent {
+func (h *EmptyHandler) Delete(request handler.Request) handler.ProgressEvent {
 	return handler.ProgressEvent{}
 }
 
-func (h *EmptyHandler) List(ctx context.Context, request handler.Request) handler.ProgressEvent {
+func (h *EmptyHandler) List(request handler.Request) handler.ProgressEvent {
 	return handler.ProgressEvent{}
 }
 

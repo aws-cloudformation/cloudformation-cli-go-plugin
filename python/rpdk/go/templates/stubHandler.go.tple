@@ -4,16 +4,16 @@ import (
 	"errors"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 {% for method in ("Create", "Read", "Update", "Delete", "List") %}
 
 // {{ method }} handles the {{ method }} event from the Cloudformation service.
-func {{ method }}(prevModel *Model, currentModel *Model, session *session.Session) (handler.ProgressEvent, error) {
+func {{ method }}(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
     // Add your code here:
-    // * Make API calls
+    // * Make API calls (use req.Session)
     // * Mutate the model
+    // * Check/set any callback context (req.CallbackContext / response.CallbackContext)
 
     /*
         // Construct a new handler.ProgressEvent and return it

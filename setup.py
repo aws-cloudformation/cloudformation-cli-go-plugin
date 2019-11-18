@@ -34,8 +34,8 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=["aws-cfn-cli>=0.1,<0.2"],
-    entry_points={"rpdk.v1.languages": ["golang = rpdk.go.codegen:GoLanguagePlugin"]},
+    install_requires=["cloudformation-cli>=0.1,<0.2"],
+    entry_points={"rpdk.v1.languages": ["go = rpdk.go.codegen:GoLanguagePlugin"]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

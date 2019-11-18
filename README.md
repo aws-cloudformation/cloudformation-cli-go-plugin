@@ -1,13 +1,25 @@
-## AWS CloudFormation RPDK Go Plugin
+## AWS CloudFormation Resource Provider Go Plugin
 
-The CloudFormation Provider Development Toolkit Go Plugin allows you to autogenerate Go code based on an input schema.
+The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
 
-This plugin library helps to provide runtime bindings for the execution of your providers by CloudFormation.
+This plugin library helps to provide Go runtime bindings for the execution of your providers by CloudFormation.
+
+Usage
+-----
+
+If you are using this package to build resource providers for CloudFormation, simply install the (CloudFormation CLI)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk] and the (CloudFormation RPDK Go Plugin)[https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin]
+
+```
+pip install -e ../cloudformation-cli
+pip install -e ../aws-cloudformation-rpdk-go-plugin
+```
+
+Refer to the documentation for the [CloudFormation CLI](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) for usage instructions.
 
 Development
 -----------
 
-For changes to the plugin, a Python virtual environment is recommended. You also need to download `aws-cloudformation-rpdk` and install it first, as it isn't currently available on PyPI, but is a required dependency:
+For changes to the plugin, a Python virtual environment is recommended. You also need to download [`aws-cloudformation-rpdk`](https://github.com/aws-cloudformation/aws-cloudformation-rpdk) and install it first, as it isn't currently available on PyPI, but is a required dependency:
 
 ```
 python3 -m venv env

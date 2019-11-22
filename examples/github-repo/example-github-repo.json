@@ -39,6 +39,7 @@
         "OauthToken",
         "Owner"
     ],
+    "additionalProperties": false,
     "readOnlyProperties": [
         "/properties/URL"
     ],

@@ -3,9 +3,9 @@ Package logging provides support for logging to cloudwatch
 within resource providers.
 */
 
-// +build logging
-
 package logging
+
+// +build logging
 
 import (
 	"io"

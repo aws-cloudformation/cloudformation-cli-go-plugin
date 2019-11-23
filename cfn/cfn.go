@@ -220,14 +220,6 @@ func makeEventFunc(h Handler) eventFunc {
 			return newFailedResponse(cfnErr, event.BearerToken), cfnErr
 		}
 
-		request := handler.NewRequest(
-			event.RequestData.LogicalResourceID,
-			event.RequestContext.CallbackContext,
-			event.RequestContext.Session,
-			event.RequestData.PreviousResourceProperties,
-			event.RequestData.ResourceProperties,
-		)
-
 		if len(event.RequestContext.CallbackContext) == 0 || event.RequestContext.Invocation == 0 {
 			// Acknowledge the task for first time invocation
 			if err := reportInitialStatus(event, metricsPublisher, callbackAdapter); err != nil {
@@ -247,7 +239,14 @@ func makeEventFunc(h Handler) eventFunc {
 		}
 
 		for {
-			event.RequestContext.Session = credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials)
+
+			request := handler.NewRequest(
+				event.RequestData.LogicalResourceID,
+				event.RequestContext.CallbackContext,
+				credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials),
+				event.RequestData.PreviousResourceProperties,
+				event.RequestData.ResourceProperties,
+			)
 			event.RequestContext.Invocation = event.RequestContext.Invocation + 1
 
 			progEvt, err := invoke(handlerFn, request, metricsPublisher, event.Action)
@@ -318,9 +317,6 @@ func makeEventFunc(h Handler) eventFunc {
 				//Add IDs to recall the function with Cloudwatch events
 				event.RequestContext.CloudWatchEventsRuleName = invocationIDS.Handler
 				event.RequestContext.CloudWatchEventsTargetID = invocationIDS.Target
-
-				//Set the session to nil to prevent marshaling
-				event.RequestContext.Session = nil
 
 				//Rebuild the context
 				event.RequestContext.CallbackContext = customerCtx

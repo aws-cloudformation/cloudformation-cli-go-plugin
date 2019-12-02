@@ -62,7 +62,7 @@ type Scheduler struct {
 func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 	return &Scheduler{
 		logger: logging.New("scheduler"),
-		client: noopCloudWatchClient(),
+		client: newNoopCloudWatchClient(),
 	}
 }
 

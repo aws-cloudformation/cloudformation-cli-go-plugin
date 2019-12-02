@@ -1,10 +1,11 @@
-// +build metrics
+// +build !metrics
 
 package metrics
 
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -41,9 +42,12 @@ type Publisher struct {
 
 // New creates a new Publisher.
 func New(client cloudwatchiface.CloudWatchAPI) *Publisher {
+	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
+		client = newNoopClient()
+	}
 
 	return &Publisher{
-		client: newNoopClient(),
+		client: client,
 	}
 }
 

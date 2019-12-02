@@ -122,9 +122,6 @@ func Test_makeEventFunc(t *testing.T) {
 		{"Test simple CREATE", args{&MockHandler{f1}, context.Background(), loadEvent("request.create.json", &event{})}, response{
 			BearerToken: "123456",
 		}, false},
-		{"Test simple CREATE", args{&MockHandler{f1}, context.Background(), loadEvent("request.create.json", &event{})}, response{
-			BearerToken: "123456",
-		}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

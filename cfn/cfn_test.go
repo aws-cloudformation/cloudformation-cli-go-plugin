@@ -9,9 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/callback"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 func Test_reschedule(t *testing.T) {
@@ -75,11 +77,11 @@ func Test_makeEventFunc(t *testing.T) {
 
 	lc := lambdacontext.NewContext(tc, &lambdacontext.LambdaContext{})
 
-	f1 := func(callback map[string]interface{}) handler.ProgressEvent {
+	f1 := func(callback map[string]interface{}, s *session.Session) handler.ProgressEvent {
 		return handler.ProgressEvent{}
 	}
 
-	f2 := func(callback map[string]interface{}) handler.ProgressEvent {
+	f2 := func(callback map[string]interface{}, s *session.Session) handler.ProgressEvent {
 		return handler.ProgressEvent{
 			OperationStatus:      handler.InProgress,
 			Message:              "In Progress",
@@ -87,12 +89,35 @@ func Test_makeEventFunc(t *testing.T) {
 		}
 	}
 
-	f3 := func(callback map[string]interface{}) handler.ProgressEvent {
+	f4 := func(callback map[string]interface{}, s *session.Session) handler.ProgressEvent {
+		return handler.ProgressEvent{
+			OperationStatus: handler.Failed,
+		}
+	}
+
+	f3 := func(callback map[string]interface{}, s *session.Session) handler.ProgressEvent {
 
 		if len(callback) == 1 {
 			return handler.ProgressEvent{
 				OperationStatus: handler.Success,
 				Message:         "Success",
+			}
+
+		}
+		return handler.ProgressEvent{
+			OperationStatus:      handler.InProgress,
+			Message:              "In Progress",
+			CallbackDelaySeconds: 3,
+			CallbackContext:      map[string]interface{}{"foo": "bar"},
+		}
+	}
+
+	f5 := func(callback map[string]interface{}, s *session.Session) handler.ProgressEvent {
+
+		if len(callback) == 1 {
+			return handler.ProgressEvent{
+				OperationStatus: handler.Failed,
+				Message:         "Failed",
 			}
 
 		}
@@ -118,6 +143,10 @@ func Test_makeEventFunc(t *testing.T) {
 		{"Test simple CREATE", args{&MockHandler{f1}, lc, loadEvent("request.create.json", &event{})}, response{
 			BearerToken: "123456",
 		}, false},
+		{"Test CREATE failed", args{&MockHandler{f4}, lc, loadEvent("request.create.json", &event{})}, response{
+			OperationStatus: handler.Failed,
+			BearerToken:     "123456",
+		}, false},
 		{"Test simple CREATE async", args{&MockHandler{f2}, lc, loadEvent("request.create.json", &event{})}, response{
 			BearerToken:     "123456",
 			Message:         "In Progress",
@@ -127,6 +156,11 @@ func Test_makeEventFunc(t *testing.T) {
 			BearerToken:     "123456",
 			Message:         "Success",
 			OperationStatus: handler.Success,
+		}, false},
+		{"Test CREATE async local failed", args{&MockHandler{f5}, lc, loadEvent("request.create.json", &event{})}, response{
+			BearerToken:     "123456",
+			Message:         "Failed",
+			OperationStatus: handler.Failed,
 		}, false},
 		{"Test READ async should return err", args{&MockHandler{f2}, lc, loadEvent("request.read.json", &event{})}, response{
 			OperationStatus: handler.Failed,
@@ -177,4 +211,24 @@ func loadEvent(path string, evt *event) *event {
 		log.Fatalf("Marshaling error with event: %v", err)
 	}
 	return evt
+}
+
+func Test_translateStatus(t *testing.T) {
+	type args struct {
+		operationStatus handler.Status
+	}
+	tests := []struct {
+		name string
+		args args
+		want callback.Status
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := translateStatus(tt.args.operationStatus); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("translateStatus() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

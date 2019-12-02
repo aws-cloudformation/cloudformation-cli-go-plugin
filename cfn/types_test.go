@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 )
@@ -38,27 +39,27 @@ func (h *EmptyHandler) List(request handler.Request) handler.ProgressEvent {
 //
 // This implementation of the handlers is only used for testing.
 type MockHandler struct {
-	fn func(callback map[string]interface{}) handler.ProgressEvent
+	fn func(callback map[string]interface{}, s *session.Session) handler.ProgressEvent
 }
 
 func (m *MockHandler) Create(request handler.Request) handler.ProgressEvent {
-	return m.fn(request.CallbackContext)
+	return m.fn(request.CallbackContext, request.Session)
 }
 
 func (m *MockHandler) Read(request handler.Request) handler.ProgressEvent {
-	return m.fn(request.CallbackContext)
+	return m.fn(request.CallbackContext, request.Session)
 }
 
 func (m *MockHandler) Update(request handler.Request) handler.ProgressEvent {
-	return m.fn(request.CallbackContext)
+	return m.fn(request.CallbackContext, request.Session)
 }
 
 func (m *MockHandler) Delete(request handler.Request) handler.ProgressEvent {
-	return m.fn(request.CallbackContext)
+	return m.fn(request.CallbackContext, request.Session)
 }
 
 func (m *MockHandler) List(request handler.Request) handler.ProgressEvent {
-	return m.fn(request.CallbackContext)
+	return m.fn(request.CallbackContext, request.Session)
 }
 
 //MockedMetrics mocks the call to AWS CloudWatch Metrics

@@ -7,14 +7,14 @@ import (
 	"log"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 func Test_reschedule(t *testing.T) {
-
-	c := context.Background()
 
 	p := handler.NewProgressEvent()
 	p.CallbackContext = map[string]interface{}{"foo": true}
@@ -103,6 +103,14 @@ func Test_makeEventFuncFailedResponse(t *testing.T) {
 }
 
 func Test_makeEventFunc(t *testing.T) {
+	start := time.Now()
+	future := start.Add(time.Minute * 15)
+
+	tc, cancel := context.WithDeadline(context.Background(), future)
+
+	defer cancel()
+
+	lc := lambdacontext.NewContext(tc, &lambdacontext.LambdaContext{})
 
 	f1 := func() handler.ProgressEvent {
 		return handler.ProgressEvent{}
@@ -127,10 +135,10 @@ func Test_makeEventFunc(t *testing.T) {
 		want    response
 		wantErr bool
 	}{
-		{"Test simple CREATE", args{&MockHandler{f1}, context.Background(), loadEvent("request.create.json", &event{})}, response{
+		{"Test simple CREATE", args{&MockHandler{f1}, lc, loadEvent("request.create.json", &event{})}, response{
 			BearerToken: "123456",
 		}, false},
-		{"Test simple CREATE async", args{&MockHandler{f2}, context.Background(), loadEvent("request.create.json", &event{})}, response{
+		{"Test simple CREATE async", args{&MockHandler{f2}, lc, loadEvent("request.create.json", &event{})}, response{
 			BearerToken:     "123456",
 			Message:         "In Progress",
 			OperationStatus: handler.InProgress,

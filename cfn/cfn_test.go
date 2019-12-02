@@ -108,6 +108,14 @@ func Test_makeEventFunc(t *testing.T) {
 		return handler.ProgressEvent{}
 	}
 
+	f2 := func() handler.ProgressEvent {
+		return handler.ProgressEvent{
+			OperationStatus:      handler.InProgress,
+			Message:              "In Progress",
+			CallbackDelaySeconds: 130,
+		}
+	}
+
 	type args struct {
 		h     Handler
 		ctx   context.Context
@@ -121,6 +129,11 @@ func Test_makeEventFunc(t *testing.T) {
 	}{
 		{"Test simple CREATE", args{&MockHandler{f1}, context.Background(), loadEvent("request.create.json", &event{})}, response{
 			BearerToken: "123456",
+		}, false},
+		{"Test simple CREATE async", args{&MockHandler{f2}, context.Background(), loadEvent("request.create.json", &event{})}, response{
+			BearerToken:     "123456",
+			Message:         "In Progress",
+			OperationStatus: handler.InProgress,
 		}, false},
 	}
 	for _, tt := range tests {

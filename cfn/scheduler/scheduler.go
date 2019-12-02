@@ -1,4 +1,4 @@
-//+ build scheduler
+// +build scheduler
 
 /*
 Package scheduler handles rescheduling resource provider handlers

@@ -65,6 +65,9 @@ func Test_reschedule(t *testing.T) {
 }
 
 func Test_makeEventFuncFailedResponse(t *testing.T) {
+	f1 := func() handler.ProgressEvent {
+		return handler.ProgressEvent{}
+	}
 
 	type args struct {
 		h     Handler
@@ -77,7 +80,7 @@ func Test_makeEventFuncFailedResponse(t *testing.T) {
 		want    response
 		wantErr bool
 	}{
-		{"Test invalid READ", args{&MockHandler{&handler.ProgressEvent{}}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
+		{"Test invalid READ", args{&MockHandler{f1}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
 			OperationStatus: handler.Failed,
 		}, true},
 	}

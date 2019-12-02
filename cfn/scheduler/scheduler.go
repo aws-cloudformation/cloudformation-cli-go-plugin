@@ -1,8 +1,9 @@
+//+ build scheduler
+
 /*
 Package scheduler handles rescheduling resource provider handlers
 when required by in_progress events.
-*/
-package scheduler
+*/package scheduler
 
 import (
 	"context"

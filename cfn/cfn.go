@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -232,25 +231,6 @@ func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt ha
 	return scheResult.ComputeLocal, nil
 }
 
-func reportErr(event *event, message string, err error) (response, error) {
-	p := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
-	mp := metrics.New(cloudwatch.New(p))
-
-	m := fmt.Sprintf("Unable to complete request; %s error", message)
-
-	if isMutatingAction(event.Action) {
-		c := callback.New(cloudformation.New(p), event.BearerToken)
-
-		if reportErr := c.ReportFailureStatus(event.RequestData.ResourceProperties, cfnerr.InternalFailure, err); reportErr != nil {
-			log.Printf("Callback report error; Error: %s", reportErr.Error())
-		}
-	}
-	mp.PublishExceptionMetric(time.Now(), string(event.Action), err)
-
-	return newFailedResponse(cfnerr.New(serviceInternalError, m, err), event.BearerToken), err
-
-}
-
 // makeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
@@ -268,19 +248,16 @@ func makeEventFunc(h Handler) eventFunc {
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		callbackAdapter := callback.New(cloudformation.New(platformSession), event.BearerToken)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
+		re := newReportErr(callbackAdapter, metricsPublisher)
 
 		handlerFn, err := router(event.Action, h)
 
 		if err != nil {
-			cfnErr := cfnerr.New(serviceInternalError, "Unable to complete request; router error", err)
-			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return newFailedResponse(cfnErr, event.BearerToken), cfnErr
+			return re.report(event, "router error", err, serviceInternalError)
 		}
 
 		if err := validateEvent(event); err != nil {
-			cfnErr := cfnerr.New(invalidRequestError, "Failed to validate input; validation error", err)
-			metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-			return newFailedResponse(cfnErr, event.BearerToken), cfnErr
+			return re.report(event, "validation error", err, invalidRequestError)
 		}
 
 		// If this invocation was triggered by a 're-invoke' CloudWatch Event, clean it up.
@@ -297,12 +274,11 @@ func makeEventFunc(h Handler) eventFunc {
 		if len(event.RequestContext.CallbackContext) == 0 || event.RequestContext.Invocation == 0 {
 			// Acknowledge the task for first time invocation
 			if err := callbackAdapter.ReportInitialStatus(); err != nil {
-				cfnErr := cfnerr.New(invalidRequestError, "Unable to complete request; callback initial report error", err)
-				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
-				return newFailedResponse(err, event.BearerToken), err
+				return re.report(event, "callback initial report error", err, serviceInternalError)
 			}
 		}
 
+		re.setPublishSatus(true)
 		for {
 			request := handler.NewRequest(
 				event.RequestData.LogicalResourceID,
@@ -320,15 +296,15 @@ func makeEventFunc(h Handler) eventFunc {
 			r, err := newResponse(&progEvt, event.BearerToken)
 
 			if err != nil {
-				return reportErr(event, "Unable to complete request; Response", err)
+				return re.report(event, "Response error", err, unmarshalingError)
 			}
 
 			log.Printf("Handler returned  OperationStatus: %v Message: %v CallbackContext: %v Delay: %v, ErrorCode: %v  ",
-				progEvt.OperationStatus, progEvt.Message,
+				r.OperationStatus, progEvt.Message,
 				cusCtx, delay, progEvt.HandlerErrorCode)
 
 			if !isMutatingAction(event.Action) && r.OperationStatus == handler.InProgress {
-				return reportErr(event, "Unable to complete request; READ and LIST handlers must return synchronous", errors.New("READ and LIST handlers must return synchronous"))
+				return re.report(event, "Response error", errors.New("READ and LIST handlers must return synchronous"), invalidRequestError)
 			}
 
 			if isMutatingAction(event.Action) {
@@ -340,7 +316,7 @@ func makeEventFunc(h Handler) eventFunc {
 				local, err := reschedule(ctx, invokeScheduler, progEvt, event)
 
 				if err != nil {
-					return reportErr(event, "Unable to complete request; Reschedule error", err)
+					return re.report(event, "Reschedule error", err, serviceInternalError)
 				}
 
 				//If not computing local, exit and return response

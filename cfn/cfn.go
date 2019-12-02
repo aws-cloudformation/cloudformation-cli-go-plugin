@@ -3,6 +3,7 @@ package cfn
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -231,18 +232,22 @@ func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt ha
 	return scheResult.ComputeLocal, nil
 }
 
-func reportErr(event *event, message string, err error) response {
+func reportErr(event *event, message string, err error) (response, error) {
 	p := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
 	mp := metrics.New(cloudwatch.New(p))
-	c := callback.New(cloudformation.New(p), event.BearerToken)
 
 	m := fmt.Sprintf("Unable to complete request; %s error", message)
-	if reportErr := c.ReportFailureStatus(event.RequestData.ResourceProperties, cfnerr.InternalFailure, err); reportErr != nil {
-		log.Printf("Callback report error; Error: %s", reportErr.Error())
+
+	if isMutatingAction(event.Action) {
+		c := callback.New(cloudformation.New(p), event.BearerToken)
+
+		if reportErr := c.ReportFailureStatus(event.RequestData.ResourceProperties, cfnerr.InternalFailure, err); reportErr != nil {
+			log.Printf("Callback report error; Error: %s", reportErr.Error())
+		}
 	}
 	mp.PublishExceptionMetric(time.Now(), string(event.Action), err)
 
-	return newFailedResponse(cfnerr.New(serviceInternalError, m, err), event.BearerToken)
+	return newFailedResponse(cfnerr.New(serviceInternalError, m, err), event.BearerToken), err
 
 }
 
@@ -315,7 +320,7 @@ func makeEventFunc(h Handler) eventFunc {
 			r, err := newResponse(&progEvt, event.BearerToken)
 
 			if err != nil {
-				return reportErr(event, "Unable to complete request; Response", err), nil
+				return reportErr(event, "Unable to complete request; Response", err)
 			}
 
 			log.Printf("Handler returned  OperationStatus: %v Message: %v CallbackContext: %v Delay: %v, ErrorCode: %v  ",
@@ -323,7 +328,7 @@ func makeEventFunc(h Handler) eventFunc {
 				cusCtx, delay, progEvt.HandlerErrorCode)
 
 			if !isMutatingAction(event.Action) && r.OperationStatus == handler.InProgress {
-				return reportErr(event, "Unable to complete request; READ and LIST handlers must return synchronous", err), nil
+				return reportErr(event, "Unable to complete request; READ and LIST handlers must return synchronous", errors.New("READ and LIST handlers must return synchronous"))
 			}
 
 			if isMutatingAction(event.Action) {
@@ -335,7 +340,7 @@ func makeEventFunc(h Handler) eventFunc {
 				local, err := reschedule(ctx, invokeScheduler, progEvt, event)
 
 				if err != nil {
-					return reportErr(event, "Unable to complete request; Reschedule error", err), nil
+					return reportErr(event, "Unable to complete request; Reschedule error", err)
 				}
 
 				//If not computing local, exit and return response

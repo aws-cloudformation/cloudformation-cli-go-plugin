@@ -15,6 +15,7 @@ import (
 )
 
 func Test_reschedule(t *testing.T) {
+	c := context.Background()
 
 	p := handler.NewProgressEvent()
 	p.CallbackContext = map[string]interface{}{"foo": true}
@@ -64,44 +65,6 @@ func Test_reschedule(t *testing.T) {
 	}
 }
 
-func Test_makeEventFuncFailedResponse(t *testing.T) {
-	f1 := func() handler.ProgressEvent {
-		return handler.ProgressEvent{}
-	}
-
-	type args struct {
-		h     Handler
-		ctx   context.Context
-		event *event
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    response
-		wantErr bool
-	}{
-		{"Test invalid READ", args{&MockHandler{f1}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
-			OperationStatus: handler.Failed,
-		}, true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			f := makeEventFunc(tt.args.h)
-
-			got, err := f(tt.args.ctx, tt.args.event)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("makeEventFunc() = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.want.OperationStatus != got.OperationStatus {
-				t.Errorf("response = %v; want %v", got.OperationStatus, tt.want.OperationStatus)
-			}
-
-		})
-	}
-}
-
 func Test_makeEventFunc(t *testing.T) {
 	start := time.Now()
 	future := start.Add(time.Minute * 15)
@@ -112,15 +75,32 @@ func Test_makeEventFunc(t *testing.T) {
 
 	lc := lambdacontext.NewContext(tc, &lambdacontext.LambdaContext{})
 
-	f1 := func() handler.ProgressEvent {
+	f1 := func(callback map[string]interface{}) handler.ProgressEvent {
 		return handler.ProgressEvent{}
 	}
 
-	f2 := func() handler.ProgressEvent {
+	f2 := func(callback map[string]interface{}) handler.ProgressEvent {
 		return handler.ProgressEvent{
 			OperationStatus:      handler.InProgress,
 			Message:              "In Progress",
 			CallbackDelaySeconds: 130,
+		}
+	}
+
+	f3 := func(callback map[string]interface{}) handler.ProgressEvent {
+
+		if len(callback) == 1 {
+			return handler.ProgressEvent{
+				OperationStatus: handler.Success,
+				Message:         "Success",
+			}
+
+		}
+		return handler.ProgressEvent{
+			OperationStatus:      handler.InProgress,
+			Message:              "In Progress",
+			CallbackDelaySeconds: 3,
+			CallbackContext:      map[string]interface{}{"foo": "bar"},
 		}
 	}
 
@@ -143,6 +123,17 @@ func Test_makeEventFunc(t *testing.T) {
 			Message:         "In Progress",
 			OperationStatus: handler.InProgress,
 		}, false},
+		{"Test CREATE async local", args{&MockHandler{f3}, lc, loadEvent("request.create.json", &event{})}, response{
+			BearerToken:     "123456",
+			Message:         "Success",
+			OperationStatus: handler.Success,
+		}, false},
+		{"Test READ async should return err", args{&MockHandler{f2}, lc, loadEvent("request.read.json", &event{})}, response{
+			OperationStatus: handler.Failed,
+		}, true},
+		{"Test invalid READ", args{&MockHandler{f1}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
+			OperationStatus: handler.Failed,
+		}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -154,8 +145,18 @@ func Test_makeEventFunc(t *testing.T) {
 				t.Errorf("makeEventFunc() = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(tt.want, got) {
-				t.Errorf("response = %v; want %v", got, tt.want)
+
+			switch tt.wantErr {
+			case true:
+				if tt.want.OperationStatus != got.OperationStatus {
+					t.Errorf("response = %v; want %v", got.OperationStatus, tt.want.OperationStatus)
+				}
+
+			case false:
+				if !reflect.DeepEqual(tt.want, got) {
+					t.Errorf("response = %v; want %v", got, tt.want)
+				}
+
 			}
 
 		})

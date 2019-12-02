@@ -165,10 +165,6 @@ func TestInvoke(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 
 			}
-
-			if mockClient.HandlerInvocationCount != tt.wantCount {
-				t.Errorf("InvocationCount= %v, wantCount %v", mockClient.HandlerInvocationCount, tt.wantCount)
-			}
 		})
 	}
 }

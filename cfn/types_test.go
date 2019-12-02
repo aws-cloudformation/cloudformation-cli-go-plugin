@@ -38,27 +38,27 @@ func (h *EmptyHandler) List(request handler.Request) handler.ProgressEvent {
 //
 // This implementation of the handlers is only used for testing.
 type MockHandler struct {
-	fn func() handler.ProgressEvent
+	fn func(callback map[string]interface{}) handler.ProgressEvent
 }
 
 func (m *MockHandler) Create(request handler.Request) handler.ProgressEvent {
-	return m.fn()
+	return m.fn(request.CallbackContext)
 }
 
 func (m *MockHandler) Read(request handler.Request) handler.ProgressEvent {
-	return m.fn()
+	return m.fn(request.CallbackContext)
 }
 
 func (m *MockHandler) Update(request handler.Request) handler.ProgressEvent {
-	return m.fn()
+	return m.fn(request.CallbackContext)
 }
 
 func (m *MockHandler) Delete(request handler.Request) handler.ProgressEvent {
-	return m.fn()
+	return m.fn(request.CallbackContext)
 }
 
 func (m *MockHandler) List(request handler.Request) handler.ProgressEvent {
-	return m.fn()
+	return m.fn(request.CallbackContext)
 }
 
 //MockedMetrics mocks the call to AWS CloudWatch Metrics

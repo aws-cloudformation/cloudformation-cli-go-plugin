@@ -134,6 +134,9 @@ func Test_makeEventFunc(t *testing.T) {
 		{"Test invalid READ", args{&MockHandler{f1}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
 			OperationStatus: handler.Failed,
 		}, true},
+		{"Test invalid Action", args{&MockHandler{f1}, context.Background(), loadEvent("request.invalid.json", &event{})}, response{
+			OperationStatus: handler.Failed,
+		}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

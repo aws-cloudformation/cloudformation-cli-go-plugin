@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-func Test_reschedule(t *testing.T) {
+func TestReschedule(t *testing.T) {
 	c := context.Background()
 
 	p := handler.NewProgressEvent()
@@ -66,7 +66,7 @@ func Test_reschedule(t *testing.T) {
 	}
 }
 
-func Test_makeEventFunc(t *testing.T) {
+func TestMakeEventFunc(t *testing.T) {
 	start := time.Now()
 	future := start.Add(time.Minute * 15)
 
@@ -164,9 +164,9 @@ func Test_makeEventFunc(t *testing.T) {
 		{"Test READ async should return err", args{&MockHandler{f2}, lc, loadEvent("request.read.json", &event{})}, response{
 			OperationStatus: handler.Failed,
 		}, true},
-		{"Test invalid READ", args{&MockHandler{f1}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
-			OperationStatus: handler.Failed,
-		}, true},
+		{"Test account number should not error", args{&MockHandler{f1}, context.Background(), loadEvent("request.read.invalid.validation.json", &event{})}, response{
+			BearerToken: "123456",
+		}, false},
 		{"Test invalid Action", args{&MockHandler{f1}, context.Background(), loadEvent("request.invalid.json", &event{})}, response{
 			OperationStatus: handler.Failed,
 		}, true},

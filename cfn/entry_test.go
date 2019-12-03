@@ -116,7 +116,7 @@ func TestValidateEvent(t *testing.T) {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
-		if err := validateEvent(evt); err == nil {
+		if err := validateEvent(evt); err != nil {
 			t.Fatalf("Failed to validate: %v", err)
 		}
 	})

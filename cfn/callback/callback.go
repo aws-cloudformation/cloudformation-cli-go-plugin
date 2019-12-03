@@ -13,35 +13,37 @@ import (
 
 	"github.com/avast/retry-go"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
 const (
-	//ServiceInternalError ...
+	// ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
-	//MaxRetries is the number of retries allowed to report status.
+	// MaxRetries is the number of retries allowed to report status.
 	MaxRetries uint = 3
 )
 
-//CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
+// CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
 type CloudFormationCallbackAdapter struct {
 	client      cloudformationiface.CloudFormationAPI
 	bearerToken string
 	logger      *log.Logger
 }
 
-//New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
+// New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
 func New(client cloudformationiface.CloudFormationAPI, bearerToken string) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
 		client:      client,
 		bearerToken: bearerToken,
+		logger:      logging.New("callback"),
 	}
 }
 
-//ReportStatus reports the status back to the Cloudformation service of a handler
-//that has moved from Pending to In_Progress
+// ReportStatus reports the status back to the Cloudformation service of a handler
+// that has moved from Pending to In_Progress
 func (c *CloudFormationCallbackAdapter) ReportStatus(operationStatus Status, model []byte, message string, errCode string) error {
 	if err := c.reportProgress(errCode, operationStatus, InProgress, model, message); err != nil {
 		return err
@@ -49,7 +51,7 @@ func (c *CloudFormationCallbackAdapter) ReportStatus(operationStatus Status, mod
 	return nil
 }
 
-//ReportInitialStatus reports the initial status back to the Cloudformation service.
+// ReportInitialStatus reports the initial status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) ReportInitialStatus() error {
 	if err := c.reportProgress("", InProgress, Pending, []byte(""), ""); err != nil {
 		return err
@@ -65,7 +67,7 @@ func (c *CloudFormationCallbackAdapter) ReportFailureStatus(model []byte, errCod
 	return nil
 }
 
-//ReportProgress reports the current status back to the Cloudformation service.
+// ReportProgress reports the current status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) reportProgress(errCode string, operationStatus Status, currentOperationStatus Status, resourceModel []byte, statusMessage string) error {
 
 	in := cloudformation.RecordHandlerProgressInput{
@@ -99,7 +101,7 @@ func (c *CloudFormationCallbackAdapter) reportProgress(errCode string, operation
 			return nil
 		}, retry.OnRetry(func(n uint, err error) {
 			s := fmt.Sprintf("Failed to record progress: try:#%d: %s\n ", n+1, err)
-			log.Println(s)
+			c.logger.Println(s)
 
 		}), retry.Attempts(MaxRetries),
 	)
@@ -111,7 +113,7 @@ func (c *CloudFormationCallbackAdapter) reportProgress(errCode string, operation
 	return nil
 }
 
-//TranslateErrorCode : Translate the error code into a standard Cloudformation error
+// TranslateErrorCode : Translate the error code into a standard Cloudformation error
 func TranslateErrorCode(errorCode string) string {
 
 	switch errorCode {
@@ -149,7 +151,7 @@ func TranslateErrorCode(errorCode string) string {
 	}
 }
 
-//TranslateOperationStatus Translate the operation Status into a standard Cloudformation error
+// TranslateOperationStatus Translate the operation Status into a standard Cloudformation error
 func TranslateOperationStatus(operationStatus Status) string {
 
 	switch operationStatus {

@@ -5,11 +5,13 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -38,6 +40,7 @@ const (
 type Publisher struct {
 	client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
 	namespace string                        // custom resouces's namespace
+	logger    *log.Logger
 }
 
 // New creates a new Publisher.
@@ -48,10 +51,11 @@ func New(client cloudwatchiface.CloudWatchAPI) *Publisher {
 
 	return &Publisher{
 		client: client,
+		logger: logging.New("metrics"),
 	}
 }
 
-//PublishExceptionMetric publishes an exception metric.
+// PublishExceptionMetric publishes an exception metric.
 func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e error) error {
 
 	if len(p.namespace) == 0 {
@@ -75,7 +79,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e erro
 	return nil
 }
 
-//PublishInvocationMetric publishes an invocation metric.
+// PublishInvocationMetric publishes an invocation metric.
 func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error {
 
 	if len(p.namespace) == 0 {

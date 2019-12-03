@@ -11,7 +11,7 @@ import (
 
 var MockModel = []byte("{\"foo\": \"bar\"}")
 
-//MockedEvents mocks the call to AWS CloudWatch Events
+// MockedEvents mocks the call to AWS CloudWatch Events
 type MockedCallback struct {
 	cloudformationiface.CloudFormationAPI
 	errCount int

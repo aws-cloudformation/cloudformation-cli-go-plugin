@@ -20,7 +20,7 @@ const (
 	Arn         string = "arn:aws:lambda:us-east-2:123456789:function:myproject"
 )
 
-//MockedEvents mocks the call to AWS CloudWatch Events
+// MockedEvents mocks the call to AWS CloudWatch Events
 type MockedEvents struct {
 	cloudwatcheventsiface.CloudWatchEventsAPI
 	RuleName   string

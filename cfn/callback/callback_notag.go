@@ -5,28 +5,30 @@ package callback
 import (
 	"log"
 
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
-//CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
+// CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
 type CloudFormationCallbackAdapter struct {
 	logger      *log.Logger
 	client      cloudformationiface.CloudFormationAPI
 	bearerToken string
 }
 
-//New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
+// New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
 func New(client cloudformationiface.CloudFormationAPI, bearerToken string) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
 		client:      client,
 		bearerToken: bearerToken,
+		logger:      logging.New("callback"),
 	}
 }
 
-//ReportStatus reports the status back to the Cloudformation service of a handler
-//that has moved from Pending to In_Progress
+// ReportStatus reports the status back to the Cloudformation service of a handler
+// that has moved from Pending to In_Progress
 func (c *CloudFormationCallbackAdapter) ReportStatus(operationStatus Status, model []byte, message string, errCode string) error {
 	if err := c.reportProgress(errCode, operationStatus, InProgress, model, message); err != nil {
 		return err
@@ -34,7 +36,7 @@ func (c *CloudFormationCallbackAdapter) ReportStatus(operationStatus Status, mod
 	return nil
 }
 
-//ReportInitialStatus reports the initial status back to the Cloudformation service.
+// ReportInitialStatus reports the initial status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) ReportInitialStatus() error {
 	if err := c.reportProgress("", InProgress, Pending, []byte(""), ""); err != nil {
 		return err
@@ -42,7 +44,7 @@ func (c *CloudFormationCallbackAdapter) ReportInitialStatus() error {
 	return nil
 }
 
-//ReportFailureStatus reports the failure status back to the Cloudformation service.
+// ReportFailureStatus reports the failure status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) ReportFailureStatus(model []byte, errCode string, handlerError error) error {
 	if err := c.reportProgress(errCode, Failed, InProgress, model, handlerError.Error()); err != nil {
 		return err
@@ -50,7 +52,7 @@ func (c *CloudFormationCallbackAdapter) ReportFailureStatus(model []byte, errCod
 	return nil
 }
 
-//ReportProgress reports the current status back to the Cloudformation service.
+// ReportProgress reports the current status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) reportProgress(code string, operationStatus Status, currentOperationStatus Status, resourceModel []byte, statusMessage string) error {
 
 	in := cloudformation.RecordHandlerProgressInput{
@@ -74,12 +76,12 @@ func (c *CloudFormationCallbackAdapter) reportProgress(code string, operationSta
 		in.SetCurrentOperationStatus(string(currentOperationStatus))
 	}
 
-	log.Printf("Record progress: %v", &in)
+	c.logger.Printf("Record progress: %v", &in)
 
 	return nil
 }
 
-//TranslateErrorCode : Translate the error code into a standard Cloudformation error
+// TranslateErrorCode : Translate the error code into a standard Cloudformation error
 func TranslateErrorCode(errorCode string) string {
 
 	switch errorCode {
@@ -117,7 +119,7 @@ func TranslateErrorCode(errorCode string) string {
 	}
 }
 
-//TranslateOperationStatus Translate the operation Status into a standard Cloudformation error
+// TranslateOperationStatus Translate the operation Status into a standard Cloudformation error
 func TranslateOperationStatus(operationStatus Status) string {
 
 	switch operationStatus {

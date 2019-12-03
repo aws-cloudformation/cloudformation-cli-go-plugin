@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/callback"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
@@ -211,24 +210,4 @@ func loadEvent(path string, evt *event) *event {
 		log.Fatalf("Marshaling error with event: %v", err)
 	}
 	return evt
-}
-
-func Test_translateStatus(t *testing.T) {
-	type args struct {
-		operationStatus handler.Status
-	}
-	tests := []struct {
-		name string
-		args args
-		want callback.Status
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := translateStatus(tt.args.operationStatus); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("translateStatus() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }

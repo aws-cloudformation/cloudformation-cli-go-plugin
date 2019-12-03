@@ -101,7 +101,7 @@ func router(a string, h Handler) (handlerFunc, error) {
 	}
 }
 
-//Invoke handles the invocation of the handerFn.
+// Invoke handles the invocation of the handerFn.
 func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *metrics.Publisher, action string) (handler.ProgressEvent, error) {
 	attempts := 0
 
@@ -210,11 +210,11 @@ func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt ha
 	if err != nil {
 		return false, err
 	}
-	//Add IDs to recall the function with Cloudwatch events
+	// Add IDs to recall the function with Cloudwatch events
 	event.RequestContext.CloudWatchEventsRuleName = ids.Handler
 	event.RequestContext.CloudWatchEventsTargetID = ids.Target
 
-	//Rebuild the context
+	// Rebuild the context
 	event.RequestContext.CallbackContext = cusCtx
 
 	callbackRequest, err := json.Marshal(event)
@@ -231,7 +231,7 @@ func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt ha
 	return scheResult.ComputeLocal, nil
 }
 
-// makeEventFunc is the entry point to all invocations of a custom resource
+// MakeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
 		platformSession := credentials.SessionFromCredentialsProvider(&event.RequestData.PlatformCredentials)
@@ -241,7 +241,7 @@ func makeEventFunc(h Handler) eventFunc {
 			event.RequestData.ProviderLogGroupName,
 		)
 
-		// set default logger to output to CWL in the provider account
+		// Set default logger to output to CWL in the provider account
 		logging.SetProviderLogOutput(logsProvider)
 
 		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
@@ -265,14 +265,14 @@ func makeEventFunc(h Handler) eventFunc {
 			err := invokeScheduler.CleanupEvents(event.RequestContext.CloudWatchEventsRuleName, event.RequestContext.CloudWatchEventsTargetID)
 
 			if err != nil {
-				// we will log the error in the metric, but carry on.
+				// We will log the error in the metric, but carry on.
 				cfnErr := cfnerr.New(serviceInternalError, "Cloudwatch Event clean up error", err)
 				metricsPublisher.PublishExceptionMetric(time.Now(), string(event.Action), cfnErr)
 			}
 		}
 
 		if len(event.RequestContext.CallbackContext) == 0 || event.RequestContext.Invocation == 0 {
-			// Acknowledge the task for first time invocation
+			// Acknowledge the task for first time invocation.
 			if err := callbackAdapter.ReportInitialStatus(); err != nil {
 				return re.report(event, "callback initial report error", err, serviceInternalError)
 			}
@@ -319,7 +319,7 @@ func makeEventFunc(h Handler) eventFunc {
 					return re.report(event, "Reschedule error", err, serviceInternalError)
 				}
 
-				//If not computing local, exit and return response
+				// If not computing local, exit and return response.
 				if !local {
 					return r, nil
 				}

@@ -3,7 +3,8 @@
 /*
 Package scheduler handles rescheduling resource provider handlers
 when required by in_progress events.
-*/package scheduler
+*/
+package scheduler
 
 import (
 	"context"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -52,12 +54,14 @@ type ScheduleIDS struct {
 // seconds. The invoke is rescheduled through CloudWatch Events
 // via a CRON expression
 type Scheduler struct {
+	logger *log.Logger
 	client cloudwatcheventsiface.CloudWatchEventsAPI
 }
 
 // New creates a CloudWatchScheduler and returns a pointer to the struct.
 func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 	return &Scheduler{
+		logger: logging.New("scheduler"),
 		client: client,
 	}
 }
@@ -84,7 +88,7 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, cal
 
 	if secsFromNow < 60 && secondsUnitDeadline > float64(secsFromNow)*1.2 {
 
-		log.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", secsFromNow, string(callbackRequest))
+		s.logger.Printf("Scheduling re-invoke locally after %v seconds, with Context %s", secsFromNow, string(callbackRequest))
 
 		time.Sleep(time.Duration(secsFromNow) * time.Second)
 
@@ -97,7 +101,7 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, cal
 	}
 
 	cr := GenerateOneTimeCronExpression(secsFromNow, time.Now())
-	log.Printf("Scheduling re-invoke at %s \n", cr)
+	s.logger.Printf("Scheduling re-invoke at %s \n", cr)
 	_, rerr := s.client.PutRule(&cloudwatchevents.PutRuleInput{
 
 		Name:               aws.String(invocationIDS.Handler),
@@ -143,20 +147,20 @@ func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 	})
 	if err != nil {
 		es := fmt.Sprintf("Error cleaning CloudWatchEvents Target (targetId=%s)", targetID)
-		log.Println(es)
+		s.logger.Println(es)
 		return cfnerr.New(ServiceInternalError, es, err)
 	}
-	log.Printf("CloudWatchEvents Target (targetId=%s) removed", targetID)
+	s.logger.Printf("CloudWatchEvents Target (targetId=%s) removed", targetID)
 
 	_, rerr := s.client.DeleteRule(&cloudwatchevents.DeleteRuleInput{
 		Name: aws.String(ruleName),
 	})
 	if rerr != nil {
 		es := fmt.Sprintf("Error cleaning CloudWatchEvents (ruleName=%s)", ruleName)
-		log.Println(es)
+		s.logger.Println(es)
 		return cfnerr.New(ServiceInternalError, es, rerr)
 	}
-	log.Printf("CloudWatchEvents Rule (ruleName=%s) removed", ruleName)
+	s.logger.Printf("CloudWatchEvents Rule (ruleName=%s) removed", ruleName)
 
 	return nil
 }

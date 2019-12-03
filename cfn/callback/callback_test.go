@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
 
-const MockModel string = "{\"foo\": \"bar\"}"
+var MockModel = []byte("{\"foo\": \"bar\"}")
 
-//MockedEvents mocks the call to AWS CloudWatch Events
+// MockedEvents mocks the call to AWS CloudWatch Events
 type MockedCallback struct {
 	cloudformationiface.CloudFormationAPI
 	errCount int
@@ -35,7 +35,7 @@ func (m *MockedCallback) RecordHandlerProgress(in *cloudformation.RecordHandlerP
 
 func TestTranslateOperationStatus(t *testing.T) {
 	type args struct {
-		operationStatus string
+		operationStatus Status
 	}
 	tests := []struct {
 		name string
@@ -89,16 +89,16 @@ func TestTranslateErrorCode(t *testing.T) {
 	}
 }
 
-func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
+func TestCloudFormationCallbackAdapterReportProgress(t *testing.T) {
 	type fields struct {
 		client cloudformationiface.CloudFormationAPI
 	}
 	type args struct {
 		bearerToken     string
 		code            string
-		status          string
-		operationStatus string
-		resourceModel   string
+		status          Status
+		operationStatus Status
+		resourceModel   []byte
 		statusMessage   string
 	}
 	tests := []struct {
@@ -112,10 +112,11 @@ func TestCloudFormationCallbackAdapter_ReportProgress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &CloudFormationCallbackAdapter{
-				client: tt.fields.client,
-				logger: logging.New("callback: "),
+				client:      tt.fields.client,
+				logger:      logging.New("callback: "),
+				bearerToken: tt.args.bearerToken,
 			}
-			if err := c.ReportProgress(tt.args.bearerToken, tt.args.code, tt.args.status, tt.args.operationStatus, tt.args.resourceModel, tt.args.statusMessage); (err != nil) != tt.wantErr {
+			if err := c.reportProgress(tt.args.code, tt.args.status, tt.args.operationStatus, tt.args.resourceModel, tt.args.statusMessage); (err != nil) != tt.wantErr {
 				t.Errorf("CloudFormationCallbackAdapter.ReportProgress() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

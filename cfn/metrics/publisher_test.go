@@ -27,7 +27,7 @@ func NewMockCloudWatchClient() *MockCloudWatchClient {
 
 func (m *MockCloudWatchClient) PutMetricData(in *cloudwatch.PutMetricDataInput) (*cloudwatch.PutMetricDataOutput, error) {
 
-	//copy dimension in to a map for searching
+	// copy dimension in to a map for searching
 
 	d := make(map[string]string)
 

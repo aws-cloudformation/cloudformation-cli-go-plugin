@@ -1,4 +1,4 @@
-// +build metrics
+// +build !metrics
 
 package metrics
 
@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -39,18 +38,14 @@ const (
 // A Publisher represents an object that publishes metrics to AWS Cloudwatch.
 type Publisher struct {
 	client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
-	namespace string                        // custom resouces's namespace
-	logger    *log.Logger
+	namespace string
+	logger    *log.Logger // custom resouces's namespace
 }
 
 // New creates a new Publisher.
 func New(client cloudwatchiface.CloudWatchAPI) *Publisher {
-	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
-		client = newNoopClient()
-	}
-
 	return &Publisher{
-		client: client,
+		client: newNoopClient(),
 		logger: logging.New("metrics"),
 	}
 }

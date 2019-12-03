@@ -1,4 +1,4 @@
-// +build scheduler
+// +build !scheduler
 
 /*
 Package scheduler handles rescheduling resource provider handlers
@@ -54,15 +54,15 @@ type ScheduleIDS struct {
 // seconds. The invoke is rescheduled through CloudWatch Events
 // via a CRON expression
 type Scheduler struct {
-	logger *log.Logger
 	client cloudwatcheventsiface.CloudWatchEventsAPI
+	logger *log.Logger
 }
 
 // New creates a CloudWatchScheduler and returns a pointer to the struct.
 func New(client cloudwatcheventsiface.CloudWatchEventsAPI) *Scheduler {
 	return &Scheduler{
 		logger: logging.New("scheduler"),
-		client: client,
+		client: newNoopCloudWatchClient(),
 	}
 }
 

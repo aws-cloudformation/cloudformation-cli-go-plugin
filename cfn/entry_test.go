@@ -116,7 +116,7 @@ func TestValidateEvent(t *testing.T) {
 			t.Fatalf("Marshaling error with event: %v", err)
 		}
 
-		if err := validateEvent(evt); err == nil {
+		if err := validateEvent(evt); err != nil {
 			t.Fatalf("Failed to validate: %v", err)
 		}
 	})
@@ -164,10 +164,6 @@ func TestInvoke(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 
-			}
-
-			if mockClient.HandlerInvocationCount != tt.wantCount {
-				t.Errorf("InvocationCount= %v, wantCount %v", mockClient.HandlerInvocationCount, tt.wantCount)
 			}
 		})
 	}

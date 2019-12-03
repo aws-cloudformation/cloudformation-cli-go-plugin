@@ -19,8 +19,4 @@ const (
 	// Failed should be returned when the resource provider
 	// has failed
 	Failed Status = "FAILED"
-
-	// Pending should be returned when the resource provider
-	// is pending creation.
-	Pending Status = "PENDING"
 )

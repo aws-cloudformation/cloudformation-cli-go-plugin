@@ -1,11 +1,11 @@
+// +build callback
+
 /*
 Package callback provides functions for creating resource providers
 that may need to be called multiple times while waiting
 for resources to settle.
 */
 package callback
-
-// +build callback
 
 import (
 	"fmt"

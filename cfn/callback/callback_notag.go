@@ -5,7 +5,6 @@ package callback
 import (
 	"log"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
@@ -21,7 +20,6 @@ type CloudFormationCallbackAdapter struct {
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
 func New(client cloudformationiface.CloudFormationAPI, bearerToken string) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
-		logger:      logging.New("callback: "),
 		client:      client,
 		bearerToken: bearerToken,
 	}
@@ -76,7 +74,7 @@ func (c *CloudFormationCallbackAdapter) reportProgress(code string, operationSta
 		in.SetCurrentOperationStatus(string(currentOperationStatus))
 	}
 
-	c.logger.Printf("Record progress: %v", &in)
+	log.Printf("Record progress: %v", &in)
 
 	return nil
 }

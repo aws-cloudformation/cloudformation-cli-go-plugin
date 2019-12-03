@@ -29,6 +29,7 @@ const (
 type CloudFormationCallbackAdapter struct {
 	client      cloudformationiface.CloudFormationAPI
 	bearerToken string
+	logger      *log.Logger
 }
 
 //New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.

@@ -13,7 +13,7 @@ import (
 
 // Event base structure, it will be internal to the RPDK.
 type event struct {
-	AWSAccountID        string         `json:"awsAccountId" validate:"min=12"`
+	AWSAccountID        string         `json:"awsAccountId"`
 	BearerToken         string         `json:"bearerToken" validate:"nonzero"`
 	Region              string         `json:"region" validate:"nonzero"`
 	Action              string         `json:"action"`
@@ -22,7 +22,7 @@ type event struct {
 	ResourceTypeVersion encoding.Float `json:"resourceTypeVersion"`
 	RequestContext      requestContext `json:"requestContext"`
 	RequestData         requestData    `json:"requestData"`
-	StackID             string         `json:"stackId" validate:"nonzero"`
+	StackID             string         `json:"stackId"`
 
 	NextToken string
 }

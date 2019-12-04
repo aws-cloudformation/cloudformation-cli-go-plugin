@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/metrics"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/metrics"
 )
 
 func TestMarshalling(t *testing.T) {

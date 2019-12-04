@@ -5,6 +5,6 @@
     "entrypoint": "handler",
     "testEntrypoint": "handler",
     "settings": {
-        "importpath": "github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/examples/github-repo"
+        "importpath": "github.com/aws-cloudformation/cloudformation-cli-go-plugin/examples/github-repo"
     }
 }

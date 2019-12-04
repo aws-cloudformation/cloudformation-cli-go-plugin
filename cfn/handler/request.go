@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 )
 
 const (

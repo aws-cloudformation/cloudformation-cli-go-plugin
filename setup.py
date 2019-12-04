@@ -29,7 +29,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Amazon Web Services",
     author_email="aws-cloudformation-developers@amazon.com",
-    url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/",
+    url="https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.go"],
     package_dir={"": "python"},

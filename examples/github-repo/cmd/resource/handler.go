@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/encoding"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"

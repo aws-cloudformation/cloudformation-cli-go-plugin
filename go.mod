@@ -1,4 +1,4 @@
-module github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin
+module github.com/aws-cloudformation/cloudformation-cli-go-plugin
 
 go 1.13
 

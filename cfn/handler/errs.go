@@ -1,4 +1,7 @@
-package cfnerr
+package handler
+
+//ErrorCode represents errors that can be returned by the handler.
+type ErrorCode string
 
 const (
 	// NotUpdatable is when the customer tried perform an update to a property that is CreateOnly. Only

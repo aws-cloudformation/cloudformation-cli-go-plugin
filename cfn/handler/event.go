@@ -1,8 +1,6 @@
 package handler
 
-import (
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
-)
+import "github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 
 // ProgressEvent represent the progress of CRUD handlers.
 type ProgressEvent struct {
@@ -11,7 +9,7 @@ type ProgressEvent struct {
 	OperationStatus Status
 
 	// If OperationStatus is FAILED or IN_PROGRESS, an error code should be provided.
-	HandlerErrorCode string
+	HandlerErrorCode ErrorCode
 
 	// The handler can (and should) specify a contextual information message which
 	// can be shown to callers to indicate the nature of a progress transition or
@@ -34,7 +32,7 @@ type ProgressEvent struct {
 	ResourceModel interface{}
 }
 
-// NewEvent creates a new event with
+// NewProgressEvent creates a new event with
 // a default OperationStatus of Unkown
 func NewProgressEvent() ProgressEvent {
 	return ProgressEvent{
@@ -54,6 +52,6 @@ func NewFailedEvent(err error) ProgressEvent {
 	return ProgressEvent{
 		OperationStatus:  Failed,
 		Message:          cerr.Message(),
-		HandlerErrorCode: cerr.Code(),
+		HandlerErrorCode: GeneralServiceException,
 	}
 }

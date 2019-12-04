@@ -308,7 +308,7 @@ func makeEventFunc(h Handler) eventFunc {
 			}
 
 			if isMutatingAction(event.Action) {
-				callbackAdapter.ReportStatus(translateStatus(progEvt.OperationStatus), event.RequestData.ResourceProperties, progEvt.Message, progEvt.HandlerErrorCode)
+				callbackAdapter.ReportStatus(translateStatus(progEvt.OperationStatus), event.RequestData.ResourceProperties, progEvt.Message, string(r.ErrorCode))
 			}
 
 			switch r.OperationStatus {

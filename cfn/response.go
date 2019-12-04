@@ -1,7 +1,6 @@
 package cfn
 
 import (
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 )
 
@@ -9,18 +8,18 @@ import (
 // cloudformation service from a resource handler.
 // The zero value is ready to use.
 type response struct {
-	Message         string         `json:"message,omitempty"`
-	OperationStatus handler.Status `json:"operationStatus,omitempty"`
-	ResourceModel   interface{}    `json:"resourceModel,omitempty"`
-	ErrorCode       cfnerr.Error   `json:"errorCode,omitempty"`
-	BearerToken     string         `json:"bearerToken,omitempty"`
+	Message         string            `json:"message,omitempty"`
+	OperationStatus handler.Status    `json:"operationStatus,omitempty"`
+	ResourceModel   interface{}       `json:"resourceModel,omitempty"`
+	ErrorCode       handler.ErrorCode `json:"errorCode,omitempty"`
+	BearerToken     string            `json:"bearerToken,omitempty"`
 }
 
 // newFailedResponse returns a response pre-filled with the supplied error
 func newFailedResponse(err error, bearerToken string) response {
 	return response{
 		OperationStatus: handler.Failed,
-		ErrorCode:       cfnerr.New(cfnerr.InternalFailure, "Unpexected error", err),
+		ErrorCode:       handler.InternalFailure,
 		Message:         err.Error(),
 		BearerToken:     bearerToken,
 	}
@@ -37,7 +36,7 @@ func newResponse(pevt *handler.ProgressEvent, bearerToken string) (response, err
 	}
 
 	if pevt.HandlerErrorCode != "" {
-		resp.ErrorCode = cfnerr.New(pevt.HandlerErrorCode, pevt.Message, nil)
+		resp.ErrorCode = pevt.HandlerErrorCode
 	}
 
 	return resp, nil

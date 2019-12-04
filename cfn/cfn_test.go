@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"reflect"
 	"testing"
@@ -128,6 +129,21 @@ func TestMakeEventFunc(t *testing.T) {
 		}
 	}
 
+	f6 := func(callback map[string]interface{}, s *session.Session) (response handler.ProgressEvent) {
+		defer func() {
+			// Catch any panics and return a failed ProgressEvent
+			if r := recover(); r != nil {
+				err, ok := r.(error)
+				if !ok {
+					err = errors.New(fmt.Sprint(r))
+				}
+
+				response = handler.NewFailedEvent(err)
+			}
+		}()
+		panic("error")
+	}
+
 	type args struct {
 		h     Handler
 		ctx   context.Context
@@ -170,6 +186,12 @@ func TestMakeEventFunc(t *testing.T) {
 		{"Test invalid Action", args{&MockHandler{f1}, context.Background(), loadEvent("request.invalid.json", &event{})}, response{
 			OperationStatus: handler.Failed,
 		}, true},
+		{"Test wrap panic", args{&MockHandler{f6}, context.Background(), loadEvent("request.create.json", &event{})}, response{
+			OperationStatus: handler.Failed,
+			ErrorCode:       handler.GeneralServiceException,
+			Message:         "Unable to complete request: error",
+			BearerToken:     "123456",
+		}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

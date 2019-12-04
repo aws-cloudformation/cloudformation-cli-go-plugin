@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/logging"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )

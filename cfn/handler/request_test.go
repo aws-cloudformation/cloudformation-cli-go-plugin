@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/encoding"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 
 	"github.com/google/go-cmp/cmp"
 )

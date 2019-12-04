@@ -3,9 +3,9 @@ package cfn
 import (
 	"encoding/json"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/credentials"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/encoding"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/credentials"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"gopkg.in/validator.v2"

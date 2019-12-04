@@ -8,9 +8,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/encoding"
-	"github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/cfn/handler"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 )
 
 func TestMarshalJSON(t *testing.T) {

@@ -1,7 +1,7 @@
 {
     "typeName": "Example::GitHub::Repo",
     "description": "Manages a GitHub Repo",
-    "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+    "sourceUrl": "https://github.com/aws-cloudformation/cloudformation-cli.git",
     "properties": {
         "Name": {
             "description": "Name of the repository on GitHub",

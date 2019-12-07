@@ -350,7 +350,8 @@ func makeEventFunc(h Handler) eventFunc {
 	}
 }
 
-// MakeEventFunc is the entry point to all invocations of a custom resource
+// MakeTestEventFunc is the entry point that allows the CLI's
+// contract testing framework to invoke the resource's CRUDL handlers.
 func makeTestEventFunc(h Handler) testEventFunc {
 	return func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error) {
 

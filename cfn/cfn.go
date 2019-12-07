@@ -77,6 +77,10 @@ type tags map[string]string
 // eventFunc is the function signature required to execute an event from the Lambda SDK
 type eventFunc func(ctx context.Context, event *event) (response, error)
 
+// testEventFunc is the function signature required to execute an event from the Lambda SDK
+// and is only used in contract testing
+type testEventFunc func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error)
+
 // handlerFunc is the signature required for all actions
 type handlerFunc func(request handler.Request) handler.ProgressEvent
 
@@ -332,7 +336,7 @@ func makeEventFunc(h Handler) eventFunc {
 }
 
 // MakeEventFunc is the entry point to all invocations of a custom resource
-func makeTestEventFunc(h Handler) eventFunc {
+func makeTestEventFunc(h Handler) testEventFunc {
 	return func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error) {
 
 		handlerFn, err := router(event.Action, h)

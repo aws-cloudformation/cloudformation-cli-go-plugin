@@ -54,6 +54,8 @@ func newResponse(pevt *handler.ProgressEvent, bearerToken string) (response, err
 		Message:         pevt.Message,
 		OperationStatus: pevt.OperationStatus,
 		ResourceModel:   pevt.ResourceModel,
+		ResourceModels:  pevt.ResourceModels,
+		NextToken:       pevt.NextToken,
 	}
 
 	if pevt.HandlerErrorCode != "" {

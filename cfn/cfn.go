@@ -330,3 +330,27 @@ func makeEventFunc(h Handler) eventFunc {
 		}
 	}
 }
+
+// MakeEventFunc is the entry point to all invocations of a custom resource
+func makeTestEventFunc(h Handler) eventFunc {
+	return func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error) {
+
+		handlerFn, err := router(event.Action, h)
+
+		if err != nil {
+			return handler.NewFailedEvent(err), err
+		}
+
+		request := handler.NewRequest(
+			event.Request.LogicalResourceIdentifier,
+			event.CallbackContext,
+			credentials.SessionFromCredentialsProvider(&event.Credentials),
+			event.Request.PreviousResourceState,
+			event.Request.DesiredResourceState,
+		)
+
+		progEvt := handlerFn(request)
+
+		return progEvt, nil
+	}
+}

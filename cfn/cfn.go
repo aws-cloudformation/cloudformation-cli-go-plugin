@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
 	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/callback"
@@ -67,8 +68,22 @@ type InvokeScheduler interface {
 }
 
 // Start is the entry point called from a resource's main function
+//
+// We define two lambda entry points; MakeEventFunc is the entry point to all
+// invocations of a custom resource and MakeTestEventFunc is the entry point that
+// allows the CLI's contract testing framework to invoke the resource's CRUDL handlers.
 func Start(h Handler) {
-	lambda.Start(makeEventFunc(h))
+
+	// MODE is an environment variable that is set ONLY
+	// when contract test are performed.
+	if mode, ok := os.LookupEnv("MODE"); ok == true {
+		if mode == "Test" {
+			lambda.Start(makeTestEventFunc(h))
+
+		} else {
+			lambda.Start(makeEventFunc(h))
+		}
+	}
 }
 
 // Tags are stored as key/value paired strings

@@ -30,6 +30,13 @@ type ProgressEvent struct {
 	// The output resource instance populated by a READ/LIST for synchronous results
 	// and by CREATE/UPDATE/DELETE for final response validation/confirmation
 	ResourceModel interface{} `json:"resourceModel,omitempty"`
+
+	// The output resource instances populated by a LIST for synchronous results
+	ResourceModels []interface{} `json:"resourceModels,omitempty"`
+
+	// The token used to request additional pages of resources for a LIST operation
+
+	NextToken string `json:"nextToken,omitempty"`
 }
 
 // NewProgressEvent creates a new event with

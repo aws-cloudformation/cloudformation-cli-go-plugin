@@ -1,0 +1,21 @@
+{
+    "action": "CREATE",
+    "credentials": {
+        "accessKeyId": "123456789",
+        "secretAccessKey": "1234566",
+        "sessionToken": "1234567"
+    },
+    "callbackContext": null,
+    "Request": {
+        "clientRequestToken": "17603535-aefd-4820-ad48-55739e0d571b",
+        "desiredResourceState": {},
+        "previousResourceState": {},
+        "desiredResourceTags": null,
+        "systemTags": null,
+        "awsAccountId": "",
+        "awsPartition": "",
+        "logicalResourceIdentifier": "",
+        "nextToken": "",
+        "region": ""
+    }
+}

@@ -90,16 +90,19 @@ class GoLanguagePlugin(LanguagePlugin):
             "Runtime": project.runtime,
             "CodeUri": self.CODE_URI,
         }
+        test_handler_params = {
+            "Handler": project.entrypoint,
+            "Runtime": project.runtime,
+            "CodeUri": self.CODE_URI,
+            "Environment":"",
+            "  Variables":"",
+            "    Mode":"Test"
+        }
         contents = template.render(
             resource_type=project.type_name,
             functions={
                 "TypeFunction": handler_params,
-                "TestEntrypoint": {
-                    **handler_params,
-                    "Handler": handler_params["Handler"].replace(
-                        "handleRequest", "testEntrypoint"
-                    ),
-                },
+                "TestEntrypoint": test_handler_params,
             },
         )
         project.safewrite(path, contents)

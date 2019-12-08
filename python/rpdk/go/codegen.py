@@ -94,9 +94,9 @@ class GoLanguagePlugin(LanguagePlugin):
             "Handler": project.entrypoint,
             "Runtime": project.runtime,
             "CodeUri": self.CODE_URI,
-            "Environment":"",
-            "  Variables":"",
-            "    Mode":"Test"
+            "Environment": "",
+            "  Variables": "",
+            "    Mode": "Test",
         }
         contents = template.render(
             resource_type=project.type_name,

@@ -18,7 +18,7 @@ import (
 
 const (
 	// MetricNameSpaceRoot is the Metric name space root.
-	MetricNameSpaceRoot = "AWS_TMP/CloudFormation"
+	MetricNameSpaceRoot = "AWS/CloudFormation"
 	//MetricNameHanderException  is a metric type.
 	MetricNameHanderException = "HandlerException"
 	//MetricNameHanderDuration is a metric type.

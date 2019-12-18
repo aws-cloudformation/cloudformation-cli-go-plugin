@@ -63,3 +63,27 @@ func validateEvent(event *event) error {
 
 	return nil
 }
+
+// testEvent base structure, it will be internal to the RPDK.
+type testEvent struct {
+	Action          string                                        `json:"action"`
+	Credentials     credentials.CloudFormationCredentialsProvider `json:"credentials"`
+	CallbackContext map[string]interface{}                        `json:"callbackContext"`
+
+	Request resourceHandlerRequest
+}
+
+// resourceHandlerRequest is internal to the RPDK. It contains a number of fields that are for
+// internal contract testing use only.
+type resourceHandlerRequest struct {
+	ClientRequestToken        string          `json:"clientRequestToken"`
+	DesiredResourceState      json.RawMessage `json:"desiredResourceState"`
+	PreviousResourceState     json.RawMessage `json:"previousResourceState"`
+	DesiredResourceTags       tags            `json:"desiredResourceTags"`
+	SystemTags                tags            `json:"systemTags"`
+	AWSAccountID              string          `json:"awsAccountId"`
+	AwsPartition              string          `json:"awsPartition"`
+	LogicalResourceIdentifier string          `json:"logicalResourceIdentifier"`
+	NextToken                 string          `json:"nextToken"`
+	Region                    string          `json:"region"`
+}

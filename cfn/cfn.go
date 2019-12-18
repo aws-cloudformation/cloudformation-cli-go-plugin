@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
 	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/callback"
@@ -67,8 +68,22 @@ type InvokeScheduler interface {
 }
 
 // Start is the entry point called from a resource's main function
+//
+// We define two lambda entry points; MakeEventFunc is the entry point to all
+// invocations of a custom resource and MakeTestEventFunc is the entry point that
+// allows the CLI's contract testing framework to invoke the resource's CRUDL handlers.
 func Start(h Handler) {
-	lambda.Start(makeEventFunc(h))
+
+	// MODE is an environment variable that is set ONLY
+	// when contract test are performed.
+	if mode, ok := os.LookupEnv("MODE"); ok == true {
+		if mode == "Test" {
+			lambda.Start(makeTestEventFunc(h))
+
+		} else {
+			lambda.Start(makeEventFunc(h))
+		}
+	}
 }
 
 // Tags are stored as key/value paired strings
@@ -76,6 +91,10 @@ type tags map[string]string
 
 // eventFunc is the function signature required to execute an event from the Lambda SDK
 type eventFunc func(ctx context.Context, event *event) (response, error)
+
+// testEventFunc is the function signature required to execute an event from the Lambda SDK
+// and is only used in contract testing
+type testEventFunc func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error)
 
 // handlerFunc is the signature required for all actions
 type handlerFunc func(request handler.Request) handler.ProgressEvent
@@ -328,5 +347,30 @@ func makeEventFunc(h Handler) eventFunc {
 			}
 
 		}
+	}
+}
+
+// MakeTestEventFunc is the entry point that allows the CLI's
+// contract testing framework to invoke the resource's CRUDL handlers.
+func makeTestEventFunc(h Handler) testEventFunc {
+	return func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error) {
+
+		handlerFn, err := router(event.Action, h)
+
+		if err != nil {
+			return handler.NewFailedEvent(err), err
+		}
+
+		request := handler.NewRequest(
+			event.Request.LogicalResourceIdentifier,
+			event.CallbackContext,
+			credentials.SessionFromCredentialsProvider(&event.Credentials),
+			event.Request.PreviousResourceState,
+			event.Request.DesiredResourceState,
+		)
+
+		progEvt := handlerFn(request)
+
+		return progEvt, nil
 	}
 }

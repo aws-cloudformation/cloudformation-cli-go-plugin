@@ -324,7 +324,7 @@ func TestPublisher_SetResourceTypeName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := New(tt.fields.client)
+			p := New(tt.fields.client, "12345678")
 			p.SetResourceTypeName(tt.args.t)
 
 			if p.namespace != tt.want {

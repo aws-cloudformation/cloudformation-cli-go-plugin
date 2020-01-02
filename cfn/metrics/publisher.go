@@ -38,20 +38,22 @@ const (
 
 // A Publisher represents an object that publishes metrics to AWS Cloudwatch.
 type Publisher struct {
-	client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
-	namespace string                        // custom resouces's namespace
-	logger    *log.Logger
+	client            cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
+	namespace         string                        // custom resouces's namespace
+	logger            *log.Logger
+	providerAccountID string // provider's account id
 }
 
 // New creates a new Publisher.
-func New(client cloudwatchiface.CloudWatchAPI) *Publisher {
+func New(client cloudwatchiface.CloudWatchAPI, account string) *Publisher {
 	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
 		client = newNoopClient()
 	}
 
 	return &Publisher{
-		client: client,
-		logger: logging.New("metrics"),
+		client:            client,
+		logger:            logging.New("metrics"),
+		providerAccountID: account,
 	}
 }
 
@@ -148,7 +150,7 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	}
 
 	pi := cloudwatch.PutMetricDataInput{
-		Namespace:  aws.String(fmt.Sprintf("%s/%s/%s", MetricNameSpaceRoot, p.providerAccountId, p.namespace)),
+		Namespace:  aws.String(fmt.Sprintf("%s/%s/%s", MetricNameSpaceRoot, p.providerAccountID, p.namespace)),
 		MetricData: md,
 	}
 

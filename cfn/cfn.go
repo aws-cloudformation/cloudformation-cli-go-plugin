@@ -263,7 +263,7 @@ func makeEventFunc(h Handler) eventFunc {
 		// Set default logger to output to CWL in the provider account
 		logging.SetProviderLogOutput(logsProvider)
 
-		metricsPublisher := metrics.New(cloudwatch.New(platformSession))
+		metricsPublisher := metrics.New(cloudwatch.New(platformSession), event.AWSAccountID)
 		metricsPublisher.SetResourceTypeName(event.ResourceType)
 		callbackAdapter := callback.New(cloudformation.New(platformSession), event.BearerToken)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))

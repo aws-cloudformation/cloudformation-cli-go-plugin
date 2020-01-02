@@ -128,7 +128,7 @@ func TestHandler(t *testing.T) {
 
 func TestInvoke(t *testing.T) {
 	mockClient := NewMockedMetrics()
-	mockPub := metrics.New(mockClient)
+	mockPub := metrics.New(mockClient, "12345678")
 	mockPub.SetResourceTypeName("dsf::fs::sfa")
 
 	// For test purposes, set the timeout low

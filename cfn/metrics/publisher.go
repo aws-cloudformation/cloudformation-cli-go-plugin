@@ -148,7 +148,7 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	}
 
 	pi := cloudwatch.PutMetricDataInput{
-		Namespace:  aws.String(p.namespace),
+		Namespace:  aws.String(fmt.Sprintf("%s/%s/%s", MetricNameSpaceRoot, p.providerAccountId, p.namespace)),
 		MetricData: md,
 	}
 

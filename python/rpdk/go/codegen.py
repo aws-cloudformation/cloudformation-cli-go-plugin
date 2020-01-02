@@ -96,7 +96,7 @@ class GoLanguagePlugin(LanguagePlugin):
             "CodeUri": self.CODE_URI,
             "Environment": "",
             "  Variables": "",
-            "    Mode": "Test",
+            "    MODE": "Test",
         }
         contents = template.render(
             resource_type=project.type_name,

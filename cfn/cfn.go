@@ -76,13 +76,17 @@ func Start(h Handler) {
 
 	// MODE is an environment variable that is set ONLY
 	// when contract test are performed.
-	if mode, ok := os.LookupEnv("MODE"); ok == true {
+	mode, ok := os.LookupEnv("MODE")
+
+	switch ok {
+	case true:
 		if mode == "Test" {
 			lambda.Start(makeTestEventFunc(h))
-
 		} else {
 			lambda.Start(makeEventFunc(h))
 		}
+	case false:
+		lambda.Start(makeEventFunc(h))
 	}
 }
 

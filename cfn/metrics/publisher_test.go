@@ -75,7 +75,7 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 		wantErr                       bool
 		wantAction                    string
 		wantDimensionKeyExceptionType string
-		wantDimensionKeyResouceType   string
+		wantDimensionKeyResourceType  string
 		wantMetricName                string
 		wantUnit                      string
 		wantValue                     float64
@@ -107,10 +107,10 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 						t.Errorf("\t%s\tDimensionKeyExceptionType should be (%v). : %v", failed, tt.wantDimensionKeyExceptionType, e.Dim[DimensionKeyExceptionType])
 					}
 
-					if e.Dim[DimensionKeyResouceType] == tt.wantDimensionKeyResouceType {
-						t.Logf("\t%s\t DimensionKeyResouceType should be (%v).", succeed, tt.wantDimensionKeyResouceType)
+					if e.Dim[DimensionKeyResourceType] == tt.wantDimensionKeyResourceType {
+						t.Logf("\t%s\t DimensionKeyResourceType should be (%v).", succeed, tt.wantDimensionKeyResourceType)
 					} else {
-						t.Errorf("\t%s\tDimensionKeyResouceType should be (%v). : %v", failed, tt.wantDimensionKeyResouceType, e.Dim[DimensionKeyResouceType])
+						t.Errorf("\t%s\tDimensionKeyResourceType should be (%v). : %v", failed, tt.wantDimensionKeyResourceType, e.Dim[DimensionKeyResourceType])
 					}
 
 					if e.MetricName == tt.wantMetricName {
@@ -148,16 +148,16 @@ func TestPublisher_PublishInvocationMetric(t *testing.T) {
 		action string
 	}
 	tests := []struct {
-		name                        string
-		fields                      fields
-		args                        args
-		MetricName                  string
-		wantErr                     bool
-		wantAction                  string
-		wantDimensionKeyResouceType string
-		wantMetricName              string
-		wantUnit                    string
-		wantValue                   float64
+		name                         string
+		fields                       fields
+		args                         args
+		MetricName                   string
+		wantErr                      bool
+		wantAction                   string
+		wantDimensionKeyResourceType string
+		wantMetricName               string
+		wantUnit                     string
+		wantValue                    float64
 	}{
 		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE"}, "HandlerInvocationCount", false, "CREATE", "foo/bar/test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
 		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE"}, "HandlerException", true, "CREATE", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
@@ -180,10 +180,10 @@ func TestPublisher_PublishInvocationMetric(t *testing.T) {
 						t.Errorf("\t%s\tAction should be (%v). : %v", failed, tt.wantAction, e.Dim[DimensionKeyAcionType])
 					}
 
-					if e.Dim[DimensionKeyResouceType] == tt.wantDimensionKeyResouceType {
-						t.Logf("\t%s\t DimensionKeyResouceType should be (%v).", succeed, tt.wantDimensionKeyResouceType)
+					if e.Dim[DimensionKeyResourceType] == tt.wantDimensionKeyResourceType {
+						t.Logf("\t%s\t DimensionKeyResourceType should be (%v).", succeed, tt.wantDimensionKeyResourceType)
 					} else {
-						t.Errorf("\t%s\tDimensionKeyResouceType should be (%v). : %v", failed, tt.wantDimensionKeyResouceType, e.Dim[DimensionKeyResouceType])
+						t.Errorf("\t%s\tDimensionKeyResourceType should be (%v). : %v", failed, tt.wantDimensionKeyResourceType, e.Dim[DimensionKeyResourceType])
 					}
 
 					if e.MetricName == tt.wantMetricName {
@@ -223,16 +223,16 @@ func TestPublisher_PublishDurationMetric(t *testing.T) {
 		sec    float64
 	}
 	tests := []struct {
-		name                        string
-		fields                      fields
-		args                        args
-		MetricName                  string
-		wantErr                     bool
-		wantAction                  string
-		wantDimensionKeyResouceType string
-		wantMetricName              string
-		wantUnit                    string
-		wantValue                   float64
+		name                         string
+		fields                       fields
+		args                         args
+		MetricName                   string
+		wantErr                      bool
+		wantAction                   string
+		wantDimensionKeyResourceType string
+		wantMetricName               string
+		wantUnit                     string
+		wantValue                    float64
 	}{
 		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE", 15.0}, "HandlerInvocationDuration", false, "CREATE", "foo/bar/test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
 		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE", 15.0}, "HandlerInvocationDuration", true, "CREATE", "foo/bar/test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
@@ -255,10 +255,10 @@ func TestPublisher_PublishDurationMetric(t *testing.T) {
 						t.Errorf("\t%s\tAction should be (%v). : %v", failed, tt.wantAction, e.Dim[DimensionKeyAcionType])
 					}
 
-					if e.Dim[DimensionKeyResouceType] == tt.wantDimensionKeyResouceType {
-						t.Logf("\t%s\t DimensionKeyResouceType should be (%v).", succeed, tt.wantDimensionKeyResouceType)
+					if e.Dim[DimensionKeyResourceType] == tt.wantDimensionKeyResourceType {
+						t.Logf("\t%s\t DimensionKeyResourceType should be (%v).", succeed, tt.wantDimensionKeyResourceType)
 					} else {
-						t.Errorf("\t%s\tDimensionKeyResouceType should be (%v). : %v", failed, tt.wantDimensionKeyResouceType, e.Dim[DimensionKeyResouceType])
+						t.Errorf("\t%s\tDimensionKeyResourceType should be (%v). : %v", failed, tt.wantDimensionKeyResourceType, e.Dim[DimensionKeyResourceType])
 					}
 
 					if e.MetricName == tt.wantMetricName {

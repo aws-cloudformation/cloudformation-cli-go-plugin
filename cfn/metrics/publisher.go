@@ -26,8 +26,8 @@ const (
 	DimensionKeyAcionType = "Action"
 	//DimensionKeyExceptionType  is the ExceptionType in the dimension.
 	DimensionKeyExceptionType = "ExceptionType"
-	//DimensionKeyResouceType  is the ResourceType in the dimension.
-	DimensionKeyResouceType = "ResourceType"
+	//DimensionKeyResourceType  is the ResourceType in the dimension.
+	DimensionKeyResourceType = "ResourceType"
 	//ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
 )
@@ -60,7 +60,7 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e erro
 	dimensions := map[string]string{
 		DimensionKeyAcionType:     string(action),
 		DimensionKeyExceptionType: e.Error(),
-		DimensionKeyResouceType:   p.resourceType,
+		DimensionKeyResourceType:  p.resourceType,
 	}
 
 	p.publishMetric(MetricNameHanderException, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
@@ -69,8 +69,8 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e erro
 // PublishInvocationMetric publishes an invocation metric.
 func (p *Publisher) PublishInvocationMetric(date time.Time, action string) {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:   string(action),
-		DimensionKeyResouceType: p.resourceType,
+		DimensionKeyAcionType:    string(action),
+		DimensionKeyResourceType: p.resourceType,
 	}
 
 	p.publishMetric(MetricNameHanderInvocationCount, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
@@ -82,8 +82,8 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action string) {
 // A duration metric is the timing of something.
 func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:   string(action),
-		DimensionKeyResouceType: p.resourceType,
+		DimensionKeyAcionType:    string(action),
+		DimensionKeyResourceType: p.resourceType,
 	}
 
 	p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, secs, date)

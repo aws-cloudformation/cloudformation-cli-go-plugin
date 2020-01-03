@@ -139,37 +139,21 @@ func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *me
 		// Create a channel to received a signal that work is done.
 		ch := make(chan handler.ProgressEvent, 1)
 
-		// Create a channel to received error.
-		cherror := make(chan error, 1)
-
 		// Ask the goroutine to do some work for us.
 		go func() {
 			//start the timer
 			start := time.Now()
-			if err := metricsPublisher.PublishInvocationMetric(time.Now(), string(action)); err != nil {
-				cherror <- err
-			}
+			metricsPublisher.PublishInvocationMetric(time.Now(), string(action))
 
 			// Report the work is done.
 			progEvt := handlerFn(request)
-
 			elapsed := time.Since(start)
-
-			if err := metricsPublisher.PublishDurationMetric(time.Now(), string(action), elapsed.Seconds()*1e3); err != nil {
-				cherror <- err
-			}
-
+			metricsPublisher.PublishDurationMetric(time.Now(), string(action), elapsed.Seconds()*1e3)
 			ch <- progEvt
 		}()
 
 		// Wait for the work to finish. If it takes too long move on. If the function returns an error, signal the error channel.
 		select {
-		case e := <-cherror:
-			cfnErr := cfnerr.New(timeoutError, "Handler error", e)
-			metricsPublisher.PublishExceptionMetric(time.Now(), string(action), cfnErr)
-			//The handler returned an error.
-			return handler.ProgressEvent{}, e
-
 		case d := <-ch:
 			//Return the response from the handler.
 			return d, nil
@@ -267,8 +251,7 @@ func makeEventFunc(h Handler) eventFunc {
 		// Set default logger to output to CWL in the provider account
 		logging.SetProviderLogOutput(logsProvider)
 
-		metricsPublisher := metrics.New(cloudwatch.New(platformSession), event.AWSAccountID)
-		metricsPublisher.SetResourceTypeName(event.ResourceType)
+		metricsPublisher := metrics.New(cloudwatch.New(platformSession), event.AWSAccountID, event.ResourceType)
 		callbackAdapter := callback.New(cloudformation.New(platformSession), event.BearerToken)
 		invokeScheduler := scheduler.New(cloudwatchevents.New(platformSession))
 		re := newReportErr(callbackAdapter, metricsPublisher)

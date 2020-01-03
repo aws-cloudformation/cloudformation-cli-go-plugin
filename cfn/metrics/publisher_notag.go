@@ -3,7 +3,6 @@
 package metrics
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -17,33 +16,29 @@ import (
 
 // A Publisher represents an object that publishes metrics to AWS Cloudwatch.
 type Publisher struct {
-	client    cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
-	namespace string
-	logger    *log.Logger // custom resouces's namespace
+	client       cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
+	namespace    string
+	logger       *log.Logger // custom resouces's namespace
+	resourceType string      // type of resource
 }
 
 // New creates a new Publisher.
-func New(client cloudwatchiface.CloudWatchAPI, account string) *Publisher {
+func New(client cloudwatchiface.CloudWatchAPI, account string, resType string) *Publisher {
+	rn := ResourceTypeName(resType)
 	return &Publisher{
-		client:            newNoopClient(),
-		logger:            logging.New("metrics"),
-		providerAccountID: account,
+		client:       newNoopClient(),
+		logger:       logging.New("metrics"),
+		namespace:    fmt.Sprintf("%s/%s/%s", MetricNameSpaceRoot, account, rn),
+		resourceType: rn,
 	}
 }
 
 // PublishExceptionMetric publishes an exception metric.
 func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e error) error {
-
-	if len(p.namespace) == 0 {
-		message := fmt.Sprintf("Name Space was not set")
-		err := errors.New(message)
-		return cfnerr.New(ServiceInternalError, "Publisher error", err)
-	}
-
 	dimensions := map[string]string{
 		DimensionKeyAcionType:     string(action),
 		DimensionKeyExceptionType: e.Error(),
-		DimensionKeyResouceType:   p.namespace,
+		DimensionKeyResouceType:   p.resourceType,
 	}
 
 	_, err := p.publishMetric(MetricNameHanderException, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
@@ -57,16 +52,9 @@ func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e erro
 
 // PublishInvocationMetric publishes an invocation metric.
 func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error {
-
-	if len(p.namespace) == 0 {
-		message := fmt.Sprintf("Name Space was not set")
-		err := errors.New(message)
-		return cfnerr.New(ServiceInternalError, "Publisher error", err)
-	}
-
 	dimensions := map[string]string{
 		DimensionKeyAcionType:   string(action),
-		DimensionKeyResouceType: p.namespace,
+		DimensionKeyResouceType: p.resourceType,
 	}
 
 	_, err := p.publishMetric(MetricNameHanderInvocationCount, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
@@ -82,14 +70,9 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action string) error
 //
 // A duration metric is the timing of something.
 func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) error {
-	if len(p.namespace) == 0 {
-		message := fmt.Sprintf("Name Space was not set")
-		err := errors.New(message)
-		return cfnerr.New(ServiceInternalError, "Publisher error", err)
-	}
 	dimensions := map[string]string{
 		DimensionKeyAcionType:   string(action),
-		DimensionKeyResouceType: p.namespace,
+		DimensionKeyResouceType: p.resourceType,
 	}
 
 	_, err := p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, secs, date)
@@ -102,7 +85,6 @@ func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs fl
 }
 
 func (p *Publisher) publishMetric(metricName string, data map[string]string, unit string, value float64, date time.Time) (*cloudwatch.PutMetricDataOutput, error) {
-
 	var d []*cloudwatch.Dimension
 
 	for k, v := range data {
@@ -124,14 +106,13 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	}
 
 	pi := cloudwatch.PutMetricDataInput{
-		Namespace:  aws.String(fmt.Sprintf("%s/%s/%s", MetricNameSpaceRoot, p.providerAccountID, p.namespace)),
+		Namespace:  aws.String(p.namespace),
 		MetricData: md,
 	}
 
 	out, err := p.client.PutMetricData(&pi)
 
 	if err != nil {
-
 		return nil, cfnerr.New(ServiceInternalError, "Publisher error", err)
 	}
 

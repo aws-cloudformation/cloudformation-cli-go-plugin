@@ -138,7 +138,6 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	out, err := p.client.PutMetricData(&pi)
 
 	if err != nil {
-
 		return nil, cfnerr.New(ServiceInternalError, "Publisher error", err)
 	}
 

@@ -164,15 +164,14 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 	return out, nil
 }
 
-// SetResourceTypeName returns a type name by removing (::) and replaing with (/)
+// ResourceTypeName returns a type name by removing (::) and replaing with (/)
 //
 // Example
 //
-// 	pub := metrics.New(cw)
+// 	r := metrics.ResourceTypeName("AWS::Service::Resource")
 //
 // 	// Will return "AWS/Service/Resource"
-// 	pub.SetResourceTypeName("AWS::Service::Resource")
-func (p *Publisher) SetResourceTypeName(t string) {
-	p.namespace = strings.ReplaceAll(t, "::", "/")
+func ResourceTypeName(t string) string {
+	return strings.ReplaceAll(t, "::", "/")
 
 }

@@ -307,28 +307,23 @@ func TestPublisher_PublishDurationMetric(t *testing.T) {
 
 }
 
-func TestPublisher_SetResourceTypeName(t *testing.T) {
-	type fields struct {
-		client cloudwatchiface.CloudWatchAPI
-	}
+func TestPublisher_ResourceTypeName(t *testing.T) {
 	type args struct {
 		t string
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name string
+		args args
+		want string
 	}{
-		{"test foo", fields{NewMockCloudWatchClient()}, args{"foo::bar::test"}, "foo/bar/test"},
+		{"test foo", args{"foo::bar::test"}, "foo/bar/test"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := New(tt.fields.client, "12345678")
-			p.SetResourceTypeName(tt.args.t)
+			r := ResourceTypeName(tt.args.t)
 
-			if p.namespace != tt.want {
-				t.Errorf("Should be %v : got %v", tt.want, p.namespace)
+			if r != tt.want {
+				t.Errorf("Should be %v : got %v", tt.want, r)
 				return
 			}
 

@@ -156,7 +156,7 @@ class GoLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
         format_paths.append(path)
 
-         # Makefile
+        # Makefile
         path = project.root / "Makefile"
         LOG.debug("Writing Makefile: %s", path)
         template = self.env.get_template("Makefile")

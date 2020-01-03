@@ -128,7 +128,7 @@ func TestHandler(t *testing.T) {
 
 func TestInvoke(t *testing.T) {
 	mockClient := NewMockedMetrics()
-	mockPub := metrics.New(mockClient, "12345678", "hg")
+	mockPub := metrics.New(mockClient, "12345678", "foo::bar::test")
 
 	// For test purposes, set the timeout low
 	Timeout = time.Second

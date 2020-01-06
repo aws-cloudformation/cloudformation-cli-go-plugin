@@ -5,7 +5,7 @@ PRIMITIVE_TYPES = {
     "integer": "*encoding.Int",
     "boolean": "*encoding.Bool",
     "number": "*encoding.Float",
-    UNDEFINED: "Type",
+    UNDEFINED: "interface{}",
 }
 
 
@@ -18,8 +18,7 @@ def translate_type(resolved_type):
     item_type = translate_type(resolved_type.type)
 
     if resolved_type.container == ContainerType.DICT:
-        key_type = PRIMITIVE_TYPES["string"]
-        return f"Map<{key_type}, {item_type}>"
+        return f"map[string]{item_type}"
     if resolved_type.container == ContainerType.LIST:
         return f"[]{item_type}"
     if resolved_type.container == ContainerType.SET:

@@ -166,7 +166,9 @@ class GoLanguagePlugin(LanguagePlugin):
         # named files must all be in one directory
         for path in format_paths:
             try:
-                subprocess_run(["go", "fmt", path], cwd=root, check=True)
+                subprocess_run(
+                    ["go", "fmt", path], cwd=root, check=True, capture_output=True
+                )
             except (FileNotFoundError, CalledProcessError) as e:
                 raise DownstreamError("go fmt failed") from e
 

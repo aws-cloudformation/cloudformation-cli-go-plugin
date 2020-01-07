@@ -73,17 +73,26 @@ type InvokeScheduler interface {
 // invocations of a custom resource and MakeTestEventFunc is the entry point that
 // allows the CLI's contract testing framework to invoke the resource's CRUDL handlers.
 func Start(h Handler) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Handler panicked: %s", r)
+			panic(r) // Continue the panic
+		}
+	}()
 
 	// MODE is an environment variable that is set ONLY
 	// when contract test are performed.
 	mode, _ := os.LookupEnv("MODE")
 
 	if mode == "Test" {
+		log.Printf("Handler starting in test mode")
 		lambda.Start(makeTestEventFunc(h))
 	} else {
+		log.Printf("Handler starting")
 		lambda.Start(makeEventFunc(h))
 	}
 
+	log.Printf("Handler finished")
 }
 
 // Tags are stored as key/value paired strings
@@ -253,6 +262,7 @@ func makeEventFunc(h Handler) eventFunc {
 		re := newReportErr(callbackAdapter, metricsPublisher)
 
 		handlerFn, err := router(event.Action, h)
+		log.Printf("Handler received the %s action", event.Action)
 
 		if err != nil {
 			return re.report(event, "router error", err, serviceInternalError)

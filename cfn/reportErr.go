@@ -8,6 +8,7 @@ import (
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/callback"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/metrics"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 //reportErr is an unexported struct that handles reporting of errors.
@@ -31,7 +32,7 @@ func (r *reportErr) report(event *event, message string, err error, errCode stri
 	m := fmt.Sprintf("Unable to complete request; %s error", message)
 
 	if isMutatingAction(event.Action) && r.publishStatus {
-		if reportErr := r.callbackAdapter.ReportFailureStatus(event.RequestData.ResourceProperties, cfnerr.InternalFailure, err); reportErr != nil {
+		if reportErr := r.callbackAdapter.ReportFailureStatus(event.RequestData.ResourceProperties, cloudformation.HandlerErrorCodeInternalFailure, err); reportErr != nil {
 			log.Printf("Callback report error; Error: %s", reportErr.Error())
 		}
 	}

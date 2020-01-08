@@ -2,6 +2,7 @@ package cfn
 
 import (
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 // response represents a response to the
@@ -23,7 +24,7 @@ type response struct {
 	ResourceModel interface{} `json:"resourceModel,omitempty"`
 
 	// ErrorCode is used to report granular failures back to CloudFormation
-	ErrorCode handler.ErrorCode `json:"errorCode,omitempty"`
+	ErrorCode string `json:"errorCode,omitempty"`
 
 	// BearerToken is used to report progress back to CloudFormation and is
 	//passed back to CloudFormation
@@ -40,7 +41,7 @@ type response struct {
 func newFailedResponse(err error, bearerToken string) response {
 	return response{
 		OperationStatus: handler.Failed,
-		ErrorCode:       handler.InternalFailure,
+		ErrorCode:       cloudformation.HandlerErrorCodeInternalFailure,
 		Message:         err.Error(),
 		BearerToken:     bearerToken,
 	}

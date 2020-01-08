@@ -3,6 +3,7 @@ package cfn
 import (
 	"testing"
 
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/google/go-cmp/cmp"
 
 	"encoding/json"
@@ -24,7 +25,7 @@ func TestMarshalJSON(t *testing.T) {
 			Name:    encoding.NewString("Douglas"),
 			Version: encoding.NewFloat(42.1),
 		},
-		ErrorCode:   handler.NotUpdatable,
+		ErrorCode:   cloudformation.HandlerErrorCodeNotUpdatable,
 		BearerToken: "xyzzy",
 	}
 

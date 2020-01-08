@@ -1,6 +1,9 @@
 package handler
 
-import "github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+import (
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+)
 
 // ProgressEvent represent the progress of CRUD handlers.
 type ProgressEvent struct {
@@ -9,7 +12,7 @@ type ProgressEvent struct {
 	OperationStatus Status `json:"status,omitempty"`
 
 	// HandlerErrorCode should be provided when OperationStatus is FAILED or IN_PROGRESS.
-	HandlerErrorCode ErrorCode `json:"errorCode,omitempty"`
+	HandlerErrorCode string `json:"errorCode,omitempty"`
 
 	// Message which can be shown to callers to indicate the
 	//nature of a progress transition or callback delay; for example a message
@@ -50,7 +53,7 @@ func NewProgressEvent() ProgressEvent {
 // based on the error passed in.
 func NewFailedEvent(err error) ProgressEvent {
 	cerr := cfnerr.New(
-		cfnerr.GeneralServiceException,
+		cloudformation.HandlerErrorCodeGeneralServiceException,
 		"Unable to complete request: "+err.Error(),
 		err,
 	)
@@ -58,6 +61,6 @@ func NewFailedEvent(err error) ProgressEvent {
 	return ProgressEvent{
 		OperationStatus:  Failed,
 		Message:          cerr.Message(),
-		HandlerErrorCode: GeneralServiceException,
+		HandlerErrorCode: cloudformation.HandlerErrorCodeGeneralServiceException,
 	}
 }

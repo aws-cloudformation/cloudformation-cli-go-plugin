@@ -23,7 +23,7 @@ func (r *Handler) {{ method }}(req handler.Request) handler.ProgressEvent {
 }
 {% endfor %}
 
-// main is the entry point of the applicaton.
+// main is the entry point of the application.
 func main() {
 	cfn.Start(&Handler{})
 }

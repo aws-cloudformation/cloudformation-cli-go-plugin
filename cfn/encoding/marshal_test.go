@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
-func TestEncoding(t *testing.T) {
+func TestMarshaling(t *testing.T) {
 	type Nested struct {
 		SP *string  `json:",omitempty"`
 		BP *bool    `json:",omitempty"`

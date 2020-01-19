@@ -3,21 +3,20 @@ package handler
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
-
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestUnmarshal(t *testing.T) {
 	type Detail struct {
-		Build        *encoding.Int
-		IsProduction *encoding.Bool
+		Build        *int
+		IsProduction *bool
 	}
 
 	type Model struct {
-		Name    *encoding.String
-		Version *encoding.Float
-		Detail  Detail
+		Name    *string
+		Version *float64
+		Detail  *Detail
 	}
 
 	req := Request{
@@ -27,20 +26,20 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	expectedPrevious := Model{
-		Name:    encoding.NewString("bar"),
-		Version: encoding.NewFloat(0.1),
-		Detail: Detail{
-			Build:        encoding.NewInt(57),
-			IsProduction: encoding.NewBool(false),
+		Name:    aws.String("bar"),
+		Version: aws.Float64(0.1),
+		Detail: &Detail{
+			Build:        aws.Int(57),
+			IsProduction: aws.Bool(false),
 		},
 	}
 
 	expectedCurrent := Model{
-		Name:    encoding.NewString("baz"),
-		Version: encoding.NewFloat(2.3),
-		Detail: Detail{
-			Build:        encoding.NewInt(69),
-			IsProduction: encoding.NewBool(true),
+		Name:    aws.String("baz"),
+		Version: aws.Float64(2.3),
+		Detail: &Detail{
+			Build:        aws.Int(69),
+			IsProduction: aws.Bool(true),
 		},
 	}
 

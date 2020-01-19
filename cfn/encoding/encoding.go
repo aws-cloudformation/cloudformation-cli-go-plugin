@@ -1,6 +1,5 @@
 /*
-Package encoding defines custom types for strings, bools, ints, and floats
-that must be used my resource provider model structs.
+Package encoding defines types and functions used for dealing with stringified-JSON.
 */
 package encoding
 
@@ -10,6 +9,7 @@ import (
 	"strconv"
 )
 
+// String is a string type to be used when the default json marshaler/unmarshaler cannot be avoided
 type String string
 
 func NewString(ss string) *String {
@@ -36,6 +36,7 @@ func (s *String) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Bool is a bool type to be used when the default json marshaler/unmarshaler cannot be avoided
 type Bool bool
 
 func NewBool(bb bool) *Bool {
@@ -67,6 +68,7 @@ func (b *Bool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Int is an int type to be used when the default json marshaler/unmarshaler cannot be avoided
 type Int int64
 
 func NewInt(ii int64) *Int {
@@ -98,6 +100,7 @@ func (i *Int) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Float is a float type to be used when the default json marshaler/unmarshaler cannot be avoided
 type Float float64
 
 func NewFloat(ff float64) *Float {

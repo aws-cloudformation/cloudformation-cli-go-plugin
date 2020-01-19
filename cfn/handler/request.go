@@ -1,11 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 )
 
 const (
@@ -37,6 +38,8 @@ type Request struct {
 
 // NewRequest returns a new Request based on the provided parameters
 func NewRequest(id string, ctx map[string]interface{}, sess *session.Session, previousBody, body []byte) Request {
+	log.Printf("Creating request:\nPrev body: %s\nCurr body: %s", previousBody, body)
+
 	return Request{
 		LogicalResourceID:              id,
 		CallbackContext:                ctx,
@@ -53,7 +56,7 @@ func (r *Request) UnmarshalPrevious(v interface{}) error {
 		return nil
 	}
 
-	if err := json.Unmarshal(r.previousResourcePropertiesBody, v); err != nil {
+	if err := encoding.Unmarshal(r.previousResourcePropertiesBody, v); err != nil {
 		return cfnerr.New(marshalingError, "Unable to convert type", err)
 	}
 
@@ -67,7 +70,7 @@ func (r *Request) Unmarshal(v interface{}) error {
 		return cfnerr.New(bodyEmptyError, "Body is empty", nil)
 	}
 
-	if err := json.Unmarshal(r.resourcePropertiesBody, v); err != nil {
+	if err := encoding.Unmarshal(r.resourcePropertiesBody, v); err != nil {
 		return cfnerr.New(marshalingError, "Unable to convert type", err)
 	}
 

@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestStringify(t *testing.T) {
+func TestStringifyTypes(t *testing.T) {
 	type Struct struct {
 		S string
 	}
@@ -27,6 +28,7 @@ func TestStringify(t *testing.T) {
 		data     interface{}
 		expected interface{}
 	}{
+		// Basic types
 		{s, "foo"},
 		{b, "true"},
 		{i, "42"},
@@ -35,6 +37,7 @@ func TestStringify(t *testing.T) {
 		{m, map[string]interface{}{"l": []interface{}{"foo", "true", "42", "3.14"}}},
 		{o, map[string]interface{}{"S": "foo"}},
 
+		// Pointers
 		{&s, "foo"},
 		{&b, "true"},
 		{&i, "42"},
@@ -43,8 +46,13 @@ func TestStringify(t *testing.T) {
 		{&m, map[string]interface{}{"l": []interface{}{"foo", "true", "42", "3.14"}}},
 		{&o, map[string]interface{}{"S": "foo"}},
 
+		// Nils are stripped
+		{map[string]interface{}{"foo": nil}, map[string]interface{}{}},
+
+		// Nil pointers are nil
 		{nilPointer, nil},
 
+		// Nils are nil
 		{nil, nil},
 	} {
 		actual, err := encoding.Stringify(testCase.data)
@@ -55,5 +63,44 @@ func TestStringify(t *testing.T) {
 		if d := cmp.Diff(actual, testCase.expected); d != "" {
 			t.Errorf(d)
 		}
+	}
+}
+
+func TestStringifyModel(t *testing.T) {
+	type Model struct {
+		BucketName      *string
+		Key             *string
+		Body            *string
+		IsBase64Encoded *bool
+		ContentType     *string
+		ContentLength   *int
+		ACL             *string
+		Grants          map[string][]string
+	}
+
+	m := Model{
+		BucketName:  aws.String("foo"),
+		Key:         aws.String("bar"),
+		Body:        aws.String("baz"),
+		ContentType: aws.String("quux"),
+		ACL:         aws.String("mooz"),
+	}
+
+	expected := map[string]interface{}{
+		"BucketName":  "foo",
+		"Key":         "bar",
+		"Body":        "baz",
+		"ContentType": "quux",
+		"ACL":         "mooz",
+		"Grants":      map[string]interface{}{},
+	}
+
+	actual, err := encoding.Stringify(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if d := cmp.Diff(actual, expected); d != "" {
+		t.Errorf(d)
 	}
 }

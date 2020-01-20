@@ -21,35 +21,40 @@ func Stringify(v interface{}) (interface{}, error) {
 	case reflect.String, reflect.Bool, reflect.Int, reflect.Float64:
 		return fmt.Sprint(v), nil
 	case reflect.Map:
-		vMap := v.(map[string]interface{})
 		out := make(map[string]interface{})
-		for key, value := range vMap {
-			out[key], err = Stringify(value)
-			if err != nil {
+		for _, key := range val.MapKeys() {
+			v, err := Stringify(val.MapIndex(key).Interface())
+			switch {
+			case err != nil:
 				return nil, err
+			case v != nil:
+				out[key.String()] = v
 			}
 		}
 		return out, nil
 	case reflect.Slice:
-		vSlice := v.([]interface{})
-		out := make([]interface{}, len(vSlice))
-		for i, value := range vSlice {
-			out[i], err = Stringify(value)
-			if err != nil {
+		out := make([]interface{}, val.Len())
+		for i := 0; i < val.Len(); i++ {
+			v, err = Stringify(val.Index(i).Interface())
+			switch {
+			case err != nil:
 				return nil, err
+			case v != nil:
+				out[i] = v
 			}
 		}
 		return out, nil
 	case reflect.Struct:
 		t := val.Type()
 		out := make(map[string]interface{})
-
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
-
-			out[f.Name], err = Stringify(val.FieldByName(f.Name).Interface())
-			if err != nil {
+			v, err := Stringify(val.FieldByName(f.Name).Interface())
+			switch {
+			case err != nil:
 				return nil, err
+			case v != nil:
+				out[f.Name] = v
 			}
 		}
 

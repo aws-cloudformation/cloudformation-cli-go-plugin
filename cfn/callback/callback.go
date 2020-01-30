@@ -116,35 +116,23 @@ func (c *CloudFormationCallbackAdapter) reportProgress(errCode string, operation
 // TranslateErrorCode : Translate the error code into a standard Cloudformation error
 func TranslateErrorCode(errorCode string) string {
 
+	// Ensure the error code conforms to one of the available
 	switch errorCode {
-	case "NotUpdatable":
-		return cloudformation.HandlerErrorCodeNotUpdatable
-	case "InvalidRequest":
-		return cloudformation.HandlerErrorCodeInvalidRequest
-	case "AccessDenied":
-		return cloudformation.HandlerErrorCodeAccessDenied
-	case "InvalidCredentials":
-		return cloudformation.HandlerErrorCodeInvalidCredentials
-	case "AlreadyExists":
-		return cloudformation.HandlerErrorCodeAlreadyExists
-	case "NotFound":
-		return cloudformation.HandlerErrorCodeNotFound
-	case "ResourceConflict":
-		return cloudformation.HandlerErrorCodeResourceConflict
-	case "Throttling":
-		return cloudformation.HandlerErrorCodeThrottling
-	case "ServiceLimitExceeded":
-		return cloudformation.HandlerErrorCodeServiceLimitExceeded
-	case "NotStabilized":
-		return cloudformation.HandlerErrorCodeNotStabilized
-	case "GeneralServiceException":
-		return cloudformation.HandlerErrorCodeGeneralServiceException
-	case "ServiceInternalError":
-		return cloudformation.HandlerErrorCodeServiceInternalError
-	case "NetworkFailure":
-		return cloudformation.HandlerErrorCodeNetworkFailure
-	case "InternalFailure":
-		return cloudformation.HandlerErrorCodeInternalFailure
+	case cloudformation.HandlerErrorCodeNotUpdatable,
+		cloudformation.HandlerErrorCodeInvalidRequest,
+		cloudformation.HandlerErrorCodeAccessDenied,
+		cloudformation.HandlerErrorCodeInvalidCredentials,
+		cloudformation.HandlerErrorCodeAlreadyExists,
+		cloudformation.HandlerErrorCodeNotFound,
+		cloudformation.HandlerErrorCodeResourceConflict,
+		cloudformation.HandlerErrorCodeThrottling,
+		cloudformation.HandlerErrorCodeServiceLimitExceeded,
+		cloudformation.HandlerErrorCodeNotStabilized,
+		cloudformation.HandlerErrorCodeGeneralServiceException,
+		cloudformation.HandlerErrorCodeServiceInternalError,
+		cloudformation.HandlerErrorCodeNetworkFailure,
+		cloudformation.HandlerErrorCodeInternalFailure:
+		return errorCode
 	default:
 		// InternalFailure is CloudFormation's fallback error code when no more specificity is there
 		return cloudformation.HandlerErrorCodeInternalFailure

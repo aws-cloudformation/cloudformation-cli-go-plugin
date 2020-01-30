@@ -14,6 +14,7 @@ import (
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 func TestReschedule(t *testing.T) {
@@ -188,7 +189,7 @@ func TestMakeEventFunc(t *testing.T) {
 		}, true},
 		{"Test wrap panic", args{&MockHandler{f6}, context.Background(), loadEvent("request.create.json", &event{})}, response{
 			OperationStatus: handler.Failed,
-			ErrorCode:       handler.GeneralServiceException,
+			ErrorCode:       cloudformation.HandlerErrorCodeGeneralServiceException,
 			Message:         "Unable to complete request: error",
 			BearerToken:     "123456",
 		}, false},

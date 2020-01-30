@@ -12,13 +12,22 @@ from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 
+from . import __version__
 from .resolver import translate_type
 from .utils import safe_reserved, validate_path
+from .version import check_version
 
 LOG = logging.getLogger(__name__)
 
 OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
 EXECUTABLE = "cfn-cli"
+
+LANGUAGE = "go"
+
+DEFAULT_SETTINGS = {
+    "protocolVersion": "1.0",
+    "pluginVersion": __version__,
+}
 
 
 class GoExecutableNotFoundError(SysExitRecommendedError):
@@ -121,6 +130,7 @@ class GoLanguagePlugin(LanguagePlugin):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.import_path)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.import_path)
+        project.settings.update(DEFAULT_SETTINGS)
 
     def init_handlers(self, project, src):
         LOG.debug("Writing stub handlers")
@@ -171,6 +181,23 @@ class GoLanguagePlugin(LanguagePlugin):
                 )
             except (FileNotFoundError, CalledProcessError) as e:
                 raise DownstreamError("go fmt failed") from e
+
+        # Update settings as needed
+        need_to_write = False
+        for key, new in DEFAULT_SETTINGS.items():
+            old = project.settings.get(key)
+
+            if project.settings.get(key) != new:
+                LOG.debug(f"{key} version change from {old} to {new}")
+                project.settings[key] = new
+                need_to_write = True
+
+                if key == "pluginVersion":
+                    # Display any upgrade messages
+                    print(*check_version(old), sep="\n")
+
+        if need_to_write:
+            project._write_settings(LANGUAGE)
 
     @staticmethod
     def pre_package(project):

@@ -3,9 +3,44 @@ package encoding
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 var zeroValue reflect.Value
+
+var stringType = reflect.TypeOf("")
+var interfaceType = reflect.TypeOf((*interface{})(nil)).Elem()
+
+func stringifyType(t reflect.Type) reflect.Type {
+	switch t.Kind() {
+	case reflect.Map:
+		return reflect.MapOf(stringType, interfaceType)
+	case reflect.Slice:
+		return reflect.SliceOf(interfaceType)
+	case reflect.Struct:
+		return stringifyStructType(t)
+	case reflect.Ptr:
+		return stringifyType(t.Elem())
+	default:
+		return stringType
+	}
+}
+
+func stringifyStructType(t reflect.Type) reflect.Type {
+	fields := make([]reflect.StructField, t.NumField())
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+
+		fields[i] = reflect.StructField{
+			Name: f.Name,
+			Type: stringifyType(f.Type),
+			Tag:  f.Tag,
+		}
+	}
+
+	return reflect.StructOf(fields)
+}
 
 // Stringify converts any supported type into a stringified value
 func Stringify(v interface{}) (interface{}, error) {
@@ -46,19 +81,31 @@ func Stringify(v interface{}) (interface{}, error) {
 		return out, nil
 	case reflect.Struct:
 		t := val.Type()
-		out := make(map[string]interface{})
+
+		out := reflect.New(stringifyStructType(t)).Elem()
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
-			v, err := Stringify(val.FieldByName(f.Name).Interface())
+
+			v := val.FieldByName(f.Name)
+
+			if tag, ok := f.Tag.Lookup("json"); ok {
+				if strings.Contains(tag, ",omitempty") {
+					if v.IsZero() {
+						continue
+					}
+				}
+			}
+
+			s, err := Stringify(v.Interface())
 			switch {
 			case err != nil:
 				return nil, err
-			case v != nil:
-				out[f.Name] = v
+			case s != nil:
+				out.Field(i).Set(reflect.ValueOf(s))
 			}
 		}
 
-		return out, nil
+		return out.Interface(), nil
 	case reflect.Ptr:
 		if val.IsNil() {
 			return nil, nil

@@ -35,7 +35,7 @@ func TestStringifyTypes(t *testing.T) {
 		{f, "3.14"},
 		{l, []interface{}{"foo", "true", "42", "3.14"}},
 		{m, map[string]interface{}{"l": []interface{}{"foo", "true", "42", "3.14"}}},
-		{o, map[string]interface{}{"S": "foo"}},
+		{o, struct{ S string }{S: "foo"}},
 
 		// Pointers
 		{&s, "foo"},
@@ -44,7 +44,7 @@ func TestStringifyTypes(t *testing.T) {
 		{&f, "3.14"},
 		{&l, []interface{}{"foo", "true", "42", "3.14"}},
 		{&m, map[string]interface{}{"l": []interface{}{"foo", "true", "42", "3.14"}}},
-		{&o, map[string]interface{}{"S": "foo"}},
+		{&o, struct{ S string }{S: "foo"}},
 
 		// Nils are stripped
 		{map[string]interface{}{"foo": nil}, map[string]interface{}{}},
@@ -86,13 +86,22 @@ func TestStringifyModel(t *testing.T) {
 		ACL:         aws.String("mooz"),
 	}
 
-	expected := map[string]interface{}{
-		"BucketName":  "foo",
-		"Key":         "bar",
-		"Body":        "baz",
-		"ContentType": "quux",
-		"ACL":         "mooz",
-		"Grants":      map[string]interface{}{},
+	expected := struct {
+		BucketName      string
+		Key             string
+		Body            string
+		IsBase64Encoded string
+		ContentType     string
+		ContentLength   string
+		ACL             string
+		Grants          map[string]interface{}
+	}{
+		BucketName:  "foo",
+		Key:         "bar",
+		Body:        "baz",
+		ContentType: "quux",
+		ACL:         "mooz",
+		Grants:      map[string]interface{}{},
 	}
 
 	actual, err := encoding.Stringify(m)

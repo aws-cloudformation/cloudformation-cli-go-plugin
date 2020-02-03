@@ -11,6 +11,7 @@ import (
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/callback"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/credentials"
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/metrics"
@@ -152,6 +153,14 @@ func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *me
 
 			// Report the work is done.
 			progEvt := handlerFn(request)
+
+			marshaled, _ := encoding.Marshal(progEvt.ResourceModel)
+			log.Printf("Received event: %s\nMessage: %s\nBody: %s",
+				progEvt.OperationStatus,
+				progEvt.Message,
+				marshaled,
+			)
+
 			elapsed := time.Since(start)
 			metricsPublisher.PublishDurationMetric(time.Now(), string(action), elapsed.Seconds()*1e3)
 			ch <- progEvt
@@ -209,6 +218,7 @@ func processinvoke(handlerFn handlerFunc, event *event, request handler.Request,
 	progEvt, err := invoke(handlerFn, request, metricsPublisher, event.Action)
 
 	if err != nil {
+		log.Printf("Handler invocation failed: %v", err)
 		return handler.NewFailedEvent(err)
 	}
 	return progEvt
@@ -306,8 +316,8 @@ func makeEventFunc(h Handler) eventFunc {
 			cusCtx, delay := marshalCallback(&progEvt)
 
 			r, err := newResponse(&progEvt, event.BearerToken)
-
 			if err != nil {
+				log.Printf("Error creating response: %v", err)
 				return re.report(event, "Response error", err, unmarshalingError)
 			}
 

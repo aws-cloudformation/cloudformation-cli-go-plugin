@@ -276,7 +276,7 @@ func TestMakeTestEventFunc(t *testing.T) {
 			OperationStatus: handler.Success,
 			Message:         "Create complete",
 		}, false},
-		{"Test simple INVALID", args{&MockHandler{f1}, lc, loadTestEvent("test.invalid.json", &testEvent{})}, handler.ProgressEvent{
+		{"Test simple INVALID", args{&MockHandler{f1}, lc, loadTestEvent("test.INVALID.json", &testEvent{})}, handler.ProgressEvent{
 			OperationStatus: handler.Failed,
 			Message:         "InvalidRequest: No action/invalid action specified",
 		}, true},

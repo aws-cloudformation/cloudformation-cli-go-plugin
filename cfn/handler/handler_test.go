@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 type Props struct {
-	Color string `json:"color"`
+	Color *string `json:"color"`
 }
 
 func TestNewRequest(t *testing.T) {
@@ -21,7 +22,7 @@ func TestNewRequest(t *testing.T) {
 			t.Fatalf("Unable to unmarshal props: %v", err)
 		}
 
-		if prev.Color != "red" {
+		if aws.StringValue(prev.Color) != "red" {
 			t.Fatalf("Previous Properties don't match: %v", prev.Color)
 		}
 
@@ -29,7 +30,7 @@ func TestNewRequest(t *testing.T) {
 			t.Fatalf("Unable to unmarshal props: %v", err)
 		}
 
-		if curr.Color != "green" {
+		if aws.StringValue(curr.Color) != "green" {
 			t.Fatalf("Properties don't match: %v", curr.Color)
 		}
 
@@ -44,7 +45,7 @@ func TestNewRequest(t *testing.T) {
 			req := NewRequest("foo", nil, nil, []byte(``), []byte(``))
 
 			invalid := struct {
-				Color int `json:"color"`
+				Color *int `json:"color"`
 			}{}
 
 			err := req.Unmarshal(&invalid)
@@ -59,11 +60,9 @@ func TestNewRequest(t *testing.T) {
 		})
 
 		t.Run("Invalid Marshal", func(t *testing.T) {
-			req := NewRequest("foo", nil, nil, []byte(`{"color": "red"}`), []byte(`{"color": "green"}`))
+			req := NewRequest("foo", nil, nil, []byte(`{"color": "ref"}`), []byte(`---BAD JSON---`))
 
-			invalid := struct {
-				Color int `json:"color"`
-			}{}
+			var invalid Props
 
 			err := req.Unmarshal(&invalid)
 			if err == nil {
@@ -79,11 +78,9 @@ func TestNewRequest(t *testing.T) {
 
 	t.Run("PreviousResourceProps", func(t *testing.T) {
 		t.Run("Invalid Marshal", func(t *testing.T) {
-			req := NewRequest("foo", nil, nil, []byte(`{"color": "red"}`), []byte(`{"color": "green"}`))
+			req := NewRequest("foo", nil, nil, []byte(`---BAD JSON---`), []byte(`{"color": "green"}`))
 
-			invalid := struct {
-				Color int `json:"color"`
-			}{}
+			var invalid Props
 
 			err := req.UnmarshalPrevious(&invalid)
 			if err == nil {

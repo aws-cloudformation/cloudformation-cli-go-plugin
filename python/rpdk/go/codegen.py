@@ -24,10 +24,7 @@ EXECUTABLE = "cfn-cli"
 
 LANGUAGE = "go"
 
-DEFAULT_SETTINGS = {
-    "protocolVersion": "1.0",
-    "pluginVersion": __version__,
-}
+DEFAULT_SETTINGS = {"protocolVersion": "1.0", "pluginVersion": __version__}
 
 
 class GoExecutableNotFoundError(SysExitRecommendedError):
@@ -197,7 +194,7 @@ class GoLanguagePlugin(LanguagePlugin):
                     print(*check_version(old), sep="\n")
 
         if need_to_write:
-            project._write_settings(LANGUAGE)
+            project.write_settings()
 
     @staticmethod
     def pre_package(project):

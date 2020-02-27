@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -28,18 +28,18 @@ func parseURL(url string) (string, string) {
 	return parts[len(parts)-2], parts[len(parts)-1]
 }
 
-// Create a repo
+// Create handles the Create event from the Cloudformation service.
 func Create(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
-	client := makeGitHubClient(*currentModel.OauthToken.Value())
+	client := makeGitHubClient(*currentModel.OauthToken)
 
-	log.Printf("Attempting to create repository: %s/%s", *currentModel.Owner.Value(), *currentModel.Name.Value())
+	log.Printf("Attempting to create repository: %s/%s", *currentModel.Owner, *currentModel.Name)
 
 	repo, resp, err := client.Repositories.Create(context.Background(), "", &github.Repository{
-		Name:        currentModel.Name.Value(),
-		Homepage:    currentModel.Homepage.Value(),
-		Description: currentModel.Description.Value(),
+		Name:        currentModel.Name,
+		Homepage:    currentModel.Homepage,
+		Description: currentModel.Description,
 		Owner: &github.User{
-			Name: currentModel.Owner.Value(),
+			Name: currentModel.Owner,
 		},
 	})
 
@@ -52,7 +52,7 @@ func Create(req handler.Request, prevModel *Model, currentModel *Model) (handler
 		return handler.ProgressEvent{}, fmt.Errorf("Status Code: %d, Status: %v", resp.StatusCode, resp.Status)
 	}
 
-	currentModel.URL = encoding.NewString(repo.GetURL())
+	currentModel.URL = aws.String(repo.GetURL())
 
 	return handler.ProgressEvent{
 		OperationStatus: handler.Success,
@@ -61,12 +61,12 @@ func Create(req handler.Request, prevModel *Model, currentModel *Model) (handler
 	}, nil
 }
 
-// Read a repo status
+// Read handles the Read event from the Cloudformation service.
 func Read(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
-	owner, repoName := parseURL(*currentModel.URL.Value())
+	owner, repoName := parseURL(*currentModel.URL)
 
-	log.Printf("Looking for repository: %s/%s", *currentModel.Owner.Value(), *currentModel.Name.Value())
-	client := makeGitHubClient(*currentModel.OauthToken.Value())
+	log.Printf("Looking for repository: %s/%s", *currentModel.Owner, *currentModel.Name)
+	client := makeGitHubClient(*currentModel.OauthToken)
 	repo, resp, err := client.Repositories.Get(context.Background(), owner, repoName)
 	if err != nil {
 		return handler.ProgressEvent{}, err
@@ -77,10 +77,10 @@ func Read(req handler.Request, prevModel *Model, currentModel *Model) (handler.P
 		return handler.ProgressEvent{}, fmt.Errorf("Status Code: %d, Status: %v", resp.StatusCode, resp.Status)
 	}
 
-	currentModel.Name = encoding.NewString(*repo.Name)
-	currentModel.Owner = encoding.NewString(*repo.Owner.Name)
-	currentModel.Description = encoding.NewString(*repo.Description)
-	currentModel.Homepage = encoding.NewString(*repo.Homepage)
+	currentModel.Name = aws.String(*repo.Name)
+	currentModel.Owner = aws.String(*repo.Owner.Name)
+	currentModel.Description = aws.String(*repo.Description)
+	currentModel.Homepage = aws.String(*repo.Homepage)
 
 	return handler.ProgressEvent{
 		OperationStatus: handler.Success,
@@ -89,16 +89,16 @@ func Read(req handler.Request, prevModel *Model, currentModel *Model) (handler.P
 	}, nil
 }
 
-// Update a repo
+// Update handles the Update event from the Cloudformation service.
 func Update(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
-	owner, repoName := parseURL(*currentModel.URL.Value())
+	owner, repoName := parseURL(*currentModel.URL)
 
-	log.Printf("Looking for repository: %s/%s", *currentModel.Owner.Value(), *currentModel.Name.Value())
-	client := makeGitHubClient(*currentModel.OauthToken.Value())
+	log.Printf("Looking for repository: %s/%s", *currentModel.Owner, *currentModel.Name)
+	client := makeGitHubClient(*currentModel.OauthToken)
 
 	_, resp, err := client.Repositories.Edit(context.Background(), owner, repoName, &github.Repository{
-		Homepage:    currentModel.Homepage.Value(),
-		Description: currentModel.Description.Value(),
+		Homepage:    currentModel.Homepage,
+		Description: currentModel.Description,
 	})
 	if err != nil {
 		return handler.ProgressEvent{}, err
@@ -116,12 +116,12 @@ func Update(req handler.Request, prevModel *Model, currentModel *Model) (handler
 	}, nil
 }
 
-// Delete a repo
+// Delete handles the Delete event from the Cloudformation service.
 func Delete(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
-	owner, repoName := parseURL(*currentModel.URL.Value())
+	owner, repoName := parseURL(*currentModel.URL)
 
-	log.Printf("Looking for repository: %s/%s", *currentModel.Owner.Value(), *currentModel.Name.Value())
-	client := makeGitHubClient(*currentModel.OauthToken.Value())
+	log.Printf("Looking for repository: %s/%s", *currentModel.Owner, *currentModel.Name)
+	client := makeGitHubClient(*currentModel.OauthToken)
 
 	resp, err := client.Repositories.Delete(context.Background(), owner, repoName)
 	if err != nil {
@@ -140,10 +140,8 @@ func Delete(req handler.Request, prevModel *Model, currentModel *Model) (handler
 	}, nil
 }
 
-// List ...
+// List handles the List event from the Cloudformation service.
 func List(req handler.Request, prevModel *Model, currentModel *Model) (handler.ProgressEvent, error) {
-	// no-op
-
 	return handler.ProgressEvent{
 		OperationStatus: handler.Success,
 		Message:         "List Complete",

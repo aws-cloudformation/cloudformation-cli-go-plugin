@@ -235,7 +235,12 @@ func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt ha
 	// Add IDs to recall the function with Cloudwatch events
 	event.RequestContext.CloudWatchEventsRuleName = ids.Handler
 	event.RequestContext.CloudWatchEventsTargetID = ids.Target
-
+	// Update model properties
+	m, err := encoding.Marshal(progEvt.ResourceModel)
+	if err != nil {
+		return false, err
+	}
+	event.RequestData.ResourceProperties = m
 	// Rebuild the context
 	event.RequestContext.CallbackContext = cusCtx
 

@@ -199,7 +199,6 @@ func isMutatingAction(action string) bool {
 }
 
 func translateStatus(operationStatus handler.Status) callback.Status {
-
 	switch operationStatus {
 	case handler.Success:
 		return callback.Success
@@ -214,21 +213,17 @@ func translateStatus(operationStatus handler.Status) callback.Status {
 }
 
 func processinvoke(handlerFn handlerFunc, event *event, request handler.Request, metricsPublisher *metrics.Publisher) handler.ProgressEvent {
-
 	progEvt, err := invoke(handlerFn, request, metricsPublisher, event.Action)
-
 	if err != nil {
 		log.Printf("Handler invocation failed: %v", err)
 		return handler.NewFailedEvent(err)
 	}
 	return progEvt
-
 }
 
 func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt handler.ProgressEvent, event *event) (bool, error) {
 	cusCtx, delay := marshalCallback(&progEvt)
 	ids, err := scheduler.GenerateCloudWatchIDS()
-
 	if err != nil {
 		return false, err
 	}
@@ -243,18 +238,14 @@ func reschedule(ctx context.Context, invokeScheduler InvokeScheduler, progEvt ha
 	event.RequestData.ResourceProperties = m
 	// Rebuild the context
 	event.RequestContext.CallbackContext = cusCtx
-
 	callbackRequest, err := json.Marshal(event)
-
 	if err != nil {
 		return false, err
 	}
 	scheResult, err := invokeScheduler.Reschedule(ctx, delay, string(callbackRequest), ids)
-
 	if err != nil {
 		return false, err
 	}
-
 	return scheResult.ComputeLocal, nil
 }
 
@@ -362,13 +353,10 @@ func makeEventFunc(h Handler) eventFunc {
 // contract testing framework to invoke the resource's CRUDL handlers.
 func makeTestEventFunc(h Handler) testEventFunc {
 	return func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error) {
-
 		handlerFn, err := router(event.Action, h)
-
 		if err != nil {
 			return handler.NewFailedEvent(err), err
 		}
-
 		request := handler.NewRequest(
 			event.Request.LogicalResourceIdentifier,
 			event.CallbackContext,
@@ -376,9 +364,7 @@ func makeTestEventFunc(h Handler) testEventFunc {
 			event.Request.PreviousResourceState,
 			event.Request.DesiredResourceState,
 		)
-
 		progEvt := handlerFn(request)
-
 		return progEvt, nil
 	}
 }

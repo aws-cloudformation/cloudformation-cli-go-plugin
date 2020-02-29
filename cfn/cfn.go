@@ -309,17 +309,11 @@ func makeEventFunc(h Handler) eventFunc {
 
 			progEvt := processinvoke(handlerFn, event, request, metricsPublisher)
 
-			cusCtx, delay := marshalCallback(&progEvt)
-
 			r, err := newResponse(&progEvt, event.BearerToken)
 			if err != nil {
 				log.Printf("Error creating response: %v", err)
 				return re.report(event, "Response error", err, unmarshalingError)
 			}
-
-			log.Printf("Handler returned  OperationStatus: %v Message: %v CallbackContext: %v Delay: %v, ErrorCode: %v  ",
-				r.OperationStatus, progEvt.Message,
-				cusCtx, delay, progEvt.HandlerErrorCode)
 
 			if !isMutatingAction(event.Action) && r.OperationStatus == handler.InProgress {
 				return re.report(event, "Response error", errors.New("READ and LIST handlers must return synchronous"), invalidRequestError)

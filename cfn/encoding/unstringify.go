@@ -15,7 +15,60 @@ func convertStruct(i interface{}, t reflect.Type, pointer bool) (reflect.Value, 
 
 	out := reflect.New(t)
 
-	Unstringify(m, out.Interface())
+	err := Unstringify(m, out.Interface())
+	if err != nil {
+		return zeroValue, err
+	}
+
+	if !pointer {
+		out = out.Elem()
+	}
+
+	return out, nil
+}
+
+func convertSlice(i interface{}, t reflect.Type, pointer bool) (reflect.Value, error) {
+	s, ok := i.([]interface{})
+	if !ok {
+		return zeroValue, fmt.Errorf("Cannot convert %T to slice", i)
+	}
+
+	out := reflect.New(t)
+	out.Elem().Set(reflect.MakeSlice(t, len(s), len(s)))
+
+	for j, v := range s {
+		val, err := convertType(t.Elem(), v)
+		if err != nil {
+			return zeroValue, err
+		}
+
+		out.Elem().Index(j).Set(val)
+	}
+
+	if !pointer {
+		out = out.Elem()
+	}
+
+	return out, nil
+}
+
+func convertMap(i interface{}, t reflect.Type, pointer bool) (reflect.Value, error) {
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return zeroValue, fmt.Errorf("Cannot convert %T to map with string keys", i)
+	}
+
+	out := reflect.New(t)
+	out.Elem().Set(reflect.MakeMap(t))
+
+	for k, v := range m {
+		val, err := convertType(t.Elem(), v)
+		if err != nil {
+			return zeroValue, err
+		}
+
+		out.Elem().SetMapIndex(reflect.ValueOf(k), val)
+	}
 
 	if !pointer {
 		out = out.Elem()
@@ -131,6 +184,12 @@ func convertType(t reflect.Type, i interface{}) (reflect.Value, error) {
 	case reflect.Struct:
 		return convertStruct(i, t, pointer)
 
+	case reflect.Slice:
+		return convertSlice(i, t, pointer)
+
+	case reflect.Map:
+		return convertMap(i, t, pointer)
+
 	case reflect.String:
 		return convertString(i, pointer)
 
@@ -144,7 +203,7 @@ func convertType(t reflect.Type, i interface{}) (reflect.Value, error) {
 		return convertFloat64(i, pointer)
 
 	default:
-		return zeroValue, fmt.Errorf("Cannot convert %T into %v", i, t)
+		return zeroValue, fmt.Errorf("Unsupported type %v", t)
 	}
 }
 

@@ -4,7 +4,7 @@ PRIMITIVE_TYPES = {
     "string": "string",
     "integer": "int",
     "boolean": "bool",
-    "number": "float",
+    "number": "float64",
     UNDEFINED: "interface{}",
 }
 

@@ -38,8 +38,6 @@ type Request struct {
 
 // NewRequest returns a new Request based on the provided parameters
 func NewRequest(id string, ctx map[string]interface{}, sess *session.Session, previousBody, body []byte) Request {
-	log.Printf("Creating request:\nPrev body: %s\nCurr body: %s", previousBody, body)
-
 	return Request{
 		LogicalResourceID:              id,
 		CallbackContext:                ctx,

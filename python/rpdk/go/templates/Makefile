@@ -1,8 +1,9 @@
 .PHONY: build test clean
+include makevars
 
 build:
 	cfn generate
-	env GOOS=linux go build -ldflags="-s -w" -tags="logging callback scheduler" -o bin/handler cmd/main.go
+	env GOOS=linux go build -ldflags="-s -w" -tags="$(TAGS)" -o bin/handler cmd/main.go
 
 test:
 	cfn generate

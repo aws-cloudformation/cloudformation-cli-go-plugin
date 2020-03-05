@@ -25,7 +25,7 @@ Make the following changes to your handler code as needed:
 * Replace `model.{field}.Value()` with `aws.{Type}Value(model.{field})`
 
 Where {Type} is either String, Bool, Int, or Float64 and {field} is any field within your generated model.
-""",
+"""
 }
 
 

@@ -73,6 +73,13 @@ class GoLanguagePlugin(LanguagePlugin):
         inter = project.root / "internal"
         inter.mkdir(parents=True, exist_ok=True)
 
+        # Makefile
+        path = project.root / "Makefile"
+        LOG.debug("Writing Makefile: %s", path)
+        template = self.env.get_template("Makefile")
+        contents = template.render()
+        project.overwrite(path, contents)
+
         # go.mod
         path = project.root / "go.mod"
         LOG.debug("Writing go.mod: %s", path)
@@ -163,10 +170,10 @@ class GoLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
         format_paths.append(path)
 
-        # Makefile
-        path = project.root / "Makefile"
-        LOG.debug("Writing Makefile: %s", path)
-        template = self.env.get_template("Makefile")
+        # makevars
+        path = project.root / "makevars"
+        LOG.debug("Writing makevars: %s", path)
+        template = self.env.get_template("makevars")
         contents = template.render()
         project.overwrite(path, contents)
 

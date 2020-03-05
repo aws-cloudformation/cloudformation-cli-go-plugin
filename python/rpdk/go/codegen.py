@@ -168,7 +168,7 @@ class GoLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing Makefile: %s", path)
         template = self.env.get_template("Makefile")
         contents = template.render()
-        project.overwrite(path, contents)
+        project.safewrite(path, contents)
 
         # named files must all be in one directory
         for path in format_paths:

@@ -6,11 +6,6 @@ import (
 	"strings"
 )
 
-var zeroValue reflect.Value
-
-var stringType = reflect.TypeOf("")
-var interfaceType = reflect.TypeOf((*interface{})(nil)).Elem()
-
 func stringifyType(t reflect.Type) reflect.Type {
 	switch t.Kind() {
 	case reflect.Map:

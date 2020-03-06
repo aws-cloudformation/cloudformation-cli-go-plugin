@@ -170,10 +170,10 @@ class GoLanguagePlugin(LanguagePlugin):
         project.overwrite(path, contents)
         format_paths.append(path)
 
-        # makevars
-        path = project.root / "makevars"
-        LOG.debug("Writing makevars: %s", path)
-        template = self.env.get_template("makevars")
+        # makebuild
+        path = project.root / "makebuild"
+        LOG.debug("Writing makebuild: %s", path)
+        template = self.env.get_template("makebuild")
         contents = template.render()
         project.overwrite(path, contents)
 

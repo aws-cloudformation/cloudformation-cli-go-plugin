@@ -1,9 +1,7 @@
 .PHONY: build test clean
-include makevars
 
 build:
-	cfn generate
-	env GOOS=linux go build -ldflags="-s -w" -tags="$(TAGS)" -o bin/handler cmd/main.go
+	make -f makebuild  # this runs build steps required by the cfn cli
 
 test:
 	cfn generate

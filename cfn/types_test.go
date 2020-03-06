@@ -109,3 +109,38 @@ type MockScheduler struct {
 func (m MockScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, callbackRequest string, invocationIDS *scheduler.ScheduleIDS) (*scheduler.Result, error) {
 	return m.Result, m.Err
 }
+
+// MockModel mocks a resource model
+//
+// This implementation of the handlers is only used for testing.
+type MockModel struct {
+	Property1 *string `json:"property1,omitempty"`
+	Property2 *string `json:"property2,omitempty"`
+}
+
+// MockModelHandler is a implementation of Handler
+//
+// This implementation of the handlers is only used for testing.
+type MockModelHandler struct {
+	fn func(r handler.Request) handler.ProgressEvent
+}
+
+func (m *MockModelHandler) Create(request handler.Request) handler.ProgressEvent {
+	return m.fn(request)
+}
+
+func (m *MockModelHandler) Read(request handler.Request) handler.ProgressEvent {
+	return m.fn(request)
+}
+
+func (m *MockModelHandler) Update(request handler.Request) handler.ProgressEvent {
+	return m.fn(request)
+}
+
+func (m *MockModelHandler) Delete(request handler.Request) handler.ProgressEvent {
+	return m.fn(request)
+}
+
+func (m *MockModelHandler) List(request handler.Request) handler.ProgressEvent {
+	return m.fn(request)
+}

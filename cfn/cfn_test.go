@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/scheduler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
@@ -318,4 +320,73 @@ func loadTestEvent(path string, evt *testEvent) *testEvent {
 		log.Fatalf("Marshaling error with event: %v", err)
 	}
 	return evt
+}
+
+func TestMakeEventFuncModel(t *testing.T) {
+	start := time.Now()
+	future := start.Add(time.Minute * 15)
+	tc, cancel := context.WithDeadline(context.Background(), future)
+	defer cancel()
+	lc := lambdacontext.NewContext(tc, &lambdacontext.LambdaContext{})
+	f1 := func(r handler.Request) handler.ProgressEvent {
+		m := MockModel{}
+		if len(r.CallbackContext) == 1 {
+			if err := r.Unmarshal(&m); err != nil {
+				return handler.NewFailedEvent(err)
+			}
+			return handler.ProgressEvent{
+				OperationStatus: handler.Success,
+				ResourceModel:   &m,
+				Message:         "Success",
+			}
+		}
+		if err := r.Unmarshal(&m); err != nil {
+			return handler.NewFailedEvent(err)
+		}
+		m.Property2 = aws.String("change")
+		return handler.ProgressEvent{
+			OperationStatus:      handler.InProgress,
+			Message:              "In Progress",
+			CallbackDelaySeconds: 3,
+			CallbackContext:      map[string]interface{}{"foo": "bar"},
+			ResourceModel:        &m,
+		}
+	}
+	type args struct {
+		h     Handler
+		ctx   context.Context
+		event *event
+	}
+	tests := []struct {
+		name string
+		args args
+		want MockModel
+	}{
+		{"Test CREATE async local with model change", args{&MockModelHandler{f1}, lc, loadEvent("request.create2.json", &event{})}, MockModel{
+			Property1: aws.String("abc"),
+			Property2: aws.String("change"),
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := makeEventFunc(tt.args.h)
+			got, err := f(tt.args.ctx, tt.args.event)
+			if err != nil {
+				t.Errorf("TestMakeEventFuncModel() = %v", err)
+				return
+			}
+			model, err := encoding.Stringify(got.ResourceModel)
+			if err != nil {
+				t.Errorf("TestMakeEventFuncModel() = %v", err)
+			}
+			wantrModel, err := encoding.Stringify(tt.want)
+			if err != nil {
+				t.Errorf("TestMakeEventFuncModel() = %v", err)
+			}
+			if wantrModel != model {
+				t.Errorf("response = %v; want %v", model, wantrModel)
+			}
+
+		})
+	}
 }

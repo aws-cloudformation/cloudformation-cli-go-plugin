@@ -2,6 +2,7 @@ package encoding
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -210,6 +211,13 @@ func convertType(t reflect.Type, i interface{}) (reflect.Value, error) {
 // Unstringify takes a stringified representation of a value
 // and populates it into the supplied interface
 func Unstringify(data map[string]interface{}, v interface{}) error {
+	clean := make(map[string]interface{})
+	for k := range data {
+		val := data[k]
+		strippedKey := strings.Replace(k, "/", "", 1)
+		clean[strippedKey] = val
+	}
+
 	t := reflect.TypeOf(v).Elem()
 
 	val := reflect.ValueOf(v).Elem()
@@ -223,7 +231,7 @@ func Unstringify(data map[string]interface{}, v interface{}) error {
 			jsonName = jsonTag[0]
 		}
 
-		if value, ok := data[jsonName]; ok {
+		if value, ok := clean[jsonName]; ok {
 			newValue, err := convertType(f.Type, value)
 			if err != nil {
 				return err

@@ -320,7 +320,12 @@ func makeEventFunc(h Handler) eventFunc {
 			}
 
 			if isMutatingAction(event.Action) {
-				callbackAdapter.ReportStatus(translateStatus(progEvt.OperationStatus), event.RequestData.ResourceProperties, progEvt.Message, string(r.ErrorCode))
+				m, err := encoding.Marshal(progEvt.ResourceModel)
+				if err != nil {
+					log.Printf("Error reporting status: %v", err)
+					return re.report(event, "Error", err, unmarshalingError)
+				}
+				callbackAdapter.ReportStatus(translateStatus(progEvt.OperationStatus), m, progEvt.Message, string(r.ErrorCode))
 			}
 
 			switch r.OperationStatus {

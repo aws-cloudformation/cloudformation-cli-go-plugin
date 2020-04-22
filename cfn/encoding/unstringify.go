@@ -2,7 +2,6 @@ package encoding
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"

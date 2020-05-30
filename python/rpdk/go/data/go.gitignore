@@ -10,3 +10,6 @@ bin/
 
 #vender
 vender/
+
+# contains credentials
+sam-tests/

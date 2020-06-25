@@ -139,6 +139,7 @@ func makeEventFunc(h Handler) eventFunc {
 	}
 }
 
+<<<<<<< HEAD
 func scrubFiles(dir string) error {
 	names, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -149,6 +150,55 @@ func scrubFiles(dir string) error {
 	}
 	return nil
 }
+=======
+		re.setPublishSatus(true)
+		for {
+			request := handler.NewRequest(
+				event.RequestData.LogicalResourceID,
+				event.RequestContext.CallbackContext,
+				credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials),
+				event.RequestData.PreviousResourceProperties,
+				event.RequestData.ResourceProperties,
+			)
+			event.RequestContext.Invocation = event.RequestContext.Invocation + 1
+
+			progEvt := processinvoke(handlerFn, event, request, metricsPublisher)
+
+			r, err := newResponse(&progEvt, event.BearerToken)
+			if err != nil {
+				log.Printf("Error creating response: %v", err)
+				return re.report(event, "Response error", err, unmarshalingError)
+			}
+
+			if !isMutatingAction(event.Action) && r.OperationStatus == handler.InProgress {
+				return re.report(event, "Response error", errors.New("READ and LIST handlers must return synchronous"), invalidRequestError)
+			}
+
+			if isMutatingAction(event.Action) {
+				m, err := encoding.Marshal(progEvt.ResourceModel)
+				if err != nil {
+					log.Printf("Error reporting status: %v", err)
+					return re.report(event, "Error", err, unmarshalingError)
+				}
+				callbackAdapter.ReportStatus(translateStatus(progEvt.OperationStatus), m, progEvt.Message, string(r.ErrorCode))
+			}
+
+			switch r.OperationStatus {
+			case handler.InProgress:
+				local, err := reschedule(ctx, invokeScheduler, progEvt, event)
+
+				if err != nil {
+					return re.report(event, "Reschedule error", err, serviceInternalError)
+				}
+
+				// If not computing local, exit and return response.
+				if !local {
+					return r, nil
+				}
+			default:
+				return r, nil
+			}
+>>>>>>> upstream/master
 
 // router decides which handler should be invoked based on the action
 // It will return a route or an error depending on the action passed in

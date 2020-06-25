@@ -17,7 +17,7 @@ type response struct {
 
 	//The operationStatus indicates whether the handler has reached a terminal
 	//state or is still computing and requires more time to complete
-	OperationStatus handler.Status `json:"operationStatus,omitempty"`
+	OperationStatus handler.Status `json:"status,omitempty"`
 
 	//ResourceModel it The output resource instance populated by a READ/LIST for
 	//synchronous results and by CREATE/UPDATE/DELETE for final response
@@ -36,6 +36,17 @@ type response struct {
 
 	// NextToken the token used to request additional pages of resources for a LIST operation
 	NextToken string `json:"nextToken,omitempty"`
+
+	// CallbackContext is an arbitrary datum which the handler can return in an
+	// IN_PROGRESS event to allow the passing through of additional state or
+	// metadata between subsequent retries; for example to pass through a Resource
+	// identifier which can be used to continue polling for stabilization
+	CallbackContext map[string]interface{} `json:"callbackContext,omitempty"`
+
+	// CallbackDelaySeconds will be scheduled with an initial delay of no less than the number
+	// of seconds specified in the progress event. Set this value to <= 0 to
+	// indicate no callback should be made.
+	CallbackDelaySeconds int64 `json:"callbackDelaySeconds,omitempty"`
 }
 
 // newFailedResponse returns a response pre-filled with the supplied error
@@ -70,12 +81,14 @@ func newResponse(pevt *handler.ProgressEvent, bearerToken string) (response, err
 	}
 
 	resp := response{
-		BearerToken:     bearerToken,
-		Message:         pevt.Message,
-		OperationStatus: pevt.OperationStatus,
-		ResourceModel:   model,
-		ResourceModels:  models,
-		NextToken:       pevt.NextToken,
+		BearerToken:          bearerToken,
+		Message:              pevt.Message,
+		OperationStatus:      pevt.OperationStatus,
+		ResourceModel:        model,
+		ResourceModels:       models,
+		NextToken:            pevt.NextToken,
+		CallbackContext:      pevt.CallbackContext,
+		CallbackDelaySeconds: pevt.CallbackDelaySeconds,
 	}
 
 	if pevt.HandlerErrorCode != "" {

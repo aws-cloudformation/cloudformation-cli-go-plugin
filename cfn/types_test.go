@@ -1,10 +1,7 @@
 package cfn
 
 import (
-	"context"
-
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/scheduler"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -96,18 +93,6 @@ func (m *MockedMetrics) PutMetricData(in *cloudwatch.PutMetricDataInput) (*cloud
 	}
 
 	return nil, nil
-}
-
-//MockScheduler mocks the reinvocation scheduler.
-//
-// This implementation of the handlers is only used for testing.
-type MockScheduler struct {
-	Err    error
-	Result *scheduler.Result
-}
-
-func (m MockScheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, callbackRequest string, invocationIDS *scheduler.ScheduleIDS) (*scheduler.Result, error) {
-	return m.Result, m.Err
 }
 
 // MockModel mocks a resource model

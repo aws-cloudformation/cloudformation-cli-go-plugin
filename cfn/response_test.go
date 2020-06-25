@@ -29,7 +29,7 @@ func TestMarshalJSON(t *testing.T) {
 		BearerToken: "xyzzy",
 	}
 
-	expected := `{"message":"foo","operationStatus":"SUCCESS","resourceModel":{"Name":"Douglas","Version":"42.1"},"errorCode":"NotUpdatable","bearerToken":"xyzzy"}`
+	expected := `{"message":"foo","status":"SUCCESS","resourceModel":{"Name":"Douglas","Version":"42.1"},"errorCode":"NotUpdatable","bearerToken":"xyzzy"}`
 
 	actual, err := json.Marshal(r)
 	if err != nil {

@@ -24,7 +24,7 @@ EXECUTABLE = "cfn-cli"
 
 LANGUAGE = "go"
 
-DEFAULT_SETTINGS = {"protocolVersion": "1.0.0", "pluginVersion": __version__}
+DEFAULT_SETTINGS = {"protocolVersion": "2.0.0", "pluginVersion": __version__}
 
 
 class GoExecutableNotFoundError(SysExitRecommendedError):

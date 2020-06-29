@@ -45,7 +45,6 @@ func New(client cloudwatchiface.CloudWatchAPI, account string, resType string) *
 	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
 		client = newNoopClient()
 	}
-
 	rn := ResourceTypeName(resType)
 	return &Publisher{
 		client:       client,
@@ -57,12 +56,12 @@ func New(client cloudwatchiface.CloudWatchAPI, account string, resType string) *
 
 // PublishExceptionMetric publishes an exception metric.
 func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e error) {
+	v := strings.ReplaceAll(e.Error(), "\n", " ")
 	dimensions := map[string]string{
 		DimensionKeyAcionType:     string(action),
-		DimensionKeyExceptionType: e.Error(),
+		DimensionKeyExceptionType: v,
 		DimensionKeyResourceType:  p.resourceType,
 	}
-
 	p.publishMetric(MetricNameHanderException, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
 }
 
@@ -72,9 +71,7 @@ func (p *Publisher) PublishInvocationMetric(date time.Time, action string) {
 		DimensionKeyAcionType:    string(action),
 		DimensionKeyResourceType: p.resourceType,
 	}
-
 	p.publishMetric(MetricNameHanderInvocationCount, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
-
 }
 
 // PublishDurationMetric publishes an duration metric.
@@ -85,9 +82,7 @@ func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs fl
 		DimensionKeyAcionType:    string(action),
 		DimensionKeyResourceType: p.resourceType,
 	}
-
 	p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, secs, date)
-
 }
 
 func (p *Publisher) publishMetric(metricName string, data map[string]string, unit string, value float64, date time.Time) {
@@ -101,7 +96,6 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 		}
 		d = append(d, dim)
 	}
-
 	md := []*cloudwatch.MetricDatum{
 		&cloudwatch.MetricDatum{
 			MetricName: aws.String(metricName),
@@ -110,14 +104,11 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 			Dimensions: d,
 			Timestamp:  &date},
 	}
-
 	pi := cloudwatch.PutMetricDataInput{
 		Namespace:  aws.String(p.namespace),
 		MetricData: md,
 	}
-
 	_, err := p.client.PutMetricData(&pi)
-
 	if err != nil {
 		p.logger.Printf("An error occurred while publishing metrics: %s", err)
 

@@ -80,7 +80,7 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 		wantUnit                      string
 		wantValue                     float64
 	}{
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE", errors.New("failed to create resource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE", errors.New("failed to create\nresource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
 		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test", "12345678"}, args{time.Now(), "CREATE", errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
 		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test", "12345678"}, args{time.Now(), "UPDATE", errors.New("failed to create resource")}, "HandlerException", false, "UPDATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
 		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test", "12345678"}, args{time.Now(), "UPDATE", errors.New("failed to create resource")}, "HandlerException", true, "UPDATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},

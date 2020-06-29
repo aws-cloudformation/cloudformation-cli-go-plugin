@@ -5,13 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
-	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/metrics"
 )
 
 func TestMarshalling(t *testing.T) {
@@ -124,48 +120,6 @@ func TestValidateEvent(t *testing.T) {
 
 func TestHandler(t *testing.T) {
 	// no-op
-}
-
-func TestInvoke(t *testing.T) {
-	mockClient := NewMockedMetrics()
-	mockPub := metrics.New(mockClient, "12345678", "foo::bar::test")
-
-	// For test purposes, set the timeout low
-	Timeout = time.Second
-
-	type args struct {
-		handlerFn        handlerFunc
-		request          handler.Request
-		reqContext       *requestContext
-		metricsPublisher *metrics.Publisher
-		action           string
-	}
-	tests := []struct {
-		name      string
-		args      args
-		want      handler.ProgressEvent
-		wantErr   bool
-		wantCount int
-	}{
-		{"TestMaxTriesShouldReturnError ", args{func(request handler.Request) handler.ProgressEvent {
-			time.Sleep(2 * time.Hour)
-			return handler.ProgressEvent{}
-		}, handler.NewRequest("foo", nil, nil, nil, nil), &requestContext{}, mockPub, createAction,
-		}, handler.ProgressEvent{}, true, 3,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := invoke(tt.args.handlerFn, tt.args.request, tt.args.metricsPublisher, tt.args.action)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Invoke() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-
-			}
-		})
-	}
 }
 
 // helper func to load fixtures from the disk

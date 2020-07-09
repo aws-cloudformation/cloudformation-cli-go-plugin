@@ -21,6 +21,24 @@ type Request struct {
 	// The logical ID of the resource in the CloudFormation stack
 	LogicalResourceID string
 
+	// The stack ID of the CloudFormation stack
+	StackId string
+
+	// The Region of the requester
+	Region string
+
+	// The Account ID of the requester
+	AccountID string
+
+	// The stack tags associated with the cloudformation stack
+	StackTags map[string]string
+
+	// The SystemTags associated with the request
+	SystemTags map[string]string
+
+	// The NextToken provided in the request
+	NextToken string
+
 	// The callback context is an arbitrary datum which the handler can return in an
 	// IN_PROGRESS event to allow the passing through of additional state or
 	// metadata between subsequent retries; for example to pass through a Resource
@@ -35,9 +53,15 @@ type Request struct {
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(id string, ctx map[string]interface{}, sess *session.Session, previousBody, body []byte) Request {
+func NewRequest(id string, NextToken string, StackId string, StackTags map[string]string, Region string, AccountID string, SystemTags map[string]string, ctx map[string]interface{}, sess *session.Session, previousBody, body []byte) Request {
 	return Request{
 		LogicalResourceID:              id,
+		StackId:                        StackId,
+		Region:                         Region,
+		AccountID:                      AccountID,
+		StackTags:                      StackTags,
+		SystemTags:                     SystemTags,
+		NextToken:                      NextToken,
 		CallbackContext:                ctx,
 		Session:                        sess,
 		previousResourcePropertiesBody: previousBody,

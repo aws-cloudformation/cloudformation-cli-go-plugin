@@ -12,9 +12,9 @@
         "s3Bucket": {
             "Type": "Example::S3::Bucket",
             "Properties": {
-                "BucketName":
-                { "Ref": "Name" }
-
+                "BucketName": {
+                    "Ref": "Name"
+                }
             }
         }
     }

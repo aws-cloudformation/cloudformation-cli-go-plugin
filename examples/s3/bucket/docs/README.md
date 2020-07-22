@@ -244,4 +244,3 @@ Returns the <code>DomainName</code> value.
 #### DualStackDomainName
 
 Returns the <code>DualStackDomainName</code> value.
-

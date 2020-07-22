@@ -1019,8 +1019,7 @@
             ]
         },
         "read": {
-            "permissions": [
-            ]
+            "permissions": []
         },
         "delete": {
             "permissions": [
@@ -1028,8 +1027,7 @@
             ]
         },
         "update": {
-            "permissions": [
-            ]
+            "permissions": []
         }
     }
 }

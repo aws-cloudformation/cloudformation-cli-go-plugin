@@ -27,4 +27,3 @@ _Required_: Yes
 _Type_: <a href="s3keyfilter.md">S3KeyFilter</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
-

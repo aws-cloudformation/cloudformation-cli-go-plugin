@@ -87,4 +87,3 @@ _Required_: No
 _Type_: <a href="replicationtime.md">ReplicationTime</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
-

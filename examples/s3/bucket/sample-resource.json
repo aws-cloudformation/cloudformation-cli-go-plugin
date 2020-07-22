@@ -1,0 +1,21 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Sample Cloudformation template",
+    "Parameters": {
+        "Name": {
+            "Description": "name of the bucket",
+            "Type": "String",
+            "Default": "Input bucket name"
+        }
+    },
+    "Resources": {
+        "s3Bucket": {
+            "Type": "Example::S3::Bucket",
+            "Properties": {
+                "BucketName":
+                { "Ref": "Name" }
+
+            }
+        }
+    }
+}

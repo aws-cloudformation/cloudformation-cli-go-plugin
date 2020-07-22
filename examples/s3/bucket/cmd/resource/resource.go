@@ -20,7 +20,7 @@ func Create(req handler.Request, prevModel *Model, currentModel *Model) (handler
 		Bucket: aws.String(*currentModel.BucketName),
 	})
 
-	// We catch all errors. But if the handler panics, it is caught and a error progress event is returned.
+	// We catch all errors. But if the handler panics, it is caught and an error progress event is returned.
 	if err != nil {
 		// Construct a new handler.ProgressEvent and return it as an error
 		response := handler.ProgressEvent{

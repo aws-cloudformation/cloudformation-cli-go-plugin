@@ -105,7 +105,7 @@ func makeEventFunc(h Handler) eventFunc {
 		)
 		// Set default logger to output to CWL in the provider account
 		logging.SetProviderLogOutput(l)
-		m := metrics.New(cloudwatch.New(ps), event.AWSAccountID, event.ResourceType)
+		m := metrics.New(cloudwatch.New(ps), event.ResourceType)
 		re := newReportErr(m)
 		if err := scrubFiles("/tmp"); err != nil {
 			log.Printf("Error: %v", err)

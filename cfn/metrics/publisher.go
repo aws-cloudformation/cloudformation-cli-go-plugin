@@ -41,7 +41,7 @@ type Publisher struct {
 }
 
 // New creates a new Publisher.
-func New(client cloudwatchiface.CloudWatchAPI, account string, resType string) *Publisher {
+func New(client cloudwatchiface.CloudWatchAPI, resType string) *Publisher {
 	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
 		client = newNoopClient()
 	}
@@ -49,7 +49,7 @@ func New(client cloudwatchiface.CloudWatchAPI, account string, resType string) *
 	return &Publisher{
 		client:       client,
 		logger:       logging.New("metrics"),
-		namespace:    fmt.Sprintf("%s/%s/%s", MetricNameSpaceRoot, account, rn),
+		namespace:    fmt.Sprintf("%s/%s", MetricNameSpaceRoot, rn),
 		resourceType: rn,
 	}
 }

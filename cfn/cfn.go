@@ -188,8 +188,8 @@ func makeTestEventFunc(h Handler) testEventFunc {
 		request := handler.NewRequest(
 			event.Request.LogicalResourceIdentifier,
 			event.Request.NextToken,
-			"",  //TODO: understand how to fix this to use a proper value
-			nil, //TODO: understand how to fix this to use a proper value
+			event.Request.StackId,  //TODO: understand how to fix this to use a proper value
+			event.Request.StackTags, //TODO: understand how to fix this to use a proper value
 			event.Request.Region,
 			event.Request.AWSAccountID,
 			event.Request.SystemTags,

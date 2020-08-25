@@ -61,13 +61,14 @@ type RequestContext struct {
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(id string, ctx map[string]interface{}, sess *session.Session, previousBody, body []byte) Request {
+func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext, sess *session.Session, previousBody, body []byte) Request {
 	return Request{
 		LogicalResourceID:              id,
 		CallbackContext:                ctx,
 		Session:                        sess,
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
+		RequestContext:                 requestCTX,
 	}
 }
 

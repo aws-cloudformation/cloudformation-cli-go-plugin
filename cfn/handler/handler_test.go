@@ -12,11 +12,12 @@ type Props struct {
 }
 
 func TestNewRequest(t *testing.T) {
+	rctx := RequestContext{}
 	t.Run("Happy Path", func(t *testing.T) {
 		prev := Props{}
 		curr := Props{}
 
-		req := NewRequest("foo", nil, nil, []byte(`{"color": "red"}`), []byte(`{"color": "green"}`))
+		req := NewRequest("foo", nil, rctx, nil, []byte(`{"color": "red"}`), []byte(`{"color": "green"}`))
 
 		if err := req.UnmarshalPrevious(&prev); err != nil {
 			t.Fatalf("Unable to unmarshal props: %v", err)
@@ -42,7 +43,7 @@ func TestNewRequest(t *testing.T) {
 
 	t.Run("ResourceProps", func(t *testing.T) {
 		t.Run("Invalid Body", func(t *testing.T) {
-			req := NewRequest("foo", nil, nil, []byte(``), []byte(``))
+			req := NewRequest("foo", nil, rctx, nil, []byte(``), []byte(``))
 
 			invalid := struct {
 				Color *int `json:"color"`
@@ -60,7 +61,7 @@ func TestNewRequest(t *testing.T) {
 		})
 
 		t.Run("Invalid Marshal", func(t *testing.T) {
-			req := NewRequest("foo", nil, nil, []byte(`{"color": "ref"}`), []byte(`---BAD JSON---`))
+			req := NewRequest("foo", nil, rctx, nil, []byte(`{"color": "ref"}`), []byte(`---BAD JSON---`))
 
 			var invalid Props
 
@@ -78,7 +79,7 @@ func TestNewRequest(t *testing.T) {
 
 	t.Run("PreviousResourceProps", func(t *testing.T) {
 		t.Run("Invalid Marshal", func(t *testing.T) {
-			req := NewRequest("foo", nil, nil, []byte(`---BAD JSON---`), []byte(`{"color": "green"}`))
+			req := NewRequest("foo", nil, rctx, nil, []byte(`---BAD JSON---`), []byte(`{"color": "green"}`))
 
 			var invalid Props
 

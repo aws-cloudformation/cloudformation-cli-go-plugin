@@ -119,9 +119,18 @@ func makeEventFunc(h Handler) eventFunc {
 		if err := validateEvent(event); err != nil {
 			return re.report(event, "validation error", err, invalidRequestError)
 		}
+		rctx := handler.RequestContext{
+			StackID:    event.StackID,
+			Region:     event.Region,
+			AccountID:  event.AWSAccountID,
+			StackTags:  event.RequestData.StackTags,
+			SystemTags: event.RequestData.SystemTags,
+			NextToken:  event.NextToken,
+		}
 		request := handler.NewRequest(
 			event.RequestData.LogicalResourceID,
 			event.CallbackContext,
+			rctx,
 			credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials),
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
@@ -179,9 +188,17 @@ func makeTestEventFunc(h Handler) testEventFunc {
 		if err != nil {
 			return handler.NewFailedEvent(err), err
 		}
+		rctx := handler.RequestContext{
+			Region:     event.Request.Region,
+			AccountID:  event.Request.AWSAccountID,
+			StackTags:  event.Request.DesiredResourceTags,
+			SystemTags: event.Request.SystemTags,
+			NextToken:  event.Request.NextToken,
+		}
 		request := handler.NewRequest(
 			event.Request.LogicalResourceIdentifier,
 			event.CallbackContext,
+			rctx,
 			credentials.SessionFromCredentialsProvider(&event.Credentials),
 			event.Request.PreviousResourceState,
 			event.Request.DesiredResourceState,

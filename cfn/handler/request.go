@@ -27,11 +27,37 @@ type Request struct {
 	// identifier which can be used to continue polling for stabilization
 	CallbackContext map[string]interface{}
 
+	// The RequestContext is information about the current
+	// invocation.
+	RequestContext RequestContext
+
 	// An authenticated AWS session that can be used with the AWS Go SDK
 	Session *session.Session
 
 	previousResourcePropertiesBody []byte
 	resourcePropertiesBody         []byte
+}
+
+// RequestContext represents information about the current
+// invocation request of the handler.
+type RequestContext struct {
+	// The stack ID of the CloudFormation stack
+	StackID string
+
+	// The Region of the requester
+	Region string
+
+	// The Account ID of the requester
+	AccountID string
+
+	// The stack tags associated with the cloudformation stack
+	StackTags map[string]string
+
+	// The SystemTags associated with the request
+	SystemTags map[string]string
+
+	// The NextToken provided in the request
+	NextToken string
 }
 
 // NewRequest returns a new Request based on the provided parameters

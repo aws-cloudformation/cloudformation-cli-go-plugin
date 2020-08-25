@@ -121,6 +121,12 @@ func makeEventFunc(h Handler) eventFunc {
 		}
 		request := handler.NewRequest(
 			event.RequestData.LogicalResourceID,
+			event.NextToken,
+			event.StackID,
+			event.RequestData.StackTags,
+			event.Region,
+			event.AWSAccountID,
+			event.RequestData.SystemTags,
 			event.CallbackContext,
 			credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials),
 			event.RequestData.PreviousResourceProperties,
@@ -181,6 +187,12 @@ func makeTestEventFunc(h Handler) testEventFunc {
 		}
 		request := handler.NewRequest(
 			event.Request.LogicalResourceIdentifier,
+			event.Request.NextToken,
+			event.Request.StackId,  //TODO: understand how to fix this to use a proper value
+			event.Request.StackTags, //TODO: understand how to fix this to use a proper value
+			event.Request.Region,
+			event.Request.AWSAccountID,
+			event.Request.SystemTags,
 			event.CallbackContext,
 			credentials.SessionFromCredentialsProvider(&event.Credentials),
 			event.Request.PreviousResourceState,

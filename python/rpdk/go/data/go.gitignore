@@ -3,7 +3,7 @@
 ._*
 
 # our logs
-rpdk.log
+rpdk.log*
 
 #compiled file
 bin/

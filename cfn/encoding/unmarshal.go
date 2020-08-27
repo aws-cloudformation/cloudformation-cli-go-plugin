@@ -13,6 +13,9 @@ func Unmarshal(data []byte, v interface{}) error {
 	}
 
 	Unstringify(dataMap, v)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

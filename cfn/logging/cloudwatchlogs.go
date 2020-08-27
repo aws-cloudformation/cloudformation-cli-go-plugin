@@ -137,7 +137,6 @@ func CloudWatchLogGroupExists(client cloudwatchlogsiface.CloudWatchLogsAPI, logG
 	})
 
 	if err != nil {
-
 		return false, err
 	}
 

@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"context"
 	"io"
 	"log"
 	"os"
@@ -132,10 +131,7 @@ func (p *cloudWatchLogsProvider) Write(b []byte) (int, error) {
 //		// do something
 //	}
 func CloudWatchLogGroupExists(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
-	defer cancel()
-
-	resp, err := client.DescribeLogGroupsWithContext(ctx, &cloudwatchlogs.DescribeLogGroupsInput{
+	resp, err := client.DescribeLogGroups(&cloudwatchlogs.DescribeLogGroupsInput{
 		Limit:              aws.Int64(1),
 		LogGroupNamePrefix: aws.String(logGroupName),
 	})
@@ -163,10 +159,7 @@ func CloudWatchLogGroupExists(client cloudwatchlogsiface.CloudWatchLogsAPI, logG
 //		panic("Unable to create log group", err)
 //	}
 func CreateNewCloudWatchLogGroup(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
-	defer cancel()
-
-	if _, err := client.CreateLogGroupWithContext(ctx, &cloudwatchlogs.CreateLogGroupInput{
+	if _, err := client.CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
 	}); err != nil {
 		return err
@@ -177,10 +170,7 @@ func CreateNewCloudWatchLogGroup(client cloudwatchlogsiface.CloudWatchLogsAPI, l
 
 // CreateNewLogStream creates a log stream inside of a LogGroup
 func CreateNewLogStream(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string, logStreamName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
-	defer cancel()
-
-	_, err := client.CreateLogStreamWithContext(ctx, &cloudwatchlogs.CreateLogStreamInput{
+	_, err := client.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroupName),
 		LogStreamName: aws.String(logStreamName),
 	})

@@ -25,8 +25,6 @@ const (
 
 // SetProviderLogOutput ...
 func SetProviderLogOutput(w io.Writer) {
-	os.Stderr = nil
-	os.Stdout = nil
 
 	log.SetOutput(w)
 

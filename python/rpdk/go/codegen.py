@@ -3,7 +3,7 @@
 import logging
 import zipfile
 from pathlib import Path
-from subprocess import CalledProcessError, run as subprocess_run
+from subprocess import PIPE, CalledProcessError, run as subprocess_run
 from tempfile import TemporaryFile
 
 from rpdk.core.data_loaders import resource_stream
@@ -174,7 +174,7 @@ class GoLanguagePlugin(LanguagePlugin):
         for path in format_paths:
             try:
                 subprocess_run(
-                    ["go", "fmt", path], cwd=root, check=True, capture_output=True
+                    ["go", "fmt", path], cwd=root, check=True, stdout=PIPE, stderr=PIPE
                 )
             except (FileNotFoundError, CalledProcessError) as e:
                 raise DownstreamError("go fmt failed") from e

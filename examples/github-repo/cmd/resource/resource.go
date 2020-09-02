@@ -77,10 +77,10 @@ func Read(req handler.Request, prevModel *Model, currentModel *Model) (handler.P
 		return handler.ProgressEvent{}, fmt.Errorf("Status Code: %d, Status: %v", resp.StatusCode, resp.Status)
 	}
 
-	currentModel.Name = aws.String(*repo.Name)
-	currentModel.Owner = aws.String(*repo.Owner.Name)
-	currentModel.Description = aws.String(*repo.Description)
-	currentModel.Homepage = aws.String(*repo.Homepage)
+	currentModel.Name = repo.Name
+	currentModel.Owner = repo.Owner.Name
+	currentModel.Description = repo.Description
+	currentModel.Homepage = repo.Homepage
 
 	return handler.ProgressEvent{
 		OperationStatus: handler.Success,

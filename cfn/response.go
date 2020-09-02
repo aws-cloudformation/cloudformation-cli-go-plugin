@@ -31,8 +31,11 @@ type response struct {
 	//passed back to CloudFormation
 	BearerToken string `json:"bearerToken,omitempty"`
 
-	// ResourceModels is the output resource instances populated by a LIST for synchronous results
-	ResourceModels []interface{} `json:"resourceModels,omitempty"`
+	// ResourceModels is the output resource instances populated by a LIST for
+	// synchronous results. ResourceModels must be returned by LIST so it's
+	// always included in the response. When ResourceModels is not set, null is
+	// returned.
+	ResourceModels []interface{} `json:"resourceModels"`
 
 	// NextToken the token used to request additional pages of resources for a LIST operation
 	NextToken string `json:"nextToken,omitempty"`

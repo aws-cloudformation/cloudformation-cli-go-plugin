@@ -3,7 +3,7 @@ phases:
   install:
     runtime-versions:
         python: 3.7
-        golang: 1.12
+        golang: 1.14
     commands:
       - pip install pre-commit
   build:

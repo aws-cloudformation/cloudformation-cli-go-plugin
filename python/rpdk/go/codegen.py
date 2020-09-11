@@ -44,12 +44,15 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
-        self.namespace = None
 
     def _prompt_for_go_path(self, project):
-        namespace = project.root
-        prompt = "Enter the GO Import path"
-        self.import_path = input_with_validation(prompt, validate_path(""))
+        path_validator = validate_path("")
+        import_path = path_validator(project.settings["importpath"])
+        if not import_path:
+            prompt = "Enter the GO Import path"
+            import_path = input_with_validation(prompt, path_validator)
+
+        self.import_path = import_path
         project.settings["importpath"] = str(self.import_path)
 
     def init(self, project):

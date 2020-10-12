@@ -16,7 +16,7 @@ type event struct {
 	BearerToken         string                 `json:"bearerToken" validate:"nonzero"`
 	Region              string                 `json:"region" validate:"nonzero"`
 	Action              string                 `json:"action"`
-	ResourceType        string                 `json:"resourceType" validate:"nonzero"`
+	ResourceType        string                 `json:"resourceType"`
 	ResourceTypeVersion encoding.Float         `json:"resourceTypeVersion"`
 	CallbackContext     map[string]interface{} `json:"callbackContext,omitempty"`
 	RequestData         requestData            `json:"requestData"`
@@ -46,15 +46,6 @@ func validateEvent(event *event) error {
 	}
 
 	return nil
-}
-
-// testEvent base structure, it will be internal to the RPDK.
-type testEvent struct {
-	Action          string                                        `json:"action"`
-	Credentials     credentials.CloudFormationCredentialsProvider `json:"credentials"`
-	CallbackContext map[string]interface{}                        `json:"callbackContext"`
-
-	Request resourceHandlerRequest
 }
 
 // resourceHandlerRequest is internal to the RPDK. It contains a number of fields that are for

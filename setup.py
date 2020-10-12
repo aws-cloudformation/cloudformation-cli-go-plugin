@@ -38,7 +38,10 @@ setup(
     zip_safe=True,
     install_requires=["cloudformation-cli>=0.1.2,<0.2", "semver>=2.9.0"],
     python_requires=">=3.6",
-    entry_points={"rpdk.v1.languages": ["go = rpdk.go.codegen:GoLanguagePlugin"]},
+    entry_points={
+        "rpdk.v1.languages": ["go = rpdk.go.codegen:GoLanguagePlugin"],
+        "rpdk.v1.parsers": ["go = rpdk.go.parser:setup_subparser"],
+    },
     license="Apache License 2.0",
     classifiers=[
         "Development Status :: 4 - Beta",

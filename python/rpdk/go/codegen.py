@@ -3,7 +3,7 @@
 import logging
 import zipfile
 from pathlib import Path
-from subprocess import CalledProcessError, run as subprocess_run
+from subprocess import PIPE, CalledProcessError, run as subprocess_run
 from tempfile import TemporaryFile
 
 from rpdk.core.data_loaders import resource_stream
@@ -44,13 +44,17 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
-        self.namespace = None
 
     def _prompt_for_go_path(self, project):
-        namespace = project.root
-        prompt = "Enter the GO Import path"
-        self.import_path = input_with_validation(prompt, validate_path(""))
-        project.settings["importpath"] = str(self.import_path)
+        path_validator = validate_path("")
+        import_path = path_validator(project.settings.get("import_path"))
+
+        if not import_path:
+            prompt = "Enter the GO Import path"
+            import_path = input_with_validation(prompt, path_validator)
+
+        self.import_path = import_path
+        project.settings["import_path"] = str(self.import_path)
 
     def init(self, project):
         LOG.debug("Init started")
@@ -73,11 +77,18 @@ class GoLanguagePlugin(LanguagePlugin):
         inter = project.root / "internal"
         inter.mkdir(parents=True, exist_ok=True)
 
+        # Makefile
+        path = project.root / "Makefile"
+        LOG.debug("Writing Makefile: %s", path)
+        template = self.env.get_template("Makefile")
+        contents = template.render()
+        project.overwrite(path, contents)
+
         # go.mod
         path = project.root / "go.mod"
         LOG.debug("Writing go.mod: %s", path)
         template = self.env.get_template("go.mod.tple")
-        contents = template.render(path=Path(project.settings["importpath"]))
+        contents = template.render(path=Path(project.settings["import_path"]))
         project.safewrite(path, contents)
 
         # CloudFormation/SAM template for handler lambda
@@ -158,15 +169,15 @@ class GoLanguagePlugin(LanguagePlugin):
         path = root / "main.go"
         LOG.debug("Writing project: %s", path)
         template = self.env.get_template("main.go.tple")
-        importpath = Path(project.settings["importpath"])
+        importpath = Path(project.settings["import_path"])
         contents = template.render(path=importpath / "cmd" / "resource")
         project.overwrite(path, contents)
         format_paths.append(path)
 
-        # Makefile
-        path = project.root / "Makefile"
-        LOG.debug("Writing Makefile: %s", path)
-        template = self.env.get_template("Makefile")
+        # makebuild
+        path = project.root / "makebuild"
+        LOG.debug("Writing makebuild: %s", path)
+        template = self.env.get_template("makebuild")
         contents = template.render()
         project.overwrite(path, contents)
 
@@ -174,7 +185,7 @@ class GoLanguagePlugin(LanguagePlugin):
         for path in format_paths:
             try:
                 subprocess_run(
-                    ["go", "fmt", path], cwd=root, check=True, capture_output=True
+                    ["go", "fmt", path], cwd=root, check=True, stdout=PIPE, stderr=PIPE
                 )
             except (FileNotFoundError, CalledProcessError) as e:
                 raise DownstreamError("go fmt failed") from e

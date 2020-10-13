@@ -69,17 +69,8 @@ func Start(h Handler) {
 		}
 	}()
 
-	// MODE is an environment variable that is set ONLY
-	// when contract test are performed.
-	mode, _ := os.LookupEnv("MODE")
-
-	if mode == "Test" {
-		log.Printf("Handler starting in test mode")
-		lambda.Start(makeTestEventFunc(h))
-	} else {
-		log.Printf("Handler starting")
-		lambda.Start(makeEventFunc(h))
-	}
+	log.Printf("Handler starting")
+	lambda.Start(makeEventFunc(h))
 
 	log.Printf("Handler finished")
 }
@@ -89,10 +80,6 @@ type tags map[string]string
 
 // eventFunc is the function signature required to execute an event from the Lambda SDK
 type eventFunc func(ctx context.Context, event *event) (response, error)
-
-// testEventFunc is the function signature required to execute an event from the Lambda SDK
-// and is only used in contract testing
-type testEventFunc func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error)
 
 // handlerFunc is the signature required for all actions
 type handlerFunc func(request handler.Request) handler.ProgressEvent
@@ -186,34 +173,6 @@ func router(a string, h Handler) (handlerFunc, error) {
 	default:
 		// No action matched, we should fail and return an InvalidRequestErrorCode
 		return nil, cfnerr.New(invalidRequestError, "No action/invalid action specified", nil)
-	}
-}
-
-// MakeTestEventFunc is the entry point that allows the CLI's
-// contract testing framework to invoke the resource's CRUDL handlers.
-func makeTestEventFunc(h Handler) testEventFunc {
-	return func(ctx context.Context, event *testEvent) (handler.ProgressEvent, error) {
-		handlerFn, err := router(event.Action, h)
-		if err != nil {
-			return handler.NewFailedEvent(err), err
-		}
-		rctx := handler.RequestContext{
-			Region:     event.Request.Region,
-			AccountID:  event.Request.AWSAccountID,
-			StackTags:  event.Request.DesiredResourceTags,
-			SystemTags: event.Request.SystemTags,
-			NextToken:  event.Request.NextToken,
-		}
-		request := handler.NewRequest(
-			event.Request.LogicalResourceIdentifier,
-			event.CallbackContext,
-			rctx,
-			credentials.SessionFromCredentialsProvider(&event.Credentials),
-			event.Request.PreviousResourceState,
-			event.Request.DesiredResourceState,
-		)
-		progEvt := handlerFn(request)
-		return progEvt, nil
 	}
 }
 

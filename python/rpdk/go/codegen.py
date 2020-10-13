@@ -226,7 +226,7 @@ class GoLanguagePlugin(LanguagePlugin):
         if not exe_glob:
             LOG.debug("No Go executable match")
             raise GoExecutableNotFoundError(
-                "No Go executable was found.\n"
+                "You must build the handler before running cfn-submit.\n"
                 "Please run 'make' or the equivalent command "
                 "in your IDE to compile and package the code."
             )

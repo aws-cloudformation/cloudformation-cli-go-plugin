@@ -170,7 +170,7 @@ class GoLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing project: %s", path)
         template = self.env.get_template("main.go.tple")
         importpath = Path(project.settings["import_path"])
-        contents = template.render(path=importpath / "cmd" / "resource")
+        contents = template.render(path=(importpath / "cmd" / "resource").as_posix())
         project.overwrite(path, contents)
         format_paths.append(path)
 

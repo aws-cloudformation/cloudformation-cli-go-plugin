@@ -8,7 +8,7 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument(
         "-p",
-        "--import-path",
+        "--importpath",
         help="Select the go language import path.",
     )
 

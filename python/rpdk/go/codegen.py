@@ -47,7 +47,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def _prompt_for_go_path(self, project):
         path_validator = validate_path("")
-        import_path = path_validator(project.settings.get("import_path", project.settings["importpath"]))
+        import_path = path_validator(project.settings.get("import_path", project.settings.get("importpath")))
 
         if not import_path:
             prompt = "Enter the GO Import path"

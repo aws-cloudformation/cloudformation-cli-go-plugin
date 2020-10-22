@@ -47,7 +47,9 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def _prompt_for_go_path(self, project):
         path_validator = validate_path("")
-        import_path = path_validator(project.settings.get("import_path", project.settings.get("importpath")))
+        import_path = path_validator(
+            project.settings.get("import_path", project.settings.get("importpath"))
+        )
 
         if not import_path:
             prompt = "Enter the GO Import path"
@@ -88,7 +90,11 @@ class GoLanguagePlugin(LanguagePlugin):
         path = project.root / "go.mod"
         LOG.debug("Writing go.mod: %s", path)
         template = self.env.get_template("go.mod.tple")
-        contents = template.render(path=Path(project.settings.get("import_path", project.settings.get("importpath"))))
+        contents = template.render(
+            path=Path(
+                project.settings.get("import_path", project.settings.get("importpath"))
+            )
+        )
         project.safewrite(path, contents)
 
         # CloudFormation/SAM template for handler lambda
@@ -169,7 +175,9 @@ class GoLanguagePlugin(LanguagePlugin):
         path = root / "main.go"
         LOG.debug("Writing project: %s", path)
         template = self.env.get_template("main.go.tple")
-        importpath = Path(project.settings.get("import_path", project.settings.get("importpath")))
+        importpath = Path(
+            project.settings.get("import_path", project.settings.get("importpath"))
+        )
         contents = template.render(path=(importpath / "cmd" / "resource").as_posix())
         project.overwrite(path, contents)
         format_paths.append(path)

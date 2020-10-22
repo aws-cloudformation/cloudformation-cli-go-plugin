@@ -5,8 +5,8 @@
     "entrypoint": "handler",
     "testEntrypoint": "handler",
     "settings": {
-        "importpath": "github.com/aws-cloudformation/cloudformation-cli-go-plugin/examples/github-repo",
+        "import_path": "github.com/aws-cloudformation/cloudformation-cli-go-plugin/examples/github-repo",
         "protocolVersion": "2.0.0",
-        "pluginVersion": "2.0.2"
+        "pluginVersion": "2.0.0"
     }
 }

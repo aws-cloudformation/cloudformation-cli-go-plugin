@@ -56,7 +56,7 @@ class GoLanguagePlugin(LanguagePlugin):
             import_path = input_with_validation(prompt, path_validator)
 
         self.import_path = import_path
-        project.settings["importpath"] = str(self.import_path)
+        project.settings["import_path"] = str(self.import_path)
 
     def init(self, project):
         LOG.debug("Init started")

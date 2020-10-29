@@ -97,12 +97,13 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 		d = append(d, dim)
 	}
 	md := []*cloudwatch.MetricDatum{
-		&cloudwatch.MetricDatum{
+		{
 			MetricName: aws.String(metricName),
 			Unit:       aws.String(unit),
 			Value:      aws.Float64(value),
 			Dimensions: d,
-			Timestamp:  &date},
+			Timestamp:  aws.Time(date.UTC()),
+		},
 	}
 	pi := cloudwatch.PutMetricDataInput{
 		Namespace:  aws.String(p.namespace),

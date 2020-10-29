@@ -92,6 +92,7 @@ func makeEventFunc(h Handler) eventFunc {
 		once.Do(func() {
 			l, err := logging.NewCloudWatchLogsProvider(
 				cloudwatchlogs.New(ps),
+				m,
 				event.RequestData.ProviderLogGroupName,
 			)
 			if err != nil {

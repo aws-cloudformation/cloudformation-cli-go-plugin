@@ -36,7 +36,7 @@ setup(
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=["cloudformation-cli>=0.1.2,<0.2", "semver>=2.9.0"],
+    install_requires=["cloudformation-cli>=0.1.14", "semver>=2.9.0"],
     python_requires=">=3.6",
     entry_points={
         "rpdk.v1.languages": ["go = rpdk.go.codegen:GoLanguagePlugin"],

@@ -38,6 +38,14 @@ type Request struct {
 	resourcePropertiesBody         []byte
 }
 
+func (r *Request) GetPreviousResourcePropertiesBody() []byte {
+	return r.previousResourcePropertiesBody
+}
+
+func (r *Request) GetResourcePropertiesBody() []byte {
+	return r.resourcePropertiesBody
+}
+
 // RequestContext represents information about the current
 // invocation request of the handler.
 type RequestContext struct {

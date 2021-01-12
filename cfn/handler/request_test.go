@@ -9,13 +9,13 @@ import (
 
 func TestUnmarshal(t *testing.T) {
 	type Detail struct {
-		Build        *int
-		IsProduction *bool
+		Build        *int  `json:",string"`
+		IsProduction *bool `json:",string"`
 	}
 
 	type Model struct {
 		Name    *string
-		Version *float64
+		Version *float64 `json:",string"`
 		Detail  *Detail
 	}
 

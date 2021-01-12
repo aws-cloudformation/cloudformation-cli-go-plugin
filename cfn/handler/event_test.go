@@ -1,20 +1,19 @@
 package handler
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/google/go-cmp/cmp"
 
 	"encoding/json"
-
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 )
 
 func TestProgressEventMarshalJSON(t *testing.T) {
 	type Model struct {
-		Name    *encoding.String
-		Version *encoding.Float
+		Name    *string  `json:",omitempty"`
+		Version *float64 `json:",omitempty,string"`
 	}
 
 	for _, tt := range []struct {
@@ -28,8 +27,8 @@ func TestProgressEventMarshalJSON(t *testing.T) {
 				Message:         "foo",
 				OperationStatus: Failed,
 				ResourceModel: Model{
-					Name:    encoding.NewString("Douglas"),
-					Version: encoding.NewFloat(42.1),
+					Name:    aws.String("Douglas"),
+					Version: aws.Float64(42.1),
 				},
 				HandlerErrorCode: cloudformation.HandlerErrorCodeNotUpdatable,
 			},
@@ -41,8 +40,8 @@ func TestProgressEventMarshalJSON(t *testing.T) {
 				OperationStatus: Success,
 				ResourceModels: []interface{}{
 					Model{
-						Name:    encoding.NewString("Douglas"),
-						Version: encoding.NewFloat(42.1),
+						Name:    aws.String("Douglas"),
+						Version: aws.Float64(42.1),
 					},
 				},
 			},

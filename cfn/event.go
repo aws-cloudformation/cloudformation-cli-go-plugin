@@ -5,7 +5,6 @@ import (
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/credentials"
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 
 	"gopkg.in/validator.v2"
 )
@@ -17,7 +16,7 @@ type event struct {
 	Region              string                 `json:"region" validate:"nonzero"`
 	Action              string                 `json:"action"`
 	ResourceType        string                 `json:"resourceType"`
-	ResourceTypeVersion encoding.Float         `json:"resourceTypeVersion"`
+	ResourceTypeVersion float64                `json:"resourceTypeVersion,string"`
 	CallbackContext     map[string]interface{} `json:"callbackContext,omitempty"`
 	RequestData         requestData            `json:"requestData"`
 	StackID             string                 `json:"stackId"`

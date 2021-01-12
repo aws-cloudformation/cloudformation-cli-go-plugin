@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 )
 
 const (
@@ -79,7 +79,7 @@ func (r *Request) UnmarshalPrevious(v interface{}) error {
 		return nil
 	}
 
-	if err := encoding.Unmarshal(r.previousResourcePropertiesBody, v); err != nil {
+	if err := json.Unmarshal(r.previousResourcePropertiesBody, v); err != nil {
 		return cfnerr.New(marshalingError, "Unable to convert type", err)
 	}
 
@@ -93,7 +93,7 @@ func (r *Request) Unmarshal(v interface{}) error {
 		return cfnerr.New(bodyEmptyError, "Body is empty", nil)
 	}
 
-	if err := encoding.Unmarshal(r.resourcePropertiesBody, v); err != nil {
+	if err := json.Unmarshal(r.resourcePropertiesBody, v); err != nil {
 		return cfnerr.New(marshalingError, "Unable to convert type", err)
 	}
 

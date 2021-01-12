@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
@@ -195,16 +194,16 @@ func TestMakeEventFuncModel(t *testing.T) {
 				t.Errorf("TestMakeEventFuncModel() = %v", err)
 				return
 			}
-			model, err := encoding.Stringify(got.ResourceModel)
+			model, err := json.Marshal(got.ResourceModel)
 			if err != nil {
 				t.Errorf("TestMakeEventFuncModel() = %v", err)
 			}
-			wantrModel, err := encoding.Stringify(tt.want)
+			wantrModel, err := json.Marshal(tt.want)
 			if err != nil {
 				t.Errorf("TestMakeEventFuncModel() = %v", err)
 			}
-			if wantrModel != model {
-				t.Errorf("response = %v; want %v", model, wantrModel)
+			if string(wantrModel) != string(model) {
+				t.Errorf("response = %v; want %v", string(model), string(wantrModel))
 			}
 
 		})

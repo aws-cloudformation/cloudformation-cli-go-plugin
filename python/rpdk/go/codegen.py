@@ -272,3 +272,10 @@ class GoLanguagePlugin(LanguagePlugin):
         for path in (project.root / "internal").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
+
+    @staticmethod
+    def _get_plugin_information():
+        return {"plugin-tool-version": __version__, "plugin-name": "go"}
+
+    def get_plugin_information(self, project):
+        return self._get_plugin_information()

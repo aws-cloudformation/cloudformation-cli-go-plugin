@@ -272,3 +272,27 @@ class GoLanguagePlugin(LanguagePlugin):
         for path in (project.root / "internal").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
+
+    @staticmethod
+    def _get_plugin_information(project):
+        module_file = project.root / "go.mod"
+        plugin_version = None
+
+        with open(module_file) as f:
+            line = f.readline()
+            while line:
+                if "github.com/aws-cloudformation/cloudformation-cli-go-plugin" in line:
+                    plugin_version = line.strip().split(" ")[-1]
+                    break
+                else:
+                    line = f.readline()
+
+        plugin_info = {"plugin-tool-version": __version__, "plugin-name": "go"}
+
+        if plugin_version is not None:
+            plugin_info["plugin-version"] = plugin_version
+
+        return plugin_info
+
+    def get_plugin_information(self, project):
+        return self._get_plugin_information(project)

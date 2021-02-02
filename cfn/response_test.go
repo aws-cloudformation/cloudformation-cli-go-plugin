@@ -1,6 +1,7 @@
 package cfn
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -8,14 +9,13 @@ import (
 
 	"encoding/json"
 
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
 )
 
 func TestResponseMarshalJSON(t *testing.T) {
 	type Model struct {
-		Name    *encoding.String
-		Version *encoding.Float
+		Name    *string  `json:",omitempty"`
+		Version *float64 `json:",omitempty,string"`
 	}
 
 	for _, tt := range []struct {
@@ -29,8 +29,8 @@ func TestResponseMarshalJSON(t *testing.T) {
 				Message:         "foo",
 				OperationStatus: handler.Failed,
 				ResourceModel: Model{
-					Name:    encoding.NewString("Douglas"),
-					Version: encoding.NewFloat(42.1),
+					Name:    aws.String("Douglas"),
+					Version: aws.Float64(42.1),
 				},
 				ErrorCode:   cloudformation.HandlerErrorCodeNotUpdatable,
 				BearerToken: "xyzzy",
@@ -43,8 +43,8 @@ func TestResponseMarshalJSON(t *testing.T) {
 				OperationStatus: handler.Success,
 				ResourceModels: []interface{}{
 					Model{
-						Name:    encoding.NewString("Douglas"),
-						Version: encoding.NewFloat(42.1),
+						Name:    aws.String("Douglas"),
+						Version: aws.Float64(42.1),
 					},
 				},
 				BearerToken: "xyzzy",
@@ -69,6 +69,7 @@ func TestResponseMarshalJSON(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(string(actual), tt.expected); diff != "" {
+				t.Errorf("response = %v; want %v", string(actual), tt.expected)
 				t.Errorf(diff)
 			}
 		})

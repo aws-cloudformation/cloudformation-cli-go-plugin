@@ -16,13 +16,13 @@ func TestUnmarshal(t *testing.T) {
 	type Model struct {
 		Name    *string
 		Version *float64
-		Detail  *Detail
+		Detail  *Detail `json:"detail,omitempty"`
 	}
 
 	req := Request{
 		LogicalResourceID:              "foo",
-		previousResourcePropertiesBody: []byte(`{"Name":"bar","Version":"0.1","Detail":{"Build":"57","IsProduction":"false"}}`),
-		resourcePropertiesBody:         []byte(`{"Name":"baz","Version":"2.3","Detail":{"Build":"69","IsProduction":"true"}}`),
+		previousResourcePropertiesBody: []byte(`{"Name":"bar","Version":"0.1","detail":{"Build":"57","IsProduction":"false"}}`),
+		resourcePropertiesBody:         []byte(`{"Name":"baz","Version":"2.3","detail":{"Build":"69","IsProduction":"true"}}`),
 	}
 
 	expectedPrevious := Model{

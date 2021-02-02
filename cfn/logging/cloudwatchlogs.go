@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 
@@ -31,37 +32,39 @@ import (
 //	// pushed through the Write func and sent to CloudWatch Logs
 //	log.SetOutput(provider)
 //	log.Printf("Eric loves pineapple pizza!")
-func NewCloudWatchLogsProvider(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) (io.Writer, error) {
+func NewCloudWatchLogsProvider(
+	client cloudwatchlogsiface.CloudWatchLogsAPI,
+	metricPublisher metricFailurePublisher,
+	logGroupName string,
+) (io.Writer, error) {
 	logger := New("internal: ")
+	fp := &failurePublisher{
+		metricPublisher: metricPublisher,
+	}
 
 	// If we're running in SAM CLI, we can return the stdout
 	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 && len(os.Getenv("AWS_FORCE_INTEGRATIONS")) == 0 {
 		return stdErr, nil
 	}
 
-	ok, err := CloudWatchLogGroupExists(client, logGroupName)
-	if err != nil {
+	if err := CreateNewCloudWatchLogGroup(client, logGroupName); err != nil {
+		fp.Publish("CreateLogGroup", err)
 		return nil, err
 	}
 
-	if !ok {
-		logger.Printf("Need to create loggroup: %v", logGroupName)
-		if err := CreateNewCloudWatchLogGroup(client, logGroupName); err != nil {
-			return nil, err
-		}
-	}
-
-	logStreamName := ksuid.New()
+	logStreamName := ksuid.New().String()
 	// need to create logstream
-	if err := CreateNewLogStream(client, logGroupName, logStreamName.String()); err != nil {
+	if err := CreateNewLogStream(client, logGroupName, logStreamName); err != nil {
+		fp.Publish("CreateLogStream", err)
 		return nil, err
 	}
 
 	provider := &cloudWatchLogsProvider{
-		client: client,
+		client:           client,
+		failurePublisher: fp,
 
 		logGroupName:  logGroupName,
-		logStreamName: logStreamName.String(),
+		logStreamName: logStreamName,
 
 		logger: logger,
 	}
@@ -74,7 +77,8 @@ func NewCloudWatchLogsProvider(client cloudwatchlogsiface.CloudWatchLogsAPI, log
 }
 
 type cloudWatchLogsProvider struct {
-	client cloudwatchlogsiface.CloudWatchLogsAPI
+	client           cloudwatchlogsiface.CloudWatchLogsAPI
+	failurePublisher *failurePublisher
 
 	logGroupName  string
 	logStreamName string
@@ -106,6 +110,15 @@ func (p *cloudWatchLogsProvider) Write(b []byte) (int, error) {
 	resp, err := p.client.PutLogEvents(input)
 
 	if err != nil {
+		switch v := err.(type) {
+		case *cloudwatchlogs.DataAlreadyAcceptedException:
+			p.sequence = *v.ExpectedSequenceToken
+		case *cloudwatchlogs.InvalidSequenceTokenException:
+			p.sequence = *v.ExpectedSequenceToken
+		}
+
+		p.logger.Printf("An error occurred while putting log events [%s] to resource owner account, with error: %s", string(b), err)
+		p.failurePublisher.Publish("PutLogEvents", err)
 		return 0, err
 	}
 
@@ -114,43 +127,11 @@ func (p *cloudWatchLogsProvider) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// CloudWatchLogGroupExists checks if a log group exists
-//
-// Using the client provided, it will check the CloudWatch Logs
-// service to verify the log group
-//
-//	sess := session.Must(aws.NewConfig())
-//	svc := cloudwatchlogs.New(sess)
-//
-//	// checks if the pineapple-pizza log group exists
-//	ok, err := LogGroupExists(svc, "pineapple-pizza")
-//	if err != nil {
-//		panic(err)
-//	}
-//	if ok {
-//		// do something
-//	}
-func CloudWatchLogGroupExists(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) (bool, error) {
-	resp, err := client.DescribeLogGroups(&cloudwatchlogs.DescribeLogGroupsInput{
-		Limit:              aws.Int64(1),
-		LogGroupNamePrefix: aws.String(logGroupName),
-	})
-
-	if err != nil {
-		return false, err
-	}
-
-	if len(resp.LogGroups) == 0 || *resp.LogGroups[0].LogGroupName != logGroupName {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 // CreateNewCloudWatchLogGroup creates a log group in CloudWatch Logs.
 //
 // Using a passed in client to create the call to the service, it
-// will create a log group of the specified name
+// will create a log group of the specified name. If the log group
+// already exists, no erorr is returned.
 //
 //	sess := session.Must(aws.NewConfig())
 //	svc := cloudwatchlogs.New(sess)
@@ -159,21 +140,37 @@ func CloudWatchLogGroupExists(client cloudwatchlogsiface.CloudWatchLogsAPI, logG
 //		panic("Unable to create log group", err)
 //	}
 func CreateNewCloudWatchLogGroup(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string) error {
-	if _, err := client.CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
+	_, err := client.CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
 		LogGroupName: aws.String(logGroupName),
-	}); err != nil {
-		return err
+	})
+	if err == nil {
+		return nil
 	}
 
-	return nil
+	awsErr, ok := err.(awserr.Error)
+	if ok && awsErr.Code() == cloudwatchlogs.ErrCodeResourceAlreadyExistsException {
+		return nil
+	}
+
+	return err
 }
 
-// CreateNewLogStream creates a log stream inside of a LogGroup
+// CreateNewLogStream creates a log stream inside of a LogGroup.
+// If the log stream already exists, no error is returned.
 func CreateNewLogStream(client cloudwatchlogsiface.CloudWatchLogsAPI, logGroupName string, logStreamName string) error {
 	_, err := client.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(logGroupName),
 		LogStreamName: aws.String(logStreamName),
 	})
+
+	if err == nil {
+		return nil
+	}
+
+	awsErr, ok := err.(awserr.Error)
+	if ok && awsErr.Code() == cloudwatchlogs.ErrCodeResourceAlreadyExistsException {
+		return nil
+	}
 
 	return err
 }

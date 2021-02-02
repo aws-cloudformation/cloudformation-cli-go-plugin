@@ -1,7 +1,10 @@
 package logging
 
 import (
+	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,14 +15,6 @@ import (
 func TestCloudWatchLogProvider(t *testing.T) {
 	t.Run("Init", func(t *testing.T) {
 		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return &cloudwatchlogs.DescribeLogGroupsOutput{
-					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
-					},
-				}, nil
-			},
-
 			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, nil
 			},
@@ -34,21 +29,18 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				}, nil
 			},
 		}
-
-		_, err := NewCloudWatchLogsProvider(client, "pineapple-pizza")
+		fp := &fakeExceptionPublisher{}
+		_, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
 		if err != nil {
 			t.Fatalf("Error returned: %v", err)
 		}
+		fp.equalPublishes(t, nil)
 	})
 
-	t.Run("Init Error Exists", func(t *testing.T) {
+	t.Run("Init Log Group Exists", func(t *testing.T) {
 		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return nil, awserr.New("Invalid", "Invalid", nil)
-			},
-
 			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
-				return nil, nil
+				return nil, awserr.New(cloudwatchlogs.ErrCodeResourceAlreadyExistsException, "", errors.New(""))
 			},
 
 			CreateLogStreamFn: func(input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
@@ -61,21 +53,40 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				}, nil
 			},
 		}
-
-		_, err := NewCloudWatchLogsProvider(client, "pineapple-pizza")
-		if err == nil {
+		fp := &fakeExceptionPublisher{}
+		_, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
+		if err != nil {
 			t.Fatalf("Error returned: %v", err)
 		}
+		fp.equalPublishes(t, nil)
 	})
 
-	t.Run("Init Error Unable to Create", func(t *testing.T) {
+	t.Run("Init Log Stream Exists", func(t *testing.T) {
 		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return &cloudwatchlogs.DescribeLogGroupsOutput{
-					LogGroups: []*cloudwatchlogs.LogGroup{},
-				}, nil
+			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
+				return nil, nil
 			},
 
+			CreateLogStreamFn: func(input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+				return nil, awserr.New(cloudwatchlogs.ErrCodeResourceAlreadyExistsException, "", errors.New(""))
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				return &cloudwatchlogs.PutLogEventsOutput{
+					NextSequenceToken: aws.String("zomg"),
+				}, nil
+			},
+		}
+		fp := &fakeExceptionPublisher{}
+		_, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
+		if err != nil {
+			t.Fatalf("Error returned: %v", err)
+		}
+		fp.equalPublishes(t, nil)
+	})
+
+	t.Run("Init Error Unable to Create Log Group", func(t *testing.T) {
+		client := CallbackCloudWatchLogs{
 			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, awserr.New("Invalid", "Invalid", nil)
 			},
@@ -90,23 +101,44 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				}, nil
 			},
 		}
-
-		_, err := NewCloudWatchLogsProvider(client, "pineapple-pizza")
+		fp := &fakeExceptionPublisher{}
+		_, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
 		if err == nil {
 			t.Fatalf("Error returned: %v", err)
 		}
+		fp.equalPublishes(t, map[string]int{
+			"CreateLogGroup": 1,
+		})
+	})
+
+	t.Run("Init Error Unable to Create Log Stream", func(t *testing.T) {
+		client := CallbackCloudWatchLogs{
+			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
+				return nil, nil
+			},
+
+			CreateLogStreamFn: func(input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error) {
+				return nil, awserr.New("Invalid", "Invalid", nil)
+			},
+
+			PutLogEventsFn: func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
+				return &cloudwatchlogs.PutLogEventsOutput{
+					NextSequenceToken: aws.String("zomg"),
+				}, nil
+			},
+		}
+		fp := &fakeExceptionPublisher{}
+		_, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
+		if err == nil {
+			t.Fatalf("Error returned: %v", err)
+		}
+		fp.equalPublishes(t, map[string]int{
+			"CreateLogStream": 1,
+		})
 	})
 
 	t.Run("Write", func(t *testing.T) {
 		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return &cloudwatchlogs.DescribeLogGroupsOutput{
-					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
-					},
-				}, nil
-			},
-
 			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, nil
 			},
@@ -121,8 +153,8 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				}, nil
 			},
 		}
-
-		p, err := NewCloudWatchLogsProvider(client, "pineapple-pizza")
+		fp := &fakeExceptionPublisher{}
+		p, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
 		if err != nil {
 			t.Fatalf("Error returned: %v", err)
 		}
@@ -136,19 +168,12 @@ func TestCloudWatchLogProvider(t *testing.T) {
 		if c != len(line) {
 			t.Fatalf("Didn't write the same content")
 		}
+		fp.equalPublishes(t, nil)
 	})
 
 	t.Run("Write Error", func(t *testing.T) {
 		writeCount := 0
 		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return &cloudwatchlogs.DescribeLogGroupsOutput{
-					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
-					},
-				}, nil
-			},
-
 			CreateLogGroupFn: func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
 				return nil, nil
 			},
@@ -168,47 +193,21 @@ func TestCloudWatchLogProvider(t *testing.T) {
 				return nil, awserr.New("Invalid", "Invalid", nil)
 			},
 		}
-
-		p, err := NewCloudWatchLogsProvider(client, "pineapple-pizza")
+		fp := &fakeExceptionPublisher{}
+		p, err := NewCloudWatchLogsProvider(client, fp, "pineapple-pizza")
 		if err != nil {
 			t.Fatalf("Error returned: %v", err)
 		}
+		fp.equalPublishes(t, nil)
 
 		line := "Eric loves pineapple pizza"
 		c, err := p.Write([]byte(line))
 		if err == nil && c != 0 {
 			t.Fatalf("Error not returned")
 		}
-	})
-}
-
-func TestCloudWatchLogGroupExists(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return &cloudwatchlogs.DescribeLogGroupsOutput{
-					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
-					},
-				}, nil
-			},
-		}
-
-		if _, err := CloudWatchLogGroupExists(client, "pineapple-pizza"); err != nil {
-			t.Fatalf("Error returned: %v", err)
-		}
-	})
-
-	t.Run("Error", func(t *testing.T) {
-		client := CallbackCloudWatchLogs{
-			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-				return nil, awserr.New("Invalid", "Invalid", nil)
-			},
-		}
-
-		if _, err := CloudWatchLogGroupExists(client, "pineapple-pizza"); err == nil {
-			t.Fatalf("Error not returned")
-		}
+		fp.equalPublishes(t, map[string]int{
+			"PutLogEvents": 1,
+		})
 	})
 }
 
@@ -241,14 +240,9 @@ func TestCreateCloudWatchLogGroup(t *testing.T) {
 type CallbackCloudWatchLogs struct {
 	cloudwatchlogsiface.CloudWatchLogsAPI
 
-	DescribeLogGroupsFn func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error)
-	CreateLogGroupFn    func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error)
-	CreateLogStreamFn   func(input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error)
-	PutLogEventsFn      func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error)
-}
-
-func (cwl CallbackCloudWatchLogs) DescribeLogGroups(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
-	return cwl.DescribeLogGroupsFn(input)
+	CreateLogGroupFn  func(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error)
+	CreateLogStreamFn func(input *cloudwatchlogs.CreateLogStreamInput) (*cloudwatchlogs.CreateLogStreamOutput, error)
+	PutLogEventsFn    func(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error)
 }
 
 func (cwl CallbackCloudWatchLogs) CreateLogGroup(input *cloudwatchlogs.CreateLogGroupInput) (*cloudwatchlogs.CreateLogGroupOutput, error) {
@@ -261,4 +255,34 @@ func (cwl CallbackCloudWatchLogs) CreateLogStream(input *cloudwatchlogs.CreateLo
 
 func (cwl CallbackCloudWatchLogs) PutLogEvents(input *cloudwatchlogs.PutLogEventsInput) (*cloudwatchlogs.PutLogEventsOutput, error) {
 	return cwl.PutLogEventsFn(input)
+}
+
+type fakeExceptionPublisher struct {
+	publishesByOperation map[string]int
+}
+
+func (p *fakeExceptionPublisher) PublishExceptionMetric(date time.Time, action string, e error) {
+	if p.publishesByOperation == nil {
+		p.publishesByOperation = make(map[string]int)
+	}
+
+	operation := strings.Split(e.Error(), ":")[0]
+
+	p.publishesByOperation[operation]++
+}
+
+func (p fakeExceptionPublisher) equalPublishes(t *testing.T, expected map[string]int) {
+	if expected == nil && len(p.publishesByOperation) > 0 {
+		t.Fatalf("expected no exceptions to be published: %v", p.publishesByOperation)
+	}
+
+	if len(expected) != len(p.publishesByOperation) {
+		t.Fatalf("expected %v, got: %v", expected, p.publishesByOperation)
+	}
+
+	for operation, count := range expected {
+		if p.publishesByOperation[operation] != count {
+			t.Fatalf("expected %q to have count %d, got %d. actual map: %v", operation, count, p.publishesByOperation[operation], p.publishesByOperation)
+		}
+	}
 }

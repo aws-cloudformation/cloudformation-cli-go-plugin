@@ -25,8 +25,8 @@ func TestUnstringifyStruct(t *testing.T) {
 		SP: aws.String("bar"),
 		B:  true,
 		BP: aws.Bool(true),
-		I:  42,
-		IP: aws.Int(42),
+		I:  2147483648, // math.MaxInt32 + 1
+		IP: aws.Int(2147483648),
 		F:  3.14,
 		FP: aws.Float64(22),
 	}
@@ -39,8 +39,8 @@ func TestUnstringifyStruct(t *testing.T) {
 			"SP": "bar",
 			"B":  "true",
 			"BP": "true",
-			"I":  "42",
-			"IP": "42",
+			"I":  "2147483648",
+			"IP": "2147483648",
 			"F":  "3.14",
 			"FP": "22",
 		}, &actual)
@@ -62,8 +62,8 @@ func TestUnstringifyStruct(t *testing.T) {
 			"SP": "bar",
 			"B":  true,
 			"BP": true,
-			"I":  42,
-			"IP": 42,
+			"I":  2147483648,
+			"IP": 2147483648,
 			"F":  3.14,
 			"FP": 22.0,
 		}, &actual)
@@ -85,8 +85,8 @@ func TestUnstringifyStruct(t *testing.T) {
 			"SP": "bar",
 			"B":  true,
 			"BP": true,
-			"I":  float64(42),
-			"IP": float64(42),
+			"I":  float64(2147483648),
+			"IP": float64(2147483648),
 			"F":  3.14,
 			"FP": int(22),
 		}, &actual)

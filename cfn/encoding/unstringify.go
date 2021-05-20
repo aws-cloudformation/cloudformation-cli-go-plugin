@@ -127,7 +127,7 @@ func convertInt(i interface{}, pointer bool) (reflect.Value, error) {
 		n = int(v)
 
 	case string:
-		n64, err := strconv.ParseInt(v, 0, 32)
+		n64, err := strconv.ParseInt(v, 0, 64)
 		if err != nil {
 			return zeroValue, err
 		}

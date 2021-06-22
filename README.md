@@ -45,8 +45,6 @@ pre-commit run --all-files
 pre-commit run pytest-local
 ```
 
-Use `./generate-examples.sh` to run install `cloudformation-cli-go-plugin` locally and run `cfn generate` in each example.
-
 Getting started
 ---------------
 

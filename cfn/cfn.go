@@ -130,6 +130,7 @@ func makeEventFunc(h Handler) eventFunc {
 			credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials),
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
+			event.RequestData.TypeConfiguration,
 		)
 		p := invoke(handlerFn, request, m, event.Action)
 		r, err := newResponse(&p, event.BearerToken)

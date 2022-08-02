@@ -3,6 +3,7 @@ package cfn
 import (
 	"context"
 	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -87,6 +88,8 @@ type handlerFunc func(request handler.Request) handler.ProgressEvent
 // MakeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
+		var l io.Writer
+
 		ps := credentials.SessionFromCredentialsProvider(&event.RequestData.ProviderCredentials)
 		m := metrics.New(cloudwatch.New(ps), event.ResourceType)
 

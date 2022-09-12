@@ -11,6 +11,7 @@ from rpdk.core.exceptions import DownstreamError, InternalError, SysExitRecommen
 from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
+from rpdk.core.project import Project
 
 from . import __version__
 from .resolver import translate_type
@@ -47,9 +48,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
     def _prompt_for_go_path(self, project):
         path_validator = validate_path("")
-        import_path = path_validator(
-            project.settings.get("import_path", project.settings.get("importpath"))
-        )
+        import_path = path_validator(project.settings.get("import_path"))
 
         if not import_path:
             prompt = "Enter the GO Import path"
@@ -58,7 +57,7 @@ class GoLanguagePlugin(LanguagePlugin):
         self.import_path = import_path
         project.settings["import_path"] = str(self.import_path)
 
-    def init(self, project):
+    def init(self, project: Project):
         LOG.debug("Init started")
 
         self._prompt_for_go_path(project)
@@ -90,11 +89,7 @@ class GoLanguagePlugin(LanguagePlugin):
         path = project.root / "go.mod"
         LOG.debug("Writing go.mod: %s", path)
         template = self.env.get_template("go.mod.tple")
-        contents = template.render(
-            path=Path(
-                project.settings.get("import_path", project.settings.get("importpath"))
-            )
-        )
+        contents = template.render(path=Path(project.settings["import_path"]))
         project.safewrite(path, contents)
 
         # CloudFormation/SAM template for handler lambda
@@ -140,23 +135,23 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Init complete")
 
-    def _init_settings(self, project):
+    def _init_settings(self, project: Project):
         project.runtime = self.RUNTIME
         project.entrypoint = self.ENTRY_POINT.format(self.import_path)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.import_path)
         project.settings.update(DEFAULT_SETTINGS)
 
-    def init_handlers(self, project, src):
+    def init_handlers(self, project: Project, src):
         LOG.debug("Writing stub handlers")
         template = self.env.get_template("stubHandler.go.tple")
         path = src / "resource.go"
         contents = template.render()
         project.safewrite(path, contents)
 
-    def _get_generated_root(self, project):
+    def _get_generated_root(self, project: Project):
         LOG.debug("Init started")
 
-    def generate(self, project):
+    def generate(self, project: Project):
         LOG.debug("Generate started")
         root = project.root / "cmd"
 
@@ -165,7 +160,27 @@ class GoLanguagePlugin(LanguagePlugin):
         format_paths = []
 
         LOG.debug("Writing Types")
+
         models = resolve_models(project.schema)
+        if project.configuration_schema:
+            configuration_schema_path = (
+                project.root / project.configuration_schema_filename
+            )
+            project.write_configuration_schema(configuration_schema_path)
+            configuration_models = resolve_models(
+                project.configuration_schema, "TypeConfiguration"
+            )
+        else:
+            configuration_models = {"TypeConfiguration": {}}
+
+        # Create the type configuration model
+        template = self.env.get_template("config.go.tple")
+        path = src / "{}.go".format("config")
+        contents = template.render(models=configuration_models)
+        project.overwrite(path, contents)
+        format_paths.append(path)
+
+        # Create the resource model
         template = self.env.get_template("types.go.tple")
         path = src / "{}.go".format("model")
         contents = template.render(models=models)
@@ -175,9 +190,7 @@ class GoLanguagePlugin(LanguagePlugin):
         path = root / "main.go"
         LOG.debug("Writing project: %s", path)
         template = self.env.get_template("main.go.tple")
-        importpath = Path(
-            project.settings.get("import_path", project.settings.get("importpath"))
-        )
+        importpath = Path(project.settings["import_path"])
         contents = template.render(path=(importpath / "cmd" / "resource").as_posix())
         project.overwrite(path, contents)
         format_paths.append(path)
@@ -216,7 +229,7 @@ class GoLanguagePlugin(LanguagePlugin):
             project.write_settings()
 
     @staticmethod
-    def pre_package(project):
+    def pre_package(project: Project):
         # zip the Go build output - it's all needed to execute correctly
         f = TemporaryFile("w+b")
 
@@ -229,7 +242,7 @@ class GoLanguagePlugin(LanguagePlugin):
         return f
 
     @staticmethod
-    def _find_exe(project):
+    def _find_exe(project: Project):
         exe_glob = list((project.root / "bin").glob("{}".format("handler")))
         if not exe_glob:
             LOG.debug("No Go executable match")
@@ -250,7 +263,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
-    def package(self, project, zip_file):
+    def package(self, project: Project, zip_file):
         LOG.info("Packaging Go project")
 
         def write_with_relative_path(path):
@@ -272,27 +285,3 @@ class GoLanguagePlugin(LanguagePlugin):
         for path in (project.root / "internal").rglob("*"):
             if path.is_file():
                 write_with_relative_path(path)
-
-    @staticmethod
-    def _get_plugin_information(project):
-        module_file = project.root / "go.mod"
-        plugin_version = None
-
-        with open(module_file) as f:
-            line = f.readline()
-            while line:
-                if "github.com/aws-cloudformation/cloudformation-cli-go-plugin" in line:
-                    plugin_version = line.strip().split(" ")[-1]
-                    break
-                else:
-                    line = f.readline()
-
-        plugin_info = {"plugin-tool-version": __version__, "plugin-name": "go"}
-
-        if plugin_version is not None:
-            plugin_info["plugin-version"] = plugin_version
-
-        return plugin_info
-
-    def get_plugin_information(self, project):
-        return self._get_plugin_information(project)

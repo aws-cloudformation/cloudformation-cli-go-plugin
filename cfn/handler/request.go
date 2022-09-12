@@ -36,6 +36,7 @@ type Request struct {
 
 	previousResourcePropertiesBody []byte
 	resourcePropertiesBody         []byte
+	typeConfigurationBody          []byte
 }
 
 // RequestContext represents information about the current
@@ -61,7 +62,7 @@ type RequestContext struct {
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext, sess *session.Session, previousBody, body []byte) Request {
+func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext, sess *session.Session, previousBody, body, typeConfig []byte) Request {
 	return Request{
 		LogicalResourceID:              id,
 		CallbackContext:                ctx,
@@ -69,6 +70,7 @@ func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
 		RequestContext:                 requestCTX,
+		typeConfigurationBody:          typeConfig,
 	}
 }
 
@@ -94,6 +96,20 @@ func (r *Request) Unmarshal(v interface{}) error {
 	}
 
 	if err := encoding.Unmarshal(r.resourcePropertiesBody, v); err != nil {
+		return cfnerr.New(marshalingError, "Unable to convert type", err)
+	}
+
+	return nil
+}
+
+// UnmarshalTypeConfig populates the provided interface
+// with the current properties of the model
+func (r *Request) UnmarshalTypeConfig(v interface{}) error {
+	if len(r.typeConfigurationBody) == 0 {
+		return cfnerr.New(bodyEmptyError, "Type Config is empty", nil)
+	}
+
+	if err := encoding.Unmarshal(r.typeConfigurationBody, v); err != nil {
 		return cfnerr.New(marshalingError, "Unable to convert type", err)
 	}
 

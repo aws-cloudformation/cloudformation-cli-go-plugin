@@ -36,6 +36,7 @@ type requestData struct {
 	ProviderLogGroupName       string                                        `json:"providerLogGroupName"`
 	StackTags                  tags                                          `json:"stackTags"`
 	SystemTags                 tags                                          `json:"systemTags"`
+	TypeConfiguration          json.RawMessage                               `json:"typeConfiguration"`
 }
 
 // validateEvent ensures the event struct generated from the Lambda SDK is correct

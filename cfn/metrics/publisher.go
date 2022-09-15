@@ -119,9 +119,9 @@ func (p *Publisher) publishMetric(metricName string, data map[string]string, uni
 //
 // Example
 //
-// 	r := metrics.ResourceTypeName("AWS::Service::Resource")
+//	r := metrics.ResourceTypeName("AWS::Service::Resource")
 //
-// 	// Will return "AWS/Service/Resource"
+//	// Will return "AWS/Service/Resource"
 func ResourceTypeName(t string) string {
 	return strings.ReplaceAll(t, "::", "/")
 

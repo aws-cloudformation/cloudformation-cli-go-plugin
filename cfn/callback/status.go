@@ -1,6 +1,6 @@
 package callback
 
-//Status represents the status of the handler during invocation.
+// Status represents the status of the handler during invocation.
 type Status string
 
 const (

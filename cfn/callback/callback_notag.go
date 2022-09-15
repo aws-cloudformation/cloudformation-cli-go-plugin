@@ -1,3 +1,4 @@
+//go:build !callback
 // +build !callback
 
 package callback

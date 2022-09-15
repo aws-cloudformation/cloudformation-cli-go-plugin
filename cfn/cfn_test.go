@@ -129,7 +129,7 @@ func TestMakeEventFunc(t *testing.T) {
 	}
 }
 
-//loadEvent is a helper function that unmarshal the event from a file.
+// loadEvent is a helper function that unmarshal the event from a file.
 func loadEvent(path string, evt *event) *event {
 	validevent, err := openFixture(path)
 	if err != nil {

@@ -1,3 +1,4 @@
+//go:build logging
 // +build logging
 
 /*

@@ -1,3 +1,4 @@
+//go:build callback
 // +build callback
 
 /*
@@ -59,7 +60,7 @@ func (c *CloudFormationCallbackAdapter) ReportInitialStatus() error {
 	return nil
 }
 
-//ReportFailureStatus reports the failure status back to the Cloudformation service.
+// ReportFailureStatus reports the failure status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) ReportFailureStatus(model []byte, errCode string, handlerError error) error {
 	if err := c.reportProgress(errCode, Failed, InProgress, model, handlerError.Error()); err != nil {
 		return err

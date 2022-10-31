@@ -1,6 +1,6 @@
 package handler
 
-//Status represents the status of the handler.
+// Status represents the status of the handler.
 type Status string
 
 const (

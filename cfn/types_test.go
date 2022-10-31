@@ -59,7 +59,7 @@ func (m *MockHandler) List(request handler.Request) handler.ProgressEvent {
 	return m.fn(request.CallbackContext, request.Session)
 }
 
-//MockedMetrics mocks the call to AWS CloudWatch Metrics
+// MockedMetrics mocks the call to AWS CloudWatch Metrics
 //
 // This implementation of the handlers is only used for testing.
 type MockedMetrics struct {
@@ -70,14 +70,14 @@ type MockedMetrics struct {
 	HandlerInvocationCount         int
 }
 
-//NewMockedMetrics is a factory function that returns a new MockedMetrics.
+// NewMockedMetrics is a factory function that returns a new MockedMetrics.
 //
 // This implementation of the handlers is only used for testing.
 func NewMockedMetrics() *MockedMetrics {
 	return &MockedMetrics{}
 }
 
-//PutMetricData mocks the PutMetricData method.
+// PutMetricData mocks the PutMetricData method.
 //
 // This implementation of the handlers is only used for testing.
 func (m *MockedMetrics) PutMetricData(in *cloudwatch.PutMetricDataInput) (*cloudwatch.PutMetricDataOutput, error) {

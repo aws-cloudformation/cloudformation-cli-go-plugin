@@ -24,7 +24,7 @@ repos:
   rev: stable
   hooks:
   - id: black
-- repo: git://github.com/dnephin/pre-commit-golang
+- repo: https://github.com/dnephin/pre-commit-golang
   rev: master
   hooks:
     - id: go-fmt

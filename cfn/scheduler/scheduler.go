@@ -1,3 +1,4 @@
+//go:build scheduler
 // +build scheduler
 
 /*
@@ -170,9 +171,8 @@ func (s *Scheduler) CleanupEvents(ruleName string, targetID string) error {
 //
 // Example
 //
-// 	// Will generate a cron string of: "1 0 0 0 0"
-// 	scheduler.GenerateOneTimeCronExpression(60, time.Now())
-//
+//	// Will generate a cron string of: "1 0 0 0 0"
+//	scheduler.GenerateOneTimeCronExpression(60, time.Now())
 func GenerateOneTimeCronExpression(secFromNow int64, t time.Time) string {
 	a := t.Add(time.Second * time.Duration(secFromNow))
 	return fmt.Sprintf("cron(%02d %02d %02d %02d ? %d)", a.Minute(), a.Hour(), a.Day(), a.Month(), a.Year())

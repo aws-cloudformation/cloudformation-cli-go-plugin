@@ -1,14 +1,13 @@
 # pylint: disable=redefined-outer-name,protected-access
-from pathlib import Path
-from shutil import copyfile
-from unittest.mock import patch
-
 import pytest
 
+from pathlib import Path
 from rpdk.core.exceptions import DownstreamError
 from rpdk.core.project import Project
 from rpdk.go.__init__ import __version__
 from rpdk.go.codegen import GoLanguagePlugin
+from shutil import copyfile
+from unittest.mock import patch
 
 TYPE_NAME = "foo::bar::baz"
 
@@ -77,6 +76,7 @@ TEST_TARGET_INFO = {
     },
 }
 
+
 @pytest.fixture
 def plugin():
     return GoLanguagePlugin()
@@ -104,9 +104,10 @@ def get_files_in_project(project):
         str(child.relative_to(project.root)): child for child in project.root.rglob("*")
     }
 
+
 def test_initialize_resource(resource_project):
     assert resource_project.settings == {
-        "import_path": 'False',
+        "import_path": "False",
         "protocolVersion": "2.0.0",
         "pluginVersion": "2.0.4",
         "use_docker": None,
@@ -136,6 +137,7 @@ def test_initialize_resource(resource_project):
 
     assert resource_project.entrypoint in files["template.yml"].read_text()
 
+
 def test_generate_resource(resource_project):
     resource_project.load_schema()
     before = get_files_in_project(resource_project)
@@ -154,9 +156,9 @@ def test_generate_resource(resource_project):
 def test_generate_resource_go_failure(resource_project):
     resource_project.load_schema()
 
-    with patch('rpdk.go.codegen.subprocess_run') as mock_subprocess:
+    with patch("rpdk.go.codegen.subprocess_run") as mock_subprocess:
         mock_subprocess.side_effect = FileNotFoundError()
-        with pytest.raises(DownstreamError, match='go fmt failed'):
+        with pytest.raises(DownstreamError, match="go fmt failed"):
             resource_project.generate()
 
 

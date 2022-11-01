@@ -1,5 +1,4 @@
 import argparse
-
 from rpdk.go.parser import setup_subparser
 
 

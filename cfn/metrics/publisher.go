@@ -16,19 +16,19 @@ import (
 const (
 	// MetricNameSpaceRoot is the Metric name space root.
 	MetricNameSpaceRoot = "AWS/CloudFormation"
-	//MetricNameHanderException  is a metric type.
+	// MetricNameHanderException  is a metric type.
 	MetricNameHanderException = "HandlerException"
-	//MetricNameHanderDuration is a metric type.
+	// MetricNameHanderDuration is a metric type.
 	MetricNameHanderDuration = "HandlerInvocationDuration"
-	//MetricNameHanderInvocationCount is a metric type.
+	// MetricNameHanderInvocationCount is a metric type.
 	MetricNameHanderInvocationCount = "HandlerInvocationCount"
-	//DimensionKeyAcionType  is the Action key in the dimension.
+	// DimensionKeyAcionType  is the Action key in the dimension.
 	DimensionKeyAcionType = "Action"
-	//DimensionKeyExceptionType  is the ExceptionType in the dimension.
+	// DimensionKeyExceptionType  is the ExceptionType in the dimension.
 	DimensionKeyExceptionType = "ExceptionType"
-	//DimensionKeyResourceType  is the ResourceType in the dimension.
+	// DimensionKeyResourceType  is the ResourceType in the dimension.
 	DimensionKeyResourceType = "ResourceType"
-	//ServiceInternalError ...
+	// ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
 )
 

@@ -3,15 +3,14 @@
 import logging
 import zipfile
 from pathlib import Path
-from subprocess import PIPE, CalledProcessError, run as subprocess_run
-from tempfile import TemporaryFile
-
 from rpdk.core.data_loaders import resource_stream
 from rpdk.core.exceptions import DownstreamError, InternalError, SysExitRecommendedError
 from rpdk.core.init import input_with_validation
 from rpdk.core.jsonutils.resolver import resolve_models
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import Project
+from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
+from tempfile import TemporaryFile
 
 from . import __version__
 from .resolver import translate_type
@@ -34,6 +33,7 @@ class GoExecutableNotFoundError(SysExitRecommendedError):
 
 class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
+    NAME = "go"
     RUNTIME = "go1.x"
     ENTRY_POINT = "handler"
     TEST_ENTRY_POINT = "handler"
@@ -45,6 +45,9 @@ class GoLanguagePlugin(LanguagePlugin):
         )
         self.env.filters["translate_type"] = translate_type
         self.env.filters["safe_reserved"] = safe_reserved
+        self._use_docker = None
+        self._protocol_version = "2.0.0"
+        self.import_path = ""
 
     def _prompt_for_go_path(self, project):
         path_validator = validate_path("")
@@ -140,6 +143,8 @@ class GoLanguagePlugin(LanguagePlugin):
         project.entrypoint = self.ENTRY_POINT.format(self.import_path)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.import_path)
         project.settings.update(DEFAULT_SETTINGS)
+        project.settings["use_docker"] = self._use_docker
+        project.settings["protocolVersion"] = self._protocol_version
 
     def init_handlers(self, project: Project, src):
         LOG.debug("Writing stub handlers")
@@ -148,6 +153,7 @@ class GoLanguagePlugin(LanguagePlugin):
         contents = template.render()
         project.safewrite(path, contents)
 
+    # pylint: disable=unused-argument,no-self-use
     def _get_generated_root(self, project: Project):
         LOG.debug("Init started")
 
@@ -175,14 +181,14 @@ class GoLanguagePlugin(LanguagePlugin):
 
         # Create the type configuration model
         template = self.env.get_template("config.go.tple")
-        path = src / "{}.go".format("config")
+        path = src / "config.go"
         contents = template.render(models=configuration_models)
         project.overwrite(path, contents)
         format_paths.append(path)
 
         # Create the resource model
         template = self.env.get_template("types.go.tple")
-        path = src / "{}.go".format("model")
+        path = src / "model.go"
         contents = template.render(models=models)
         project.overwrite(path, contents)
         format_paths.append(path)
@@ -207,7 +213,7 @@ class GoLanguagePlugin(LanguagePlugin):
             try:
                 subprocess_run(
                     ["go", "fmt", path], cwd=root, check=True, stdout=PIPE, stderr=PIPE
-                )
+                )  # nosec
             except (FileNotFoundError, CalledProcessError) as e:
                 raise DownstreamError("go fmt failed") from e
 
@@ -217,7 +223,12 @@ class GoLanguagePlugin(LanguagePlugin):
             old = project.settings.get(key)
 
             if project.settings.get(key) != new:
-                LOG.debug(f"{key} version change from {old} to {new}")
+                LOG.debug(
+                    "{key} version change from {old} to {new}",
+                    key=key,
+                    old=old,
+                    new=new,
+                )
                 project.settings[key] = new
                 need_to_write = True
 
@@ -231,19 +242,18 @@ class GoLanguagePlugin(LanguagePlugin):
     @staticmethod
     def pre_package(project: Project):
         # zip the Go build output - it's all needed to execute correctly
-        f = TemporaryFile("w+b")
+        with TemporaryFile("w+b") as f:
+            with zipfile.ZipFile(f, mode="w") as zip_file:
+                for path in (project.root / "bin").iterdir():
+                    if path.is_file():
+                        zip_file.write(path.resolve(), path.name)
+            f.seek(0)
 
-        with zipfile.ZipFile(f, mode="w") as zip_file:
-            for path in (project.root / "bin").iterdir():
-                if path.is_file():
-                    zip_file.write(path.resolve(), path.name)
-        f.seek(0)
-
-        return f
+            return f
 
     @staticmethod
     def _find_exe(project: Project):
-        exe_glob = list((project.root / "bin").glob("{}".format("handler")))
+        exe_glob = list((project.root / "bin").glob("handler"))
         if not exe_glob:
             LOG.debug("No Go executable match")
             raise GoExecutableNotFoundError(
@@ -259,9 +269,8 @@ class GoLanguagePlugin(LanguagePlugin):
             )
             raise InternalError("Multiple Go executable match")
 
-        return exe_glob[0]
-
         LOG.debug("Generate complete")
+        return exe_glob[0]
 
     def package(self, project: Project, zip_file):
         LOG.info("Packaging Go project")

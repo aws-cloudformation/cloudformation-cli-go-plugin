@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os.path
 import re
-
 from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))

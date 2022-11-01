@@ -26,9 +26,9 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
-    - name: Install both plugin and support lib
+    - name: Install plugin
       run: |
-        pip install . src/
+        pip install .
     - name: pre-commit checks
       run: |
         pre-commit run --all-files

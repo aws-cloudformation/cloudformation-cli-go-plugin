@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 )
 
 func TestMarshalling(t *testing.T) {
@@ -69,8 +67,7 @@ func TestRouter(t *testing.T) {
 
 	t.Run("Failed Path", func(t *testing.T) {
 		fn, err := router(unknownAction, &EmptyHandler{})
-		cfnErr := err.(cfnerr.Error)
-		if cfnErr != nil && cfnErr.Code() != invalidRequestError {
+		if err != nil && err.Code() != invalidRequestError {
 			t.Errorf("Unspecified error returned: %v", err)
 		} else if err == nil {
 			t.Errorf("There should have been an error")

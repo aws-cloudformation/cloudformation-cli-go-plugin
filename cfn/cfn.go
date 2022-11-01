@@ -107,10 +107,10 @@ func makeEventFunc(h Handler) eventFunc {
 			log.Printf("Error: %v", err)
 			m.PublishExceptionMetric(time.Now(), event.Action, err)
 		}
-		handlerFn, err := router(event.Action, h)
+		handlerFn, cfnErr := router(event.Action, h)
 		log.Printf("Handler received the %s action", event.Action)
-		if err != nil {
-			return re.report(event, "router error", err, serviceInternalError)
+		if cfnErr != nil {
+			return re.report(event, "router error", cfnErr, serviceInternalError)
 		}
 		if err := validateEvent(event); err != nil {
 			return re.report(event, "validation error", err, invalidRequestError)
@@ -158,7 +158,7 @@ func scrubFiles(dir string) error {
 
 // router decides which handler should be invoked based on the action
 // It will return a route or an error depending on the action passed in
-func router(a string, h Handler) (handlerFunc, error) {
+func router(a string, h Handler) (handlerFunc, cfnerr.Error) {
 	// Figure out which action was called and have a "catch-all"
 	switch a {
 	case createAction:
@@ -185,7 +185,7 @@ func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *me
 
 	// Ask the goroutine to do some work for us.
 	go func() {
-		//start the timer
+		// start the timer
 		s := time.Now()
 		metricsPublisher.PublishInvocationMetric(time.Now(), string(action))
 

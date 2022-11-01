@@ -118,11 +118,15 @@ func (b baseError) OrigErrs() []error {
 
 // So that the Error interface type can be included as an anonymous field
 // in the requestError struct and not conflict with the error.Error() method.
+//
+//nolint:all
 type cfnError Error
 
 // A requestError wraps a request or service error.
 //
 // Composed of baseError for code, message, and original error.
+//
+//nolint:all
 type requestError struct {
 	cfnError
 	statusCode int
@@ -137,6 +141,8 @@ type requestError struct {
 // that may be meaningful.
 //
 // Also wraps original errors via the baseError.
+//
+//nolint:all
 func newRequestError(err Error, statusCode int, requestID string) *requestError {
 	return &requestError{
 		cfnError:   err,
@@ -147,6 +153,8 @@ func newRequestError(err Error, statusCode int, requestID string) *requestError 
 
 // Error returns the string representation of the error.
 // Satisfies the error interface.
+//
+//nolint:all
 func (r requestError) Error() string {
 	extra := fmt.Sprintf("status code: %d, request id: %s",
 		r.statusCode, r.requestID)
@@ -155,22 +163,30 @@ func (r requestError) Error() string {
 
 // String returns the string representation of the error.
 // Alias for Error to satisfy the stringer interface.
+//
+//nolint:all
 func (r requestError) String() string {
 	return r.Error()
 }
 
 // StatusCode returns the wrapped status code for the error
+//
+//nolint:all
 func (r requestError) StatusCode() int {
 	return r.statusCode
 }
 
 // RequestID returns the wrapped requestID
+//
+//nolint:all
 func (r requestError) RequestID() string {
 	return r.requestID
 }
 
 // OrigErrs returns the original errors if one was set. An empty slice is
 // returned if no error was set.
+//
+//nolint:all
 func (r requestError) OrigErrs() []error {
 	if b, ok := r.cfnError.(BatchedErrors); ok {
 		return b.OrigErrs()
@@ -189,7 +205,7 @@ func (e errorList) Error() string {
 	// How do we want to handle the array size being zero
 	if size := len(e); size > 0 {
 		for i := 0; i < size; i++ {
-			msg += fmt.Sprintf("%s", e[i].Error())
+			msg += e[i].Error()
 			// We check the next index to see if it is within the slice.
 			// If it is, then we append a newline. We do this, because unit tests
 			// could be broken with the additional '\n'

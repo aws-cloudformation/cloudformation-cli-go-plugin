@@ -4,7 +4,9 @@ to a Go plugin user when upgrading from an older version of the plugin
 """
 
 import semver
+from typing import List
 
+# pylint: disable=pointless-string-statement
 """
 If there are breaking changes that need to be communicated to a user,
 add them to this dict. For readability, an opening and closing newline
@@ -16,7 +18,8 @@ WARNINGS = {
         0, 1, 3
     ): """
 Generated models no longer use the types exported in the encoding package.
-Your model's fields have been regenerated using standard pointer types (*string, *int, etc) as used in the AWS Go SDK.
+Your model's fields have been regenerated using standard pointer types
+(*string, *int, etc) as used in the AWS Go SDK.
 The AWS SDK has helper functions that you can use to get and set your model's values.
 
 Make the following changes to your handler code as needed:
@@ -24,12 +27,13 @@ Make the following changes to your handler code as needed:
 * Replace `encoding.New{Type}` with `aws.{Type}`
 * Replace `model.{field}.Value()` with `aws.{Type}Value(model.{field})`
 
-Where {Type} is either String, Bool, Int, or Float64 and {field} is any field within your generated model.
+Where {Type} is either String, Bool, Int, or Float64 and {field} is any field within
+your generated model.
 """
 }
 
 
-def check_version(current_version):
+def check_version(current_version: str) -> List[str]:
     """
     check_version compares the user's current plugin version with each
     version in WARNINGS and returns any appropriate messages

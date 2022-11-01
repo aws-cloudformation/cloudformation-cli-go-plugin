@@ -11,24 +11,24 @@ import (
 // The zero value is ready to use.
 type response struct {
 	// Message which can be shown to callers to indicate the nature of a
-	//progress transition or callback delay; for example a message
-	//indicating "propagating to edge"
+	// progress transition or callback delay; for example a message
+	// indicating "propagating to edge"
 	Message string `json:"message,omitempty"`
 
-	//The operationStatus indicates whether the handler has reached a terminal
-	//state or is still computing and requires more time to complete
+	// The operationStatus indicates whether the handler has reached a terminal
+	// state or is still computing and requires more time to complete
 	OperationStatus handler.Status `json:"status,omitempty"`
 
-	//ResourceModel it The output resource instance populated by a READ/LIST for
-	//synchronous results and by CREATE/UPDATE/DELETE for final response
-	//validation/confirmation
+	// ResourceModel it The output resource instance populated by a READ/LIST for
+	// synchronous results and by CREATE/UPDATE/DELETE for final response
+	// validation/confirmation
 	ResourceModel interface{} `json:"resourceModel,omitempty"`
 
 	// ErrorCode is used to report granular failures back to CloudFormation
 	ErrorCode string `json:"errorCode,omitempty"`
 
 	// BearerToken is used to report progress back to CloudFormation and is
-	//passed back to CloudFormation
+	// passed back to CloudFormation
 	BearerToken string `json:"bearerToken,omitempty"`
 
 	// ResourceModels is the output resource instances populated by a LIST for

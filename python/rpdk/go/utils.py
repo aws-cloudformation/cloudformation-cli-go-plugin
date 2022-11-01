@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from rpdk.core.exceptions import WizardValidationError
+from typing import Callable
 
 # https://golang.org/ref/spec#Keywords
 LANGUAGE_KEYWORDS = {
@@ -32,14 +30,14 @@ LANGUAGE_KEYWORDS = {
 }
 
 
-def safe_reserved(string):
+def safe_reserved(string: str) -> str:
     if string in LANGUAGE_KEYWORDS:
         return string + "_"
     return string
 
 
-def validate_path(default):
-    def _validate_namespace(value):
+def validate_path(default: str) -> Callable[[str], str]:
+    def _validate_namespace(value: str) -> str:
         if not value:
             return default
 

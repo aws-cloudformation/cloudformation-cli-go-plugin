@@ -51,6 +51,8 @@ func validateEvent(event *event) error {
 
 // resourceHandlerRequest is internal to the RPDK. It contains a number of fields that are for
 // internal contract testing use only.
+//
+//nolint:all
 type resourceHandlerRequest struct {
 	ClientRequestToken        string          `json:"clientRequestToken"`
 	DesiredResourceState      json.RawMessage `json:"desiredResourceState"`

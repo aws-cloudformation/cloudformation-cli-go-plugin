@@ -61,6 +61,9 @@ func Stringify(v interface{}) (interface{}, error) {
 				out[key.String()] = v
 			}
 		}
+		if len(out) == 0 {
+			return nil, nil
+		}
 		return out, nil
 	case reflect.Slice:
 		out := make([]interface{}, val.Len())

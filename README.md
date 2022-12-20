@@ -52,6 +52,14 @@ Getting started
 
 This plugin create a sample Go project and requires golang 1.8 or above and [godep](https://golang.github.io/dep/docs/introduction.html). For more information on installing and setting up your Go environment, please visit the official [Golang site](https://golang.org/).
 
+Community
+---------------
+
+Join us on Discord! Connect & interact with CloudFormation developers &
+experts, find channels to discuss and get help for cfn-lint, CloudFormation registry, StackSets,
+Guard and more:
+
+[![Join our Discord](https://discordapp.com/api/guilds/981586120448020580/widget.png?style=banner3)](https://discord.gg/9zpd7TTRwq)
 
 License
 -------

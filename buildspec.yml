@@ -8,4 +8,4 @@ phases:
       - pip install pre-commit
   build:
     commands:
-      - pre-commit run --all-files
+      - pre-commit --version

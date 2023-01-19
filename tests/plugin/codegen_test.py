@@ -88,14 +88,14 @@ def resource_project(tmp_path):
 
     patch_plugins = patch.dict(
         "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
-        {GoLanguagePlugin.NAME: lambda: GoLanguagePlugin},
+        {"go": lambda: GoLanguagePlugin},
         clear=True,
     )
     patch_wizard = patch(
         "rpdk.go.codegen.input_with_validation", autospec=True, side_effect=[False]
     )
     with patch_plugins, patch_wizard:
-        project.init(TYPE_NAME, GoLanguagePlugin.NAME)
+        project.init(TYPE_NAME, "go")
     return project
 
 
@@ -168,14 +168,14 @@ def test_generate_resource_with_type_configuration(tmp_path):
 
     patch_plugins = patch.dict(
         "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
-        {GoLanguagePlugin.NAME: lambda: GoLanguagePlugin},
+        {"go": lambda: GoLanguagePlugin},
         clear=True,
     )
     patch_wizard = patch(
         "rpdk.go.codegen.input_with_validation", autospec=True, side_effect=[False]
     )
     with patch_plugins, patch_wizard:
-        project.init(type_name, GoLanguagePlugin.NAME)
+        project.init(type_name, "go")
 
     copyfile(
         str(Path.cwd() / "tests/data/schema-with-typeconfiguration.json"),

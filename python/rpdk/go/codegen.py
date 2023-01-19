@@ -24,7 +24,7 @@ EXECUTABLE = "cfn-cli"
 
 LANGUAGE = "go"
 
-DEFAULT_SETTINGS = {"protocolVersion": "2.0.0", "pluginVersion": __version__}
+DEFAULT_SETTINGS = {"protocolVersion": "2.0.0"}
 
 
 class GoExecutableNotFoundError(SysExitRecommendedError):
@@ -234,10 +234,6 @@ class GoLanguagePlugin(LanguagePlugin):
                 )
                 project.settings[key] = new
                 need_to_write = True
-
-                if key == "pluginVersion":
-                    # Display any upgrade messages
-                    print(*check_version(old), sep="\n")
 
         if need_to_write:
             project.write_settings()

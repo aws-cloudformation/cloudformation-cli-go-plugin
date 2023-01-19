@@ -108,7 +108,6 @@ def test_initialize_resource(resource_project):
     assert resource_project.settings == {
         "import_path": "False",
         "protocolVersion": "2.0.0",
-        "pluginVersion": "2.0.4",
     }
 
     files = get_files_in_project(resource_project)

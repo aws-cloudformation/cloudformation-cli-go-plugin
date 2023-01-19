@@ -3,6 +3,7 @@ package cfn
 import (
 	"context"
 	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -87,21 +88,23 @@ type handlerFunc func(request handler.Request) handler.ProgressEvent
 // MakeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
+		var l io.Writer
+
 		ps := credentials.SessionFromCredentialsProvider(&event.RequestData.ProviderCredentials)
 		m := metrics.New(cloudwatch.New(ps), event.ResourceType)
-		once.Do(func() {
-			l, err := logging.NewCloudWatchLogsProvider(
-				cloudwatchlogs.New(ps),
-				event.RequestData.ProviderLogGroupName,
-			)
-			if err != nil {
-				log.Printf("Error: %v, Logging to Stdout", err)
-				m.PublishExceptionMetric(time.Now(), event.Action, err)
-				l = os.Stdout
-			}
-			// Set default logger to output to CWL in the provider account
-			logging.SetProviderLogOutput(l)
-		})
+
+		l, err := logging.NewCloudWatchLogsProvider(
+			cloudwatchlogs.New(ps),
+			event.RequestData.ProviderLogGroupName,
+		)
+		if err != nil {
+			log.Printf("Error: %v, Logging to Stdout", err)
+			m.PublishExceptionMetric(time.Now(), event.Action, err)
+			l = os.Stdout
+		}
+		// Set default logger to output to CWL in the provider account
+		logging.SetProviderLogOutput(l)
+
 		re := newReportErr(m)
 		if err := scrubFiles("/tmp"); err != nil {
 			log.Printf("Error: %v", err)

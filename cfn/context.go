@@ -53,6 +53,8 @@ func GetContextSession(ctx context.Context) (*session.Session, error) {
 
 // marshalCallback allows for a handler.ProgressEvent to be parsed into something
 // the RPDK can use to reinvoke the resource provider with the same context.
+//
+//nolint:all
 func marshalCallback(pevt *handler.ProgressEvent) (map[string]interface{}, int64) {
 	return map[string]interface{}(pevt.CallbackContext), pevt.CallbackDelaySeconds
 }

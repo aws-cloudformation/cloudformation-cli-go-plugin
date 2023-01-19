@@ -15,8 +15,8 @@ type ProgressEvent struct {
 	HandlerErrorCode string `json:"errorCode,omitempty"`
 
 	// Message which can be shown to callers to indicate the
-	//nature of a progress transition or callback delay; for example a message
-	//indicating "propagating to edge."
+	// nature of a progress transition or callback delay; for example a message
+	// indicating "propagating to edge."
 	Message string `json:"message,omitempty"`
 
 	// CallbackContext is an arbitrary datum which the handler can return in an

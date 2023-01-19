@@ -3,7 +3,6 @@ package handler
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws/aws-sdk-go/aws"
 )
 
@@ -54,8 +53,7 @@ func TestNewRequest(t *testing.T) {
 				t.Fatalf("Didn't throw an error")
 			}
 
-			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != bodyEmptyError {
+			if err.Code() != bodyEmptyError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})
@@ -70,8 +68,7 @@ func TestNewRequest(t *testing.T) {
 				t.Fatalf("Didn't throw an error")
 			}
 
-			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != marshalingError {
+			if err.Code() != marshalingError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})
@@ -88,8 +85,7 @@ func TestNewRequest(t *testing.T) {
 				t.Fatalf("Didn't throw an error")
 			}
 
-			cfnErr := err.(cfnerr.Error)
-			if cfnErr.Code() != marshalingError {
+			if err.Code() != marshalingError {
 				t.Fatalf("Wrong error returned: %v", err)
 			}
 		})

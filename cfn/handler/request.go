@@ -76,7 +76,7 @@ func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext
 
 // UnmarshalPrevious populates the provided interface
 // with the previous properties of the resource
-func (r *Request) UnmarshalPrevious(v interface{}) error {
+func (r *Request) UnmarshalPrevious(v interface{}) cfnerr.Error {
 	if len(r.previousResourcePropertiesBody) == 0 {
 		return nil
 	}
@@ -90,7 +90,7 @@ func (r *Request) UnmarshalPrevious(v interface{}) error {
 
 // Unmarshal populates the provided interface
 // with the current properties of the resource
-func (r *Request) Unmarshal(v interface{}) error {
+func (r *Request) Unmarshal(v interface{}) cfnerr.Error {
 	if len(r.resourcePropertiesBody) == 0 {
 		return cfnerr.New(bodyEmptyError, "Body is empty", nil)
 	}

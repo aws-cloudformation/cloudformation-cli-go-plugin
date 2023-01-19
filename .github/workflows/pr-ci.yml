@@ -1,0 +1,42 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: CloudFormation GO Plugin CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v3
+      with:
+        go-version: '>=1.17.0'
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        pip install pre-commit
+        pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
+        go install github.com/go-critic/go-critic/cmd/gocritic@latest
+        go install golang.org/x/tools/cmd/goimports@latest
+        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+    - name: Install plugin
+      run: |
+        pip install .
+    - name: pre-commit checks
+      run: |
+        pre-commit run --all-files

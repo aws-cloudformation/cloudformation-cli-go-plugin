@@ -4,7 +4,6 @@ import pytest
 from pathlib import Path
 from rpdk.core.exceptions import DownstreamError
 from rpdk.core.project import Project
-from rpdk.go.__init__ import __version__
 from rpdk.go.codegen import GoLanguagePlugin
 from shutil import copyfile
 from unittest.mock import patch
@@ -110,7 +109,6 @@ def test_initialize_resource(resource_project):
         "import_path": "False",
         "protocolVersion": "2.0.0",
         "pluginVersion": "2.0.4",
-        "use_docker": None,
     }
 
     files = get_files_in_project(resource_project)
@@ -186,7 +184,5 @@ def test_generate_resource_with_type_configuration(tmp_path):
     project.load_configuration_schema()
     project.generate()
 
-    type_configuration_schema_file = (
-        project.root / "schema-with-typeconfiguration-configuration.json"
-    )
+    type_configuration_schema_file = project.root / "schema-with-typeconfiguration.json"
     assert type_configuration_schema_file.is_file()

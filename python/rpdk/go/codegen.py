@@ -143,7 +143,10 @@ class GoLanguagePlugin(LanguagePlugin):
         project.entrypoint = self.ENTRY_POINT.format(self.import_path)
         project.test_entrypoint = self.TEST_ENTRY_POINT.format(self.import_path)
         project.settings.update(DEFAULT_SETTINGS)
-        project.settings["use_docker"] = self._use_docker
+        if project.settings.get("use_docker"):
+            self._use_docker = True
+        else:
+            self._use_docker = False
         project.settings["protocolVersion"] = self._protocol_version
 
     def init_handlers(self, project: Project, src):

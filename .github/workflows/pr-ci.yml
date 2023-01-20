@@ -10,20 +10,15 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  python:
     env:
-      SAM_CLI_TELEMETRY: "0"
       AWS_DEFAULT_REGION: "us-east-1"
-      AWS_SDK_LOAD_CONFIG: 1
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python: [3.7, 3.8, 3.9]
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-go@v3
-      with:
-        go-version: '>=1.17.0'
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v2
       with:
@@ -32,13 +27,48 @@ jobs:
       run: |
         pip install pre-commit
         pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
-        go install github.com/go-critic/go-critic/cmd/gocritic@latest
-        go install golang.org/x/tools/cmd/goimports@latest
-        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
     - name: Install plugin
       run: |
         pip install .
     - name: pre-commit checks
       run: |
         pre-commit run --all-files
+  go:
+    env:
+      SAM_CLI_TELEMETRY: "0"
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_SDK_LOAD_CONFIG: 1
+      AWS_SAM_LOCAL: "1"
+      GOPATH: ${{ github.workspace }}
+    defaults:
+      run:
+        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
+    - uses: actions/setup-go@v3
+      with:
+        go-version: '>=1.17.0'
+    - name: Install dependencies
+      run: |
+        go get ./...
+        go install github.com/go-critic/go-critic/cmd/gocritic@latest
+        go install golang.org/x/tools/cmd/goimports@latest
+        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+    - name: Go Build
+      run: go build ./...
+    - name: Go fmt
+      run: go fmt ./...
+    - name: Go imports
+      run: goimports -w ./cfn/
+    - name: Go critic
+      run: gocritic check ./...
+    - name: Golangci-lint
+      run: golangci-lint run
+    - name: Go test
+      run: go test ./...
+    - name: Go mod tiy
+      run: go mod tidy

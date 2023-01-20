@@ -74,16 +74,3 @@ repos:
     # ignore all files, run on hard-coded modules instead
     pass_filenames: false
     always_run: true
-- repo: https://github.com/dnephin/pre-commit-golang
-  rev: v0.5.1
-  hooks:
-    - id: go-fmt
-    # - id: go-vet
-    - id: go-imports
-    - id: go-cyclo
-      args: [-over=20]
-    - id: golangci-lint
-    - id: go-critic
-    - id: go-unit-tests
-    - id: go-build
-    - id: go-mod-tidy

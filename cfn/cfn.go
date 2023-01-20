@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"sync"
 	"time"
 
@@ -146,13 +145,11 @@ func makeEventFunc(h Handler) eventFunc {
 }
 
 func scrubFiles(dir string) error {
-	names, err := ioutil.ReadDir(dir)
+	_, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return err
 	}
-	for _, entery := range names {
-		os.RemoveAll(path.Join([]string{dir, entery.Name()}...))
-	}
+
 	return nil
 }
 

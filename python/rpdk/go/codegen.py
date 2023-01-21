@@ -12,10 +12,8 @@ from rpdk.core.project import Project
 from subprocess import PIPE, CalledProcessError, run as subprocess_run  # nosec
 from tempfile import TemporaryFile
 
-from . import __version__
 from .resolver import translate_type
 from .utils import safe_reserved, validate_path
-from .version import check_version
 
 LOG = logging.getLogger(__name__)
 

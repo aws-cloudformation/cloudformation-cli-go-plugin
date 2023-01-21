@@ -12,17 +12,20 @@ on:
 jobs:
   build:
     env:
-      SAM_CLI_TELEMETRY: "0"
       AWS_DEFAULT_REGION: "us-east-1"
       AWS_SDK_LOAD_CONFIG: 1
-      AWS_SAM_LOCAL: "1"
       GOPATH: ${{ github.workspace }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python: [3.7, 3.8, 3.9]
+    defaults:
+      run:
+        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      with:
+        path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     - uses: actions/setup-go@v3
       with:
         go-version: '>=1.17.0'
@@ -34,6 +37,7 @@ jobs:
       run: |
         pip install pre-commit
         pip install --upgrade mypy 'attrs==19.2.0' -r https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-rpdk/master/requirements.txt
+        go get ./...
         go install github.com/go-critic/go-critic/cmd/gocritic@latest
         go install golang.org/x/tools/cmd/goimports@latest
         go install github.com/fzipp/gocyclo/cmd/gocyclo@latest

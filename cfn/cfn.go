@@ -3,10 +3,8 @@ package cfn
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"sync"
 	"time"
 
@@ -103,10 +101,7 @@ func makeEventFunc(h Handler) eventFunc {
 			logging.SetProviderLogOutput(l)
 		})
 		re := newReportErr(m)
-		if err := scrubFiles("/tmp"); err != nil {
-			log.Printf("Error: %v", err)
-			m.PublishExceptionMetric(time.Now(), event.Action, err)
-		}
+
 		handlerFn, cfnErr := router(event.Action, h)
 		log.Printf("Handler received the %s action", event.Action)
 		if cfnErr != nil {
@@ -143,17 +138,6 @@ func makeEventFunc(h Handler) eventFunc {
 		}
 		return r, nil
 	}
-}
-
-func scrubFiles(dir string) error {
-	names, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-	for _, entery := range names {
-		os.RemoveAll(path.Join([]string{dir, entery.Name()}...))
-	}
-	return nil
 }
 
 // router decides which handler should be invoked based on the action

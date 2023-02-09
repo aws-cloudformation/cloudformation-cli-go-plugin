@@ -28,7 +28,7 @@ jobs:
         path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     - uses: actions/setup-go@v3
       with:
-        go-version: '>=1.17.0'
+        go-version: '>=1.19.0'
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v2
       with:

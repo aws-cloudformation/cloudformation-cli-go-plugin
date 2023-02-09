@@ -2,7 +2,6 @@ package cfn
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -126,5 +125,5 @@ func openFixture(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadFile(filepath.Join(d, "test", "data", name))
+	return os.ReadFile(filepath.Join(d, "test", "data", name))
 }

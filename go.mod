@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/aws/aws-lambda-go v1.13.3
-	github.com/aws/aws-sdk-go v1.25.37
+	github.com/aws/aws-sdk-go v1.33.0
 	github.com/google/go-cmp v0.3.1
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect

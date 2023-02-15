@@ -239,14 +239,15 @@ class GoLanguagePlugin(LanguagePlugin):
     @staticmethod
     def pre_package(project: Project):
         # zip the Go build output - it's all needed to execute correctly
-        with TemporaryFile("w+b") as f:
-            with zipfile.ZipFile(f, mode="w") as zip_file:
-                for path in (project.root / "bin").iterdir():
-                    if path.is_file():
-                        zip_file.write(path.resolve(), path.name)
-            f.seek(0)
+        f = TemporaryFile("w+b")  # pylint: disable=R1732
 
-            return f
+        with zipfile.ZipFile(f, mode="w") as zip_file:
+            for path in (project.root / "bin").iterdir():
+                if path.is_file():
+                    zip_file.write(path.resolve(), path.name)
+        f.seek(0)
+
+        return f
 
     @staticmethod
     def _find_exe(project: Project):

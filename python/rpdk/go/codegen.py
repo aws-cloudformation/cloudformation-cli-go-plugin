@@ -32,9 +32,9 @@ class GoExecutableNotFoundError(SysExitRecommendedError):
 class GoLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "go"
-    RUNTIME = "go1.x"
-    ENTRY_POINT = "handler"
-    TEST_ENTRY_POINT = "handler"
+    RUNTIME = "provided.al2"
+    ENTRY_POINT = "bootstrap"
+    TEST_ENTRY_POINT = "bootstrap"
     CODE_URI = "bin/"
 
     def __init__(self):
@@ -251,7 +251,7 @@ class GoLanguagePlugin(LanguagePlugin):
 
     @staticmethod
     def _find_exe(project: Project):
-        exe_glob = list((project.root / "bin").glob("handler"))
+        exe_glob = list((project.root / "bin").glob("bootstrap"))
         if not exe_glob:
             LOG.debug("No Go executable match")
             raise GoExecutableNotFoundError(

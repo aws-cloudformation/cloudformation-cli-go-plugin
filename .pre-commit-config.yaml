@@ -64,9 +64,6 @@ repos:
     description: Run pytest in the local virtualenv
     entry: >
       pytest
-      --cov-report=term
-      --cov-report=html
-      --cov="rpdk.go"
       --durations=5
       "tests/"
     language: system

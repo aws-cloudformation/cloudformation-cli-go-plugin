@@ -5,7 +5,7 @@ build:
 
 test:
 	cfn generate
-	env GOOS=linux go build -ldflags="-s -w" -o bin/handler cmd/main.go
+	env GOOS=linux go build -ldflags="-s -w" -tags="lambda.norpc,$(TAGS)" -o bin/bootstrap cmd/main.go
 
 clean:
 	rm -rf bin

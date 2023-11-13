@@ -73,16 +73,19 @@ repos:
     # ignore all files, run on hard-coded modules instead
     pass_filenames: false
     always_run: true
-- repo: https://github.com/dnephin/pre-commit-golang
-  rev: v0.5.1
+  - id: go-unit-tests
+    name: go unit tests
+    entry: go test ./...
+    pass_filenames: false
+    types: [go]
+    language: system
+  - id: go-build-mod
+    name: go build mod
+    entry: go build ./...
+    pass_filenames: false
+    types: [go]
+    language: system
+- repo: https://github.com/golangci/golangci-lint
+  rev: v1.55.2
   hooks:
-    - id: go-fmt
-    # - id: go-vet
-    - id: go-imports
-    - id: go-cyclo
-      args: [-over=20]
-    - id: golangci-lint
-    - id: go-critic
-    - id: go-unit-tests
-    - id: go-build
-    - id: go-mod-tidy
+    - id: golangci-lint-full

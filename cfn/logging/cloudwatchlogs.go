@@ -92,7 +92,7 @@ func (p *cloudWatchLogsProvider) Write(b []byte) (int, error) {
 		LogStreamName: aws.String(p.logStreamName),
 
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
-			&cloudwatchlogs.InputLogEvent{
+			{
 				Message:   aws.String(string(b)),
 				Timestamp: aws.Int64(time.Now().UnixNano() / int64(time.Millisecond)),
 			},

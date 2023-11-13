@@ -15,7 +15,7 @@ func TestCloudWatchLogProvider(t *testing.T) {
 			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
 				return &cloudwatchlogs.DescribeLogGroupsOutput{
 					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
+						{LogGroupName: input.LogGroupNamePrefix},
 					},
 				}, nil
 			},
@@ -102,7 +102,7 @@ func TestCloudWatchLogProvider(t *testing.T) {
 			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
 				return &cloudwatchlogs.DescribeLogGroupsOutput{
 					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
+						{LogGroupName: input.LogGroupNamePrefix},
 					},
 				}, nil
 			},
@@ -144,7 +144,7 @@ func TestCloudWatchLogProvider(t *testing.T) {
 			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
 				return &cloudwatchlogs.DescribeLogGroupsOutput{
 					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
+						{LogGroupName: input.LogGroupNamePrefix},
 					},
 				}, nil
 			},
@@ -188,7 +188,7 @@ func TestCloudWatchLogGroupExists(t *testing.T) {
 			DescribeLogGroupsFn: func(input *cloudwatchlogs.DescribeLogGroupsInput) (*cloudwatchlogs.DescribeLogGroupsOutput, error) {
 				return &cloudwatchlogs.DescribeLogGroupsOutput{
 					LogGroups: []*cloudwatchlogs.LogGroup{
-						&cloudwatchlogs.LogGroup{LogGroupName: input.LogGroupNamePrefix},
+						{LogGroupName: input.LogGroupNamePrefix},
 					},
 				}, nil
 			},

@@ -36,7 +36,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=["cloudformation-cli>=0.1.14", "semver>=2.9.0"],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     entry_points={
         "rpdk.v1.languages": ["go = rpdk.go.codegen:GoLanguagePlugin"],
         "rpdk.v1.parsers": ["go = rpdk.go.parser:setup_subparser"],
@@ -51,9 +51,10 @@ setup(
         "Topic :: Software Development :: Code Generators",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     keywords="Amazon Web Services AWS CloudFormation",
 )

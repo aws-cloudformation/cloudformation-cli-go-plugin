@@ -15,10 +15,10 @@ jobs:
       AWS_DEFAULT_REGION: "us-east-1"
       AWS_SDK_LOAD_CONFIG: 1
       GOPATH: ${{ github.workspace }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python: [3.7, 3.8, 3.9]
+        python: ["3.8", "3.9", "3.10", "3.11"]
     defaults:
       run:
         working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}

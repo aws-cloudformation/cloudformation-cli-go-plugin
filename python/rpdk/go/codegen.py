@@ -154,7 +154,7 @@ class GoLanguagePlugin(LanguagePlugin):
         contents = template.render()
         project.safewrite(path, contents)
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def _get_generated_root(self, project: Project):
         LOG.debug("Init started")
 

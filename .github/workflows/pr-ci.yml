@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [3.7, 3.8, 3.9]
+        python: ["3.8", "3.9", "3.10", "3.11"]
     defaults:
       run:
         working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
@@ -28,7 +28,7 @@ jobs:
         path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     - uses: actions/setup-go@v3
       with:
-        go-version: '>=1.19.0'
+        go-version: '>=1.21.0'
     - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v2
       with:
@@ -41,7 +41,7 @@ jobs:
         go install github.com/go-critic/go-critic/cmd/gocritic@latest
         go install golang.org/x/tools/cmd/goimports@latest
         go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
     - name: Install plugin
       run: |
         pip install .

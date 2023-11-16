@@ -116,7 +116,7 @@ func (s *Scheduler) Reschedule(lambdaCtx context.Context, secsFromNow int64, cal
 	_, perr := s.client.PutTargets(&cloudwatchevents.PutTargetsInput{
 		Rule: aws.String(invocationIDS.Handler),
 		Targets: []*cloudwatchevents.Target{
-			&cloudwatchevents.Target{
+			{
 				Arn:   aws.String(lc.InvokedFunctionArn),
 				Id:    aws.String(invocationIDS.Target),
 				Input: aws.String(string(callbackRequest)),

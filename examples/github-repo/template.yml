@@ -9,9 +9,13 @@ Globals:
 Resources:
   TypeFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
     Properties:
-      Handler: handler
-      Runtime: go1.x
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures:
+        - x86_64
       CodeUri: bin/
       # Uncomment to test with AWS resources
       # Environment:
@@ -20,7 +24,11 @@ Resources:
 
   TestEntrypoint:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
     Properties:
-      Handler: handler
-      Runtime: go1.x
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures:
+        - x86_64
       CodeUri: bin/

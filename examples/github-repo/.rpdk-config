@@ -1,9 +1,9 @@
 {
     "typeName": "Example::GitHub::Repo",
     "language": "go",
-    "runtime": "go1.x",
-    "entrypoint": "handler",
-    "testEntrypoint": "handler",
+    "runtime": "provided.al2",
+    "entrypoint": "bootstrap",
+    "testEntrypoint": "bootstrap",
     "settings": {
         "import_path": "github.com/aws-cloudformation/cloudformation-cli-go-plugin/examples/github-repo",
         "protocolVersion": "2.0.0",

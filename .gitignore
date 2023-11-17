@@ -117,6 +117,10 @@ out.java
 out/
 tmp/
 
+# generated files
+examples/github-repo/makebuild
+examples/github-repo/cmd/resource/config.go
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

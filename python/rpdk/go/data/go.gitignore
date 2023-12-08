@@ -8,8 +8,8 @@ rpdk.log*
 #compiled file
 bin/
 
-#vender
-vender/
+#vendor
+vendor/
 
 # contains credentials
 sam-tests/

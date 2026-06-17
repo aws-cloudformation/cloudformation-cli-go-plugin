@@ -1,12 +1,11 @@
 package handler
 
 import (
+	"encoding/json"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/google/go-cmp/cmp"
-
-	"encoding/json"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 )
@@ -31,7 +30,7 @@ func TestProgressEventMarshalJSON(t *testing.T) {
 					Name:    encoding.NewString("Douglas"),
 					Version: encoding.NewFloat(42.1),
 				},
-				HandlerErrorCode: cloudformation.HandlerErrorCodeNotUpdatable,
+				HandlerErrorCode: string(cftypes.HandlerErrorCodeNotUpdatable),
 			},
 			expected: `{"status":"FAILED","errorCode":"NotUpdatable","message":"foo","resourceModel":{"Name":"Douglas","Version":"42.1"},"resourceModels":null}`,
 		},
@@ -58,16 +57,14 @@ func TestProgressEventMarshalJSON(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-
 			actual, err := json.Marshal(tt.event)
 			if err != nil {
 				t.Errorf("Unexpected error marshaling event JSON: %s", err)
 			}
 
 			if diff := cmp.Diff(string(actual), tt.expected); diff != "" {
-				t.Errorf(diff)
+				t.Errorf("%s", diff)
 			}
 		})
 	}
-
 }

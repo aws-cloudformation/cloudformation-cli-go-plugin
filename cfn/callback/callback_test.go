@@ -1,55 +1,48 @@
 package callback
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 var MockModel = []byte("{\"foo\": \"bar\"}")
 
-// MockedEvents mocks the call to AWS CloudWatch Events
 type MockedCallback struct {
-	cloudformationiface.CloudFormationAPI
 	errCount int
 }
 
 func NewMockedCallback(errCount int) *MockedCallback {
-	return &MockedCallback{
-		errCount: errCount,
-	}
+	return &MockedCallback{errCount: errCount}
 }
 
-func (m *MockedCallback) RecordHandlerProgress(in *cloudformation.RecordHandlerProgressInput) (*cloudformation.RecordHandlerProgressOutput, error) {
-
+func (m *MockedCallback) RecordHandlerProgress(ctx context.Context, in *cloudformation.RecordHandlerProgressInput, optFns ...func(*cloudformation.Options)) (*cloudformation.RecordHandlerProgressOutput, error) {
 	if m.errCount > 0 {
 		m.errCount--
 		return nil, errors.New("error")
 	}
-
 	return nil, nil
 }
 
 func TestTranslateOperationStatus(t *testing.T) {
-	type args struct {
-		operationStatus Status
-	}
 	tests := []struct {
 		name string
-		args args
+		in   Status
 		want string
 	}{
-		{"TestSUCCESS", args{"SUCCESS"}, cloudformation.OperationStatusSuccess},
-		{"TestFAILED", args{"FAILED"}, cloudformation.OperationStatusFailed},
-		{"TestIN_PROGRESS", args{"IN_PROGRESS"}, cloudformation.OperationStatusInProgress},
-		{"TestFoo", args{"Foo"}, cloudformation.OperationStatusFailed},
+		{"SUCCESS", Success, string(cftypes.OperationStatusSuccess)},
+		{"FAILED", Failed, string(cftypes.OperationStatusFailed)},
+		{"IN_PROGRESS", InProgress, string(cftypes.OperationStatusInProgress)},
+		{"PENDING", Pending, string(cftypes.OperationStatusPending)},
+		{"Unknown", "Foo", string(cftypes.OperationStatusFailed)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := TranslateOperationStatus(tt.args.operationStatus); got != tt.want {
+			if got := TranslateOperationStatus(tt.in); got != tt.want {
 				t.Errorf("TranslateOperationStatus() = %v, want %v", got, tt.want)
 			}
 		})
@@ -57,32 +50,29 @@ func TestTranslateOperationStatus(t *testing.T) {
 }
 
 func TestTranslateErrorCode(t *testing.T) {
-	type args struct {
-		errorCode string
-	}
 	tests := []struct {
 		name string
-		args args
+		in   string
 		want string
 	}{
-		{"TestNotUpdatable", args{"NotUpdatable"}, cloudformation.HandlerErrorCodeNotUpdatable},
-		{"TestInvalidRequest", args{"InvalidRequest"}, cloudformation.HandlerErrorCodeInvalidRequest},
-		{"AccessDenied", args{"AccessDenied"}, cloudformation.HandlerErrorCodeAccessDenied},
-		{"TestInvalidCredentials", args{"InvalidCredentials"}, cloudformation.HandlerErrorCodeInvalidCredentials},
-		{"TestAlreadyExists", args{"AlreadyExists"}, cloudformation.HandlerErrorCodeAlreadyExists},
-		{"TestNotFound", args{"NotFound"}, cloudformation.HandlerErrorCodeNotFound},
-		{"TestResourceConflict", args{"ResourceConflict"}, cloudformation.HandlerErrorCodeResourceConflict},
-		{"TestThrottling", args{"Throttling"}, cloudformation.HandlerErrorCodeThrottling},
-		{"TestServiceLimitExceeded", args{"ServiceLimitExceeded"}, cloudformation.HandlerErrorCodeServiceLimitExceeded},
-		{"TestGeneralServiceException", args{"GeneralServiceException"}, cloudformation.HandlerErrorCodeGeneralServiceException},
-		{"TestServiceInternalError", args{"ServiceInternalError"}, cloudformation.HandlerErrorCodeServiceInternalError},
-		{"TestNetworkFailure", args{"NetworkFailure"}, cloudformation.HandlerErrorCodeNetworkFailure},
-		{"TestFoo", args{"foo"}, cloudformation.HandlerErrorCodeInternalFailure},
-		{"TestInternalFailure", args{"InternalFailure"}, cloudformation.HandlerErrorCodeInternalFailure},
+		{"NotUpdatable", "NotUpdatable", string(cftypes.HandlerErrorCodeNotUpdatable)},
+		{"InvalidRequest", "InvalidRequest", string(cftypes.HandlerErrorCodeInvalidRequest)},
+		{"AccessDenied", "AccessDenied", string(cftypes.HandlerErrorCodeAccessDenied)},
+		{"InvalidCredentials", "InvalidCredentials", string(cftypes.HandlerErrorCodeInvalidCredentials)},
+		{"AlreadyExists", "AlreadyExists", string(cftypes.HandlerErrorCodeAlreadyExists)},
+		{"NotFound", "NotFound", string(cftypes.HandlerErrorCodeNotFound)},
+		{"ResourceConflict", "ResourceConflict", string(cftypes.HandlerErrorCodeResourceConflict)},
+		{"Throttling", "Throttling", string(cftypes.HandlerErrorCodeThrottling)},
+		{"ServiceLimitExceeded", "ServiceLimitExceeded", string(cftypes.HandlerErrorCodeServiceLimitExceeded)},
+		{"GeneralServiceException", "GeneralServiceException", string(cftypes.HandlerErrorCodeGeneralServiceException)},
+		{"ServiceInternalError", "ServiceInternalError", string(cftypes.HandlerErrorCodeServiceInternalError)},
+		{"NetworkFailure", "NetworkFailure", string(cftypes.HandlerErrorCodeNetworkFailure)},
+		{"InternalFailure", "InternalFailure", string(cftypes.HandlerErrorCodeInternalFailure)},
+		{"Unknown", "foo", string(cftypes.HandlerErrorCodeInternalFailure)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := TranslateErrorCode(tt.args.errorCode); got != tt.want {
+			if got := TranslateErrorCode(tt.in); got != tt.want {
 				t.Errorf("TranslateErrorCode() = %v, want %v", got, tt.want)
 			}
 		})
@@ -90,35 +80,12 @@ func TestTranslateErrorCode(t *testing.T) {
 }
 
 func TestCloudFormationCallbackAdapterReportProgress(t *testing.T) {
-	type fields struct {
-		client cloudformationiface.CloudFormationAPI
+	c := &CloudFormationCallbackAdapter{
+		client:      NewMockedCallback(0),
+		logger:      logging.New("callback: "),
+		bearerToken: "123456",
 	}
-	type args struct {
-		bearerToken     string
-		code            string
-		status          Status
-		operationStatus Status
-		resourceModel   []byte
-		statusMessage   string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{"TestRetryReturnNoErr", fields{NewMockedCallback(0)}, args{"123456", "ACCESSDENIED", "FAILED", "IN_PROGRESS", MockModel, "retry"}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &CloudFormationCallbackAdapter{
-				client:      tt.fields.client,
-				logger:      logging.New("callback: "),
-				bearerToken: tt.args.bearerToken,
-			}
-			if err := c.reportProgress(tt.args.code, tt.args.status, tt.args.operationStatus, tt.args.resourceModel, tt.args.statusMessage); (err != nil) != tt.wantErr {
-				t.Errorf("CloudFormationCallbackAdapter.ReportProgress() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+	if err := c.reportProgress("AccessDenied", Failed, InProgress, MockModel, "retry"); err != nil {
+		t.Errorf("reportProgress() error = %v", err)
 	}
 }

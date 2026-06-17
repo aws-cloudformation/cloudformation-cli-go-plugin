@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/google/go-cmp/cmp"
 )
 

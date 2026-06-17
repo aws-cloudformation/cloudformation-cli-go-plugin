@@ -1,6 +1,3 @@
-//go:build callback
-// +build callback
-
 /*
 Package callback provides functions for creating resource providers
 that may need to be called multiple times while waiting
@@ -9,33 +6,36 @@ for resources to settle.
 package callback
 
 import (
-	"fmt"
+	"context"
 	"log"
 
 	"github.com/avast/retry-go"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 const (
-	// ServiceInternalError ...
 	ServiceInternalError string = "ServiceInternal"
-	// MaxRetries is the number of retries allowed to report status.
-	MaxRetries uint = 3
+	MaxRetries           uint   = 3
 )
+
+// CloudFormationClient is the subset of the CloudFormation API used by this package.
+type CloudFormationClient interface {
+	RecordHandlerProgress(ctx context.Context, params *cloudformation.RecordHandlerProgressInput, optFns ...func(*cloudformation.Options)) (*cloudformation.RecordHandlerProgressOutput, error)
+}
 
 // CloudFormationCallbackAdapter used to report progress events back to CloudFormation.
 type CloudFormationCallbackAdapter struct {
-	client      cloudformationiface.CloudFormationAPI
+	client      CloudFormationClient
 	bearerToken string
 	logger      *log.Logger
 }
 
 // New creates a CloudFormationCallbackAdapter and returns a pointer to the struct.
-func New(client cloudformationiface.CloudFormationAPI, bearerToken string) *CloudFormationCallbackAdapter {
+func New(client CloudFormationClient, bearerToken string) *CloudFormationCallbackAdapter {
 	return &CloudFormationCallbackAdapter{
 		client:      client,
 		bearerToken: bearerToken,
@@ -43,68 +43,52 @@ func New(client cloudformationiface.CloudFormationAPI, bearerToken string) *Clou
 	}
 }
 
-// ReportStatus reports the status back to the Cloudformation service of a handler
-// that has moved from Pending to In_Progress
+// ReportStatus reports the status back to the CloudFormation service.
 func (c *CloudFormationCallbackAdapter) ReportStatus(operationStatus Status, model []byte, message string, errCode string) error {
-	if err := c.reportProgress(errCode, operationStatus, InProgress, model, message); err != nil {
-		return err
-	}
-	return nil
+	return c.reportProgress(errCode, operationStatus, InProgress, model, message)
 }
 
-// ReportInitialStatus reports the initial status back to the Cloudformation service.
+// ReportInitialStatus reports the initial status back to the CloudFormation service.
 func (c *CloudFormationCallbackAdapter) ReportInitialStatus() error {
-	if err := c.reportProgress("", InProgress, Pending, []byte(""), ""); err != nil {
-		return err
-	}
-	return nil
+	return c.reportProgress("", InProgress, Pending, []byte(""), "")
 }
 
-// ReportFailureStatus reports the failure status back to the Cloudformation service.
+// ReportFailureStatus reports the failure status back to the CloudFormation service.
 func (c *CloudFormationCallbackAdapter) ReportFailureStatus(model []byte, errCode string, handlerError error) error {
-	if err := c.reportProgress(errCode, Failed, InProgress, model, handlerError.Error()); err != nil {
-		return err
-	}
-	return nil
+	return c.reportProgress(errCode, Failed, InProgress, model, handlerError.Error())
 }
 
-// ReportProgress reports the current status back to the Cloudformation service.
 func (c *CloudFormationCallbackAdapter) reportProgress(errCode string, operationStatus Status, currentOperationStatus Status, resourceModel []byte, statusMessage string) error {
-
-	in := cloudformation.RecordHandlerProgressInput{
+	in := &cloudformation.RecordHandlerProgressInput{
 		BearerToken:     aws.String(c.bearerToken),
-		OperationStatus: aws.String(TranslateOperationStatus(operationStatus)),
+		OperationStatus: cftypes.OperationStatus(TranslateOperationStatus(operationStatus)),
 	}
 
 	if len(statusMessage) != 0 {
-		in.SetStatusMessage(statusMessage)
+		in.StatusMessage = aws.String(statusMessage)
 	}
 
 	if len(resourceModel) != 0 {
-		in.SetResourceModel(string(resourceModel))
+		in.ResourceModel = aws.String(string(resourceModel))
 	}
 
 	if len(errCode) != 0 {
-		in.SetErrorCode(TranslateErrorCode(errCode))
+		in.ErrorCode = cftypes.HandlerErrorCode(TranslateErrorCode(errCode))
 	}
 
 	if len(currentOperationStatus) != 0 {
-		in.SetCurrentOperationStatus(TranslateOperationStatus(currentOperationStatus))
+		in.CurrentOperationStatus = cftypes.OperationStatus(TranslateOperationStatus(currentOperationStatus))
 	}
 
-	// Do retries and emit logs.
 	rerr := retry.Do(
 		func() error {
-			_, err := c.client.RecordHandlerProgress(&in)
-			if err != nil {
-				return err
-			}
-			return nil
-		}, retry.OnRetry(func(n uint, err error) {
-			s := fmt.Sprintf("Failed to record progress: try:#%d: %s\n ", n+1, err)
-			c.logger.Println(s)
-
-		}), retry.Attempts(MaxRetries),
+			_, err := c.client.RecordHandlerProgress(context.Background(), in)
+			return err
+		},
+		retry.OnRetry(func(n uint, err error) {
+			c.logger.Printf("Failed to record progress: try:#%d: %s\n", n+1, err)
+		}),
+		retry.Attempts(MaxRetries),
 	)
 
 	if rerr != nil {
@@ -114,47 +98,43 @@ func (c *CloudFormationCallbackAdapter) reportProgress(errCode string, operation
 	return nil
 }
 
-// TranslateErrorCode : Translate the error code into a standard Cloudformation error
+// TranslateErrorCode translates an error code into a standard CloudFormation error.
 func TranslateErrorCode(errorCode string) string {
-
-	// Ensure the error code conforms to one of the available
-	switch errorCode {
-	case cloudformation.HandlerErrorCodeNotUpdatable,
-		cloudformation.HandlerErrorCodeInvalidRequest,
-		cloudformation.HandlerErrorCodeAccessDenied,
-		cloudformation.HandlerErrorCodeInvalidCredentials,
-		cloudformation.HandlerErrorCodeAlreadyExists,
-		cloudformation.HandlerErrorCodeNotFound,
-		cloudformation.HandlerErrorCodeResourceConflict,
-		cloudformation.HandlerErrorCodeThrottling,
-		cloudformation.HandlerErrorCodeServiceLimitExceeded,
-		cloudformation.HandlerErrorCodeNotStabilized,
-		cloudformation.HandlerErrorCodeGeneralServiceException,
-		cloudformation.HandlerErrorCodeServiceInternalError,
-		cloudformation.HandlerErrorCodeNetworkFailure,
-		cloudformation.HandlerErrorCodeInternalFailure:
+	switch cftypes.HandlerErrorCode(errorCode) {
+	case cftypes.HandlerErrorCodeNotUpdatable,
+		cftypes.HandlerErrorCodeInvalidRequest,
+		cftypes.HandlerErrorCodeAccessDenied,
+		cftypes.HandlerErrorCodeInvalidCredentials,
+		cftypes.HandlerErrorCodeAlreadyExists,
+		cftypes.HandlerErrorCodeNotFound,
+		cftypes.HandlerErrorCodeResourceConflict,
+		cftypes.HandlerErrorCodeThrottling,
+		cftypes.HandlerErrorCodeServiceLimitExceeded,
+		cftypes.HandlerErrorCodeServiceTimeout,
+		cftypes.HandlerErrorCodeGeneralServiceException,
+		cftypes.HandlerErrorCodeServiceInternalError,
+		cftypes.HandlerErrorCodeNetworkFailure,
+		cftypes.HandlerErrorCodeInternalFailure:
 		return errorCode
 	default:
-		// InternalFailure is CloudFormation's fallback error code when no more specificity is there
-		return cloudformation.HandlerErrorCodeInternalFailure
+		return string(cftypes.HandlerErrorCodeInternalFailure)
 	}
 }
 
-// TranslateOperationStatus Translate the operation Status into a standard Cloudformation error
+// TranslateOperationStatus translates an operation status.
 func TranslateOperationStatus(operationStatus Status) string {
-
 	switch operationStatus {
 	case Success:
-		return cloudformation.OperationStatusSuccess
+		return string(cftypes.OperationStatusSuccess)
 	case Failed:
-		return cloudformation.OperationStatusFailed
+		return string(cftypes.OperationStatusFailed)
 	case InProgress:
-		return cloudformation.OperationStatusInProgress
+		return string(cftypes.OperationStatusInProgress)
 	case Pending:
-		return cloudformation.OperationStatusPending
+		return string(cftypes.OperationStatusPending)
 	default:
-		// default will be to fail on unknown status
-		return cloudformation.OperationStatusFailed
+		return string(cftypes.OperationStatusFailed)
 	}
-
 }
+
+

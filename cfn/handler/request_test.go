@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -51,7 +51,7 @@ func TestUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 	if diff := cmp.Diff(actual, expectedPrevious); diff != "" {
-		t.Errorf(diff)
+		t.Errorf("%s", diff)
 	}
 
 	// Current body
@@ -60,6 +60,6 @@ func TestUnmarshal(t *testing.T) {
 		t.Error(err)
 	}
 	if diff := cmp.Diff(actual, expectedCurrent); diff != "" {
-		t.Errorf(diff)
+		t.Errorf("%s", diff)
 	}
 }

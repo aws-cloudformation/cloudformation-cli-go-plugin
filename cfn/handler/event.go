@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // ProgressEvent represent the progress of CRUD handlers.
@@ -45,7 +45,7 @@ type ProgressEvent struct {
 }
 
 // NewProgressEvent creates a new event with
-// a default OperationStatus of Unkown
+// a default OperationStatus of Unknown
 func NewProgressEvent() ProgressEvent {
 	return ProgressEvent{
 		OperationStatus: UnknownStatus,
@@ -56,7 +56,7 @@ func NewProgressEvent() ProgressEvent {
 // based on the error passed in.
 func NewFailedEvent(err error) ProgressEvent {
 	cerr := cfnerr.New(
-		cloudformation.HandlerErrorCodeGeneralServiceException,
+		string(cftypes.HandlerErrorCodeGeneralServiceException),
 		"Unable to complete request: "+err.Error(),
 		err,
 	)
@@ -64,6 +64,6 @@ func NewFailedEvent(err error) ProgressEvent {
 	return ProgressEvent{
 		OperationStatus:  Failed,
 		Message:          cerr.Message(),
-		HandlerErrorCode: cloudformation.HandlerErrorCodeGeneralServiceException,
+		HandlerErrorCode: string(cftypes.HandlerErrorCodeGeneralServiceException),
 	}
 }

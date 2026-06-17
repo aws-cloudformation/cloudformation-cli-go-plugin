@@ -5,20 +5,15 @@ import (
 	"fmt"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
-// contextKey is used to prevent collisions within the context package
-// and to guarantee returning the correct values from a context
 type contextKey string
-
-// callbackContextValues is used to guarantee the type of
-// values stored in the context
 type callbackContextValues map[string]interface{}
 
 const (
 	valuesKey  = contextKey("user_callback_context")
-	sessionKey = contextKey("aws_session")
+	configKey  = contextKey("aws_config")
 )
 
 // SetContextValues creates a context to pass to handlers
@@ -32,22 +27,20 @@ func GetContextValues(ctx context.Context) (map[string]interface{}, error) {
 	if !ok {
 		return nil, fmt.Errorf("Values not found")
 	}
-
 	return map[string]interface{}(values), nil
 }
 
-// SetContextSession adds the supplied session to the given context
-func SetContextSession(ctx context.Context, sess *session.Session) context.Context {
-	return context.WithValue(ctx, sessionKey, sess)
+// SetContextConfig adds the supplied AWS config to the given context
+func SetContextConfig(ctx context.Context, cfg *aws.Config) context.Context {
+	return context.WithValue(ctx, configKey, cfg)
 }
 
-// GetContextSession unwraps a session from a given context
-func GetContextSession(ctx context.Context) (*session.Session, error) {
-	val, ok := ctx.Value(sessionKey).(*session.Session)
+// GetContextConfig unwraps an aws.Config from a given context
+func GetContextConfig(ctx context.Context) (*aws.Config, error) {
+	val, ok := ctx.Value(configKey).(*aws.Config)
 	if !ok {
-		return nil, fmt.Errorf("Session not found")
+		return nil, fmt.Errorf("Config not found")
 	}
-
 	return val, nil
 }
 

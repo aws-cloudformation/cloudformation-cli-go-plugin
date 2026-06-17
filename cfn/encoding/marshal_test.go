@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 func TestMarshaling(t *testing.T) {
@@ -87,7 +87,7 @@ func TestMarshaling(t *testing.T) {
 
 	// And check it matches the expected form
 	if diff := cmp.Diff(jsonTest, stringMap); diff != "" {
-		t.Errorf(diff)
+		t.Errorf("%s", diff)
 	}
 
 	// Now check we can get the original struct back
@@ -98,6 +98,6 @@ func TestMarshaling(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(m, b); diff != "" {
-		t.Errorf(diff)
+		t.Errorf("%s", diff)
 	}
 }

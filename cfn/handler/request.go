@@ -1,18 +1,15 @@
 package handler
 
 import (
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/cfnerr"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 )
 
 const (
-	// marshalingError occurs when we can't marshal data from one format into another.
 	marshalingError = "Marshaling"
-
-	// bodyEmptyError happens when the resource body is empty
-	bodyEmptyError = "BodyEmpty"
+	bodyEmptyError  = "BodyEmpty"
 )
 
 // Request is passed to actions with customer related data
@@ -27,12 +24,11 @@ type Request struct {
 	// identifier which can be used to continue polling for stabilization
 	CallbackContext map[string]interface{}
 
-	// The RequestContext is information about the current
-	// invocation.
+	// The RequestContext is information about the current invocation.
 	RequestContext RequestContext
 
-	// An authenticated AWS session that can be used with the AWS Go SDK
-	Session *session.Session
+	// Config is an AWS SDK v2 config authenticated with the caller's credentials.
+	Config *aws.Config
 
 	previousResourcePropertiesBody []byte
 	resourcePropertiesBody         []byte
@@ -42,31 +38,20 @@ type Request struct {
 // RequestContext represents information about the current
 // invocation request of the handler.
 type RequestContext struct {
-	// The stack ID of the CloudFormation stack
-	StackID string
-
-	// The Region of the requester
-	Region string
-
-	// The Account ID of the requester
-	AccountID string
-
-	// The stack tags associated with the cloudformation stack
-	StackTags map[string]string
-
-	// The SystemTags associated with the request
+	StackID    string
+	Region     string
+	AccountID  string
+	StackTags  map[string]string
 	SystemTags map[string]string
-
-	// The NextToken provided in the request
-	NextToken string
+	NextToken  string
 }
 
 // NewRequest returns a new Request based on the provided parameters
-func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext, sess *session.Session, previousBody, body, typeConfig []byte) Request {
+func NewRequest(id string, ctx map[string]interface{}, requestCTX RequestContext, cfg *aws.Config, previousBody, body, typeConfig []byte) Request {
 	return Request{
 		LogicalResourceID:              id,
 		CallbackContext:                ctx,
-		Session:                        sess,
+		Config:                         cfg,
 		previousResourcePropertiesBody: previousBody,
 		resourcePropertiesBody:         body,
 		RequestContext:                 requestCTX,

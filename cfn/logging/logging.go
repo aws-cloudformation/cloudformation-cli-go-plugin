@@ -1,8 +1,5 @@
-//go:build logging
-// +build logging
-
 /*
-Package logging provides support for logging to cloudwatch
+Package logging provides support for logging to CloudWatch
 within resource providers.
 */
 package logging
@@ -14,25 +11,19 @@ import (
 	"syscall"
 )
 
-// define a new stdErr since we'll over-write the default stdout/err
-// to prevent data leaking into the service account
+// stdErr is a reference to stderr that survives any os.Stderr redirections.
 var stdErr = os.NewFile(uintptr(syscall.Stderr), "/dev/stderr")
 
 var providerLogOutput io.Writer
 
-const (
-	loggerError = "Logger"
-)
-
-// SetProviderLogOutput ...
+// SetProviderLogOutput configures the provider log output writer.
+// When set, log messages go to both stderr and the provider writer (CloudWatch Logs).
 func SetProviderLogOutput(w io.Writer) {
-
 	log.SetOutput(w)
-
 	providerLogOutput = w
 }
 
-// New sets up a logger that writes to the stderr
+// New sets up a logger that writes to stderr and (if configured) the provider log output.
 func New(prefix string) *log.Logger {
 	var w io.Writer
 
@@ -42,6 +33,5 @@ func New(prefix string) *log.Logger {
 		w = stdErr
 	}
 
-	// we create our own stderr since we're going to nuke the existing one
 	return log.New(w, prefix, log.LstdFlags)
 }

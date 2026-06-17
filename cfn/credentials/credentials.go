@@ -1,76 +1,51 @@
 /*
-Package credentials providers helper functions for dealing with AWS credentials
+Package credentials provides helper functions for dealing with AWS credentials
 passed in to resource providers from CloudFormation.
 */
 package credentials
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 )
 
-// CloudFormationCredentialsProviderName ...
-const CloudFormationCredentialsProviderName = "CloudFormationCredentialsProvider"
+const (
+	// CloudFormationCredentialsProviderName is the name of the credentials provider.
+	CloudFormationCredentialsProviderName = "CloudFormationCredentialsProvider"
+	// InvalidSessionError is returned when a session is invalid.
+	InvalidSessionError = "InvalidSession"
+)
 
-const InvalidSessionError = "InvalidSession"
-
-// NewProvider ...
-func NewProvider(accessKeyID string, secretAccessKey string, sessionToken string) credentials.Provider {
-	return &CloudFormationCredentialsProvider{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		SessionToken:    sessionToken,
-	}
-}
-
-// CloudFormationCredentialsProvider ...
+// CloudFormationCredentialsProvider holds the credentials passed by CloudFormation.
 type CloudFormationCredentialsProvider struct {
-	retrieved bool
-
-	// AccessKeyID ...
-	AccessKeyID string `json:"accessKeyId"`
-
-	// SecretAccessKey ...
-	SecretAccessKey string `json:"secretAccessKey"`
-
-	// SessionToken ...
-	SessionToken string `json:"sessionToken"`
+	AccessKeyID     string `json:"accessKeyId"`
+	SecretAccessKey  string `json:"secretAccessKey"`
+	SessionToken    string `json:"sessionToken"`
 }
 
-// Retrieve ...
-func (c *CloudFormationCredentialsProvider) Retrieve() (credentials.Value, error) {
-	c.retrieved = false
-
-	value := credentials.Value{
+// Retrieve implements aws.CredentialsProvider.
+func (c *CloudFormationCredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return aws.Credentials{
 		AccessKeyID:     c.AccessKeyID,
-		SecretAccessKey: c.SecretAccessKey,
+		SecretAccessKey:  c.SecretAccessKey,
 		SessionToken:    c.SessionToken,
-		ProviderName:    CloudFormationCredentialsProviderName,
-	}
-
-	c.retrieved = true
-
-	return value, nil
+		Source:          CloudFormationCredentialsProviderName,
+	}, nil
 }
 
-// IsExpired ...
-func (c *CloudFormationCredentialsProvider) IsExpired() bool {
-	return false
-}
-
-// SessionFromCredentialsProvider creates a new AWS SDK session from a credentials provider
-//
-// A credentials provider is an interface in the AWS SDK's credentials package (aws/credentials)
-// We transform it into a session for later use in the RPDK
-func SessionFromCredentialsProvider(provider credentials.Provider) *session.Session {
-	creds := credentials.NewCredentials(provider)
-
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Credentials: creds,
-		},
-	}))
-
-	return sess
+// ConfigFromCredentialsProvider creates an aws.Config from a credentials provider.
+func ConfigFromCredentialsProvider(provider *CloudFormationCredentialsProvider) aws.Config {
+	cfg, _ := config.LoadDefaultConfig(context.Background(),
+		config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				provider.AccessKeyID,
+				provider.SecretAccessKey,
+				provider.SessionToken,
+			),
+		),
+	)
+	return cfg
 }

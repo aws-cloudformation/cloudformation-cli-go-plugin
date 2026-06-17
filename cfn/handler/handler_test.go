@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 type Props struct {
@@ -22,7 +22,7 @@ func TestNewRequest(t *testing.T) {
 			t.Fatalf("Unable to unmarshal props: %v", err)
 		}
 
-		if aws.StringValue(prev.Color) != "red" {
+		if aws.ToString(prev.Color) != "red" {
 			t.Fatalf("Previous Properties don't match: %v", prev.Color)
 		}
 
@@ -30,14 +30,13 @@ func TestNewRequest(t *testing.T) {
 			t.Fatalf("Unable to unmarshal props: %v", err)
 		}
 
-		if aws.StringValue(curr.Color) != "green" {
+		if aws.ToString(curr.Color) != "green" {
 			t.Fatalf("Properties don't match: %v", curr.Color)
 		}
 
 		if req.LogicalResourceID != "foo" {
 			t.Fatalf("Invalid Logical Resource ID: %v", req.LogicalResourceID)
 		}
-
 	})
 
 	t.Run("ResourceProps", func(t *testing.T) {

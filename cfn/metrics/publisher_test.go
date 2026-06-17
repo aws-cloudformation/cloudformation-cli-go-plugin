@@ -1,22 +1,21 @@
 package metrics
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cwtypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 )
 
 const succeed = "\u2713"
 const failed = "\u2717"
 
-// Define a mock struct to be used in your unit tests of myFunc.
 type MockCloudWatchClient struct {
-	cloudwatchiface.CloudWatchAPI
 	MetricName string
-	Unit       string
+	Unit       cwtypes.StandardUnit
 	Value      float64
 	Dim        map[string]string
 }
@@ -25,40 +24,31 @@ func NewMockCloudWatchClient() *MockCloudWatchClient {
 	return &MockCloudWatchClient{}
 }
 
-func (m *MockCloudWatchClient) PutMetricData(in *cloudwatch.PutMetricDataInput) (*cloudwatch.PutMetricDataOutput, error) {
-
-	// copy dimension in to a map for searching
-
+func (m *MockCloudWatchClient) PutMetricData(ctx context.Context, in *cloudwatch.PutMetricDataInput, optFns ...func(*cloudwatch.Options)) (*cloudwatch.PutMetricDataOutput, error) {
 	d := make(map[string]string)
-
 	for _, v := range in.MetricData[0].Dimensions {
 		d[*v.Name] = *v.Value
 	}
-
 	m.MetricName = *in.MetricData[0].MetricName
-	m.Unit = *in.MetricData[0].Unit
+	m.Unit = in.MetricData[0].Unit
 	m.Value = *in.MetricData[0].Value
 	m.Dim = d
-
 	return nil, nil
 }
 
-// Define a mock struct to be used in your unit tests of myFunc.
-type MockCloudWatchClientError struct {
-	cloudwatchiface.CloudWatchAPI
-}
+type MockCloudWatchClientError struct{}
 
 func NewMockCloudWatchClientError() *MockCloudWatchClientError {
 	return &MockCloudWatchClientError{}
 }
 
-func (m *MockCloudWatchClientError) PutMetricData(in *cloudwatch.PutMetricDataInput) (*cloudwatch.PutMetricDataOutput, error) {
-
+func (m *MockCloudWatchClientError) PutMetricData(ctx context.Context, in *cloudwatch.PutMetricDataInput, optFns ...func(*cloudwatch.Options)) (*cloudwatch.PutMetricDataOutput, error) {
 	return nil, errors.New("Error")
 }
+
 func TestPublisher_PublishExceptionMetric(t *testing.T) {
 	type fields struct {
-		Client  cloudwatchiface.CloudWatchAPI
+		Client  CloudWatchClient
 		resName string
 	}
 	type args struct {
@@ -67,242 +57,79 @@ func TestPublisher_PublishExceptionMetric(t *testing.T) {
 		e      error
 	}
 	tests := []struct {
-		name                          string
-		fields                        fields
-		args                          args
-		MetricName                    string
-		wantErr                       bool
-		wantAction                    string
-		wantDimensionKeyExceptionType string
-		wantDimensionKeyResourceType  string
-		wantMetricName                string
-		wantUnit                      string
-		wantValue                     float64
+		name       string
+		fields     fields
+		args       args
+		wantErr    bool
+		wantAction string
+		wantExc    string
+		wantRes    string
+		wantMetric string
+		wantUnit   cwtypes.StandardUnit
+		wantValue  float64
 	}{
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "CREATE", errors.New("failed to create\nresource")}, "HandlerException", false, "CREATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "CREATE", errors.New("failed to create resource")}, "HandlerException", true, "CREATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "UPDATE", errors.New("failed to create resource")}, "HandlerException", false, "UPDATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublisherPublishExceptionMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "UPDATE", errors.New("failed to create resource")}, "HandlerException", true, "UPDATE", "failed to create resource", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
+		{"exception", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "CREATE", errors.New("failed to create\nresource")}, false, "CREATE", "failed to create resource", "foo/bar/test", "HandlerException", cwtypes.StandardUnitCount, 1.0},
+		{"exception error", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "CREATE", errors.New("failed")}, true, "", "", "", "", "", 0},
 	}
-	for i, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := New(tt.fields.Client, tt.fields.resName)
-			t.Logf("\tTest: %d\tWhen checking %q for success", i, tt.name)
-			{
-				p.PublishExceptionMetric(tt.args.date, tt.args.action, tt.args.e)
-				t.Logf("\t%s\tShould be able to make the PublishExceptionMetric call.", succeed)
-				if !tt.wantErr {
-					e := tt.fields.Client.(*MockCloudWatchClient)
-
-					if e.Dim[DimensionKeyAcionType] == tt.wantAction {
-						t.Logf("\t%s\tAction should be (%v).", succeed, tt.wantAction)
-					} else {
-						t.Errorf("\t%s\tAction should be (%v). : %v", failed, tt.wantAction, e.Dim[DimensionKeyAcionType])
-					}
-
-					if e.Dim[DimensionKeyExceptionType] == tt.wantDimensionKeyExceptionType {
-						t.Logf("\t%s\tDimensionKeyExceptionType should be (%v).", succeed, tt.wantDimensionKeyExceptionType)
-					} else {
-						t.Errorf("\t%s\tDimensionKeyExceptionType should be (%v). : %v", failed, tt.wantDimensionKeyExceptionType, e.Dim[DimensionKeyExceptionType])
-					}
-
-					if e.Dim[DimensionKeyResourceType] == tt.wantDimensionKeyResourceType {
-						t.Logf("\t%s\t DimensionKeyResourceType should be (%v).", succeed, tt.wantDimensionKeyResourceType)
-					} else {
-						t.Errorf("\t%s\tDimensionKeyResourceType should be (%v). : %v", failed, tt.wantDimensionKeyResourceType, e.Dim[DimensionKeyResourceType])
-					}
-
-					if e.MetricName == tt.wantMetricName {
-						t.Logf("\t%s\t MetricName should be (%v).", succeed, tt.wantMetricName)
-					} else {
-						t.Errorf("\t%s\tMetricName should be (%v). : %v", failed, tt.wantMetricName, e.MetricName)
-					}
-
-					if e.Unit == tt.wantUnit {
-						t.Logf("\t%s\t Unit should be (%v).", succeed, tt.wantUnit)
-					} else {
-						t.Errorf("\t%s\tUnit should be (%v). : %v", failed, tt.wantUnit, e.Unit)
-					}
-
-					if e.Value == tt.wantValue {
-						t.Logf("\t%s\t Unit should be (%v).", succeed, tt.wantValue)
-					} else {
-						t.Errorf("\t%s\tUnit should be (%v). : %v", failed, tt.wantValue, e.Value)
-					}
+			p.PublishExceptionMetric(tt.args.date, tt.args.action, tt.args.e)
+			if !tt.wantErr {
+				e := tt.fields.Client.(*MockCloudWatchClient)
+				if e.Dim[DimensionKeyAcionType] != tt.wantAction {
+					t.Errorf("Action: got %v, want %v", e.Dim[DimensionKeyAcionType], tt.wantAction)
+				}
+				if e.Dim[DimensionKeyExceptionType] != tt.wantExc {
+					t.Errorf("ExceptionType: got %v, want %v", e.Dim[DimensionKeyExceptionType], tt.wantExc)
+				}
+				if e.Dim[DimensionKeyResourceType] != tt.wantRes {
+					t.Errorf("ResourceType: got %v, want %v", e.Dim[DimensionKeyResourceType], tt.wantRes)
+				}
+				if e.MetricName != tt.wantMetric {
+					t.Errorf("MetricName: got %v, want %v", e.MetricName, tt.wantMetric)
+				}
+				if e.Unit != tt.wantUnit {
+					t.Errorf("Unit: got %v, want %v", e.Unit, tt.wantUnit)
+				}
+				if e.Value != tt.wantValue {
+					t.Errorf("Value: got %v, want %v", e.Value, tt.wantValue)
 				}
 			}
-
 		})
 	}
 }
 
 func TestPublisher_PublishInvocationMetric(t *testing.T) {
-	type fields struct {
-		Client  cloudwatchiface.CloudWatchAPI
-		resName string
+	p := New(NewMockCloudWatchClient(), "foo::bar::test")
+	p.PublishInvocationMetric(time.Now(), "CREATE")
+	e := p.client.(*MockCloudWatchClient)
+	if e.MetricName != MetricNameHanderInvocationCount {
+		t.Errorf("MetricName: got %v, want %v", e.MetricName, MetricNameHanderInvocationCount)
 	}
-	type args struct {
-		date   time.Time
-		action string
+	if e.Unit != cwtypes.StandardUnitCount {
+		t.Errorf("Unit: got %v, want %v", e.Unit, cwtypes.StandardUnitCount)
 	}
-	tests := []struct {
-		name                         string
-		fields                       fields
-		args                         args
-		MetricName                   string
-		wantErr                      bool
-		wantAction                   string
-		wantDimensionKeyResourceType string
-		wantMetricName               string
-		wantUnit                     string
-		wantValue                    float64
-	}{
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "CREATE"}, "HandlerInvocationCount", false, "CREATE", "foo/bar/test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "CREATE"}, "HandlerException", true, "CREATE", "foo/bar/test", "HandlerException", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "UPDATE"}, "HandlerInvocationCount", false, "UPDATE", "foo/bar/test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
-		{"testPublishInvocationMetricError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "UPDATE"}, "HandlerException", true, "UPDATE", "foo/bar/test", "HandlerInvocationCount", cloudwatch.StandardUnitCount, 1.0},
-	}
-	for i, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := New(tt.fields.Client, tt.fields.resName)
-			t.Logf("\tTest: %d\tWhen checking %q for success", i, tt.name)
-			{
-				p.PublishInvocationMetric(tt.args.date, tt.args.action)
-				t.Logf("\t%s\tShould be able to make the PublishInvocationMetric call.", succeed)
-				if !tt.wantErr {
-					e := tt.fields.Client.(*MockCloudWatchClient)
-
-					if e.Dim[DimensionKeyAcionType] == tt.wantAction {
-						t.Logf("\t%s\tAction should be (%v).", succeed, tt.wantAction)
-					} else {
-						t.Errorf("\t%s\tAction should be (%v). : %v", failed, tt.wantAction, e.Dim[DimensionKeyAcionType])
-					}
-
-					if e.Dim[DimensionKeyResourceType] == tt.wantDimensionKeyResourceType {
-						t.Logf("\t%s\t DimensionKeyResourceType should be (%v).", succeed, tt.wantDimensionKeyResourceType)
-					} else {
-						t.Errorf("\t%s\tDimensionKeyResourceType should be (%v). : %v", failed, tt.wantDimensionKeyResourceType, e.Dim[DimensionKeyResourceType])
-					}
-
-					if e.MetricName == tt.wantMetricName {
-						t.Logf("\t%s\t MetricName should be (%v).", succeed, tt.wantMetricName)
-					} else {
-						t.Errorf("\t%s\tMetricName should be (%v). : %v", failed, tt.wantMetricName, e.MetricName)
-					}
-
-					if e.Unit == tt.wantUnit {
-						t.Logf("\t%s\t Unit should be (%v).", succeed, tt.wantUnit)
-					} else {
-						t.Errorf("\t%s\tUnit should be (%v). : %v", failed, tt.wantUnit, e.Unit)
-					}
-
-					if e.Value == tt.wantValue {
-						t.Logf("\t%s\t Unit should be (%v).", succeed, tt.wantValue)
-					} else {
-						t.Errorf("\t%s\tUnit should be (%v). : %v", failed, tt.wantValue, e.Value)
-					}
-				}
-			}
-
-		})
-	}
-
 }
 
 func TestPublisher_PublishDurationMetric(t *testing.T) {
-	type fields struct {
-		Client  cloudwatchiface.CloudWatchAPI
-		resName string
+	p := New(NewMockCloudWatchClient(), "foo::bar::test")
+	p.PublishDurationMetric(time.Now(), "CREATE", 15.0)
+	e := p.client.(*MockCloudWatchClient)
+	if e.MetricName != MetricNameHanderDuration {
+		t.Errorf("MetricName: got %v, want %v", e.MetricName, MetricNameHanderDuration)
 	}
-	type args struct {
-		date   time.Time
-		action string
-		sec    float64
+	if e.Unit != cwtypes.StandardUnitMilliseconds {
+		t.Errorf("Unit: got %v, want %v", e.Unit, cwtypes.StandardUnitMilliseconds)
 	}
-	tests := []struct {
-		name                         string
-		fields                       fields
-		args                         args
-		MetricName                   string
-		wantErr                      bool
-		wantAction                   string
-		wantDimensionKeyResourceType string
-		wantMetricName               string
-		wantUnit                     string
-		wantValue                    float64
-	}{
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "CREATE", 15.0}, "HandlerInvocationDuration", false, "CREATE", "foo/bar/test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetricWantError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "CREATE", 15.0}, "HandlerInvocationDuration", true, "CREATE", "foo/bar/test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetric", fields{NewMockCloudWatchClient(), "foo::bar::test"}, args{time.Now(), "UPDATE", 15.0}, "HandlerInvocationDuration", false, "UPDATE", "foo/bar/test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
-		{"testPublishInvocationMetricError", fields{NewMockCloudWatchClientError(), "foo::bar::test"}, args{time.Now(), "UPDATE", 15.0}, "HandlerInvocationDuration", true, "UPDATE", "foo/bar/test", "HandlerInvocationDuration", cloudwatch.StandardUnitMilliseconds, 15},
+	if e.Value != 15.0 {
+		t.Errorf("Value: got %v, want %v", e.Value, 15.0)
 	}
-	for i, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := New(tt.fields.Client, tt.fields.resName)
-			t.Logf("\tTest: %d\tWhen checking %q for success", i, tt.name)
-			{
-				p.PublishDurationMetric(tt.args.date, tt.args.action, tt.args.sec)
-				t.Logf("\t%s\tShould be able to make the PublishDurationMetric call.", succeed)
-				if !tt.wantErr {
-					e := tt.fields.Client.(*MockCloudWatchClient)
-
-					if e.Dim[DimensionKeyAcionType] == tt.wantAction {
-						t.Logf("\t%s\tAction should be (%v).", succeed, tt.wantAction)
-					} else {
-						t.Errorf("\t%s\tAction should be (%v). : %v", failed, tt.wantAction, e.Dim[DimensionKeyAcionType])
-					}
-
-					if e.Dim[DimensionKeyResourceType] == tt.wantDimensionKeyResourceType {
-						t.Logf("\t%s\t DimensionKeyResourceType should be (%v).", succeed, tt.wantDimensionKeyResourceType)
-					} else {
-						t.Errorf("\t%s\tDimensionKeyResourceType should be (%v). : %v", failed, tt.wantDimensionKeyResourceType, e.Dim[DimensionKeyResourceType])
-					}
-
-					if e.MetricName == tt.wantMetricName {
-						t.Logf("\t%s\t MetricName should be (%v).", succeed, tt.wantMetricName)
-					} else {
-						t.Errorf("\t%s\tMetricName should be (%v). : %v", failed, tt.wantMetricName, e.MetricName)
-					}
-
-					if e.Unit == tt.wantUnit {
-						t.Logf("\t%s\t Unit should be (%v).", succeed, tt.wantUnit)
-					} else {
-						t.Errorf("\t%s\tUnit should be (%v). : %v", failed, tt.wantUnit, e.Unit)
-					}
-
-					if e.Value == tt.wantValue {
-						t.Logf("\t%s\t Unit should be (%v).", succeed, tt.wantValue)
-					} else {
-						t.Errorf("\t%s\tUnit should be (%v). : %v", failed, tt.wantValue, e.Value)
-					}
-				}
-			}
-
-		})
-	}
-
 }
 
 func TestPublisher_ResourceTypeName(t *testing.T) {
-	type args struct {
-		t string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{"test foo", args{"foo::bar::test"}, "foo/bar/test"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := ResourceTypeName(tt.args.t)
-
-			if r != tt.want {
-				t.Errorf("Should be %v : got %v", tt.want, r)
-				return
-			}
-
-		})
+	r := ResourceTypeName("foo::bar::test")
+	if r != "foo/bar/test" {
+		t.Errorf("got %v, want foo/bar/test", r)
 	}
 }

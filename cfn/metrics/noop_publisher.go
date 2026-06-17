@@ -1,25 +1,13 @@
 package metrics
 
 import (
-	"log"
+	"context"
 
-	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 )
 
-func newNoopClient() *noopCloudWatchClient {
-	return &noopCloudWatchClient{
-		logger: logging.New("metrics"),
-	}
-}
+type noopCloudWatchClient struct{}
 
-type noopCloudWatchClient struct {
-	logger *log.Logger
-	cloudwatchiface.CloudWatchAPI
-}
-
-func (n *noopCloudWatchClient) PutMetricData(input *cloudwatch.PutMetricDataInput) (*cloudwatch.PutMetricDataOutput, error) {
-	// out implementation doesn't care about the response
+func (n *noopCloudWatchClient) PutMetricData(ctx context.Context, params *cloudwatch.PutMetricDataInput, optFns ...func(*cloudwatch.Options)) (*cloudwatch.PutMetricDataOutput, error) {
 	return nil, nil
 }

@@ -1,15 +1,13 @@
 package cfn
 
 import (
-	"testing"
-
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/google/go-cmp/cmp"
-
 	"encoding/json"
+	"testing"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/encoding"
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestResponseMarshalJSON(t *testing.T) {
@@ -32,7 +30,7 @@ func TestResponseMarshalJSON(t *testing.T) {
 					Name:    encoding.NewString("Douglas"),
 					Version: encoding.NewFloat(42.1),
 				},
-				ErrorCode:   cloudformation.HandlerErrorCodeNotUpdatable,
+				ErrorCode:   string(cftypes.HandlerErrorCodeNotUpdatable),
 				BearerToken: "xyzzy",
 			},
 			expected: `{"message":"foo","status":"FAILED","resourceModel":{"Name":"Douglas","Version":"42.1"},"errorCode":"NotUpdatable","bearerToken":"xyzzy","resourceModels":null}`,
@@ -62,16 +60,13 @@ func TestResponseMarshalJSON(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-
 			actual, err := json.Marshal(tt.response)
 			if err != nil {
 				t.Errorf("Unexpected error marshaling response JSON: %s", err)
 			}
-
 			if diff := cmp.Diff(string(actual), tt.expected); diff != "" {
-				t.Errorf(diff)
+				t.Errorf("%s", diff)
 			}
 		})
 	}
-
 }

@@ -3,6 +3,7 @@ package cfn
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"os"
 	"sync"
@@ -15,8 +16,8 @@ import (
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/metrics"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
 const (
@@ -40,12 +41,9 @@ const (
 
 var once sync.Once
 
-// Handler is the interface that all resource providers must implement
+// Handler is the interface that all resource providers must implement.
 //
 // Each method of Handler maps directly to a CloudFormation action.
-// Every action must return a progress event containing details of
-// any actions that were undertaken by the resource provider
-// or of any error that occurred during operation.
 type Handler interface {
 	Create(request handler.Request) handler.ProgressEvent
 	Read(request handler.Request) handler.ProgressEvent
@@ -54,52 +52,51 @@ type Handler interface {
 	List(request handler.Request) handler.ProgressEvent
 }
 
-// Start is the entry point called from a resource's main function
-//
-// We define two lambda entry points; MakeEventFunc is the entry point to all
-// invocations of a custom resource and MakeTestEventFunc is the entry point that
-// allows the CLI's contract testing framework to invoke the resource's CRUDL handlers.
+// Start is the entry point called from a resource's main function.
 func Start(h Handler) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Handler panicked: %s", r)
-			panic(r) // Continue the panic
+			panic(r)
 		}
 	}()
 
 	log.Printf("Handler starting")
 	lambda.Start(makeEventFunc(h))
-
 	log.Printf("Handler finished")
 }
 
 // Tags are stored as key/value paired strings
 type tags map[string]string
 
-// eventFunc is the function signature required to execute an event from the Lambda SDK
 type eventFunc func(ctx context.Context, event *event) (response, error)
-
-// handlerFunc is the signature required for all actions
 type handlerFunc func(request handler.Request) handler.ProgressEvent
 
-// MakeEventFunc is the entry point to all invocations of a custom resource
 func makeEventFunc(h Handler) eventFunc {
 	return func(ctx context.Context, event *event) (response, error) {
-		ps := credentials.SessionFromCredentialsProvider(&event.RequestData.ProviderCredentials)
-		m := metrics.New(cloudwatch.New(ps), event.ResourceType)
+		providerCfg := credentials.ConfigFromCredentialsProvider(&event.RequestData.ProviderCredentials)
+		m := metrics.New(cloudwatch.NewFromConfig(providerCfg), event.ResourceType)
+
 		once.Do(func() {
-			l, err := logging.NewCloudWatchLogsProvider(
-				cloudwatchlogs.New(ps),
-				event.RequestData.ProviderLogGroupName,
-			)
-			if err != nil {
-				log.Printf("Error: %v, Logging to Stdout", err)
-				m.PublishExceptionMetric(time.Now(), event.Action, err)
+			var l io.Writer
+			if event.RequestData.ProviderLogGroupName == "" {
+				log.Printf("No ProviderLogGroupName in event, logging to stdout")
 				l = os.Stdout
+			} else {
+				var err error
+				l, err = logging.NewCloudWatchLogsProvider(
+					cloudwatchlogs.NewFromConfig(providerCfg),
+					event.RequestData.ProviderLogGroupName,
+				)
+				if err != nil {
+					log.Printf("Error setting up CloudWatch Logs: %v, logging to stdout", err)
+					m.PublishExceptionMetric(time.Now(), event.Action, err)
+					l = os.Stdout
+				}
 			}
-			// Set default logger to output to CWL in the provider account
 			logging.SetProviderLogOutput(l)
 		})
+
 		re := newReportErr(m)
 
 		handlerFn, cfnErr := router(event.Action, h)
@@ -110,6 +107,7 @@ func makeEventFunc(h Handler) eventFunc {
 		if err := validateEvent(event); err != nil {
 			return re.report(event, "validation error", err, invalidRequestError)
 		}
+
 		rctx := handler.RequestContext{
 			StackID:    event.StackID,
 			Region:     event.Region,
@@ -118,15 +116,19 @@ func makeEventFunc(h Handler) eventFunc {
 			SystemTags: event.RequestData.SystemTags,
 			NextToken:  event.NextToken,
 		}
+
+		callerCfg := credentials.ConfigFromCredentialsProvider(&event.RequestData.CallerCredentials)
+
 		request := handler.NewRequest(
 			event.RequestData.LogicalResourceID,
 			event.CallbackContext,
 			rctx,
-			credentials.SessionFromCredentialsProvider(&event.RequestData.CallerCredentials),
+			&callerCfg,
 			event.RequestData.PreviousResourceProperties,
 			event.RequestData.ResourceProperties,
 			event.RequestData.TypeConfiguration,
 		)
+
 		p := invoke(handlerFn, request, m, event.Action)
 		r, err := newResponse(&p, event.BearerToken)
 		if err != nil {
@@ -140,10 +142,7 @@ func makeEventFunc(h Handler) eventFunc {
 	}
 }
 
-// router decides which handler should be invoked based on the action
-// It will return a route or an error depending on the action passed in
 func router(a string, h Handler) (handlerFunc, cfnerr.Error) {
-	// Figure out which action was called and have a "catch-all"
 	switch a {
 	case createAction:
 		return h.Create, nil
@@ -156,29 +155,20 @@ func router(a string, h Handler) (handlerFunc, cfnerr.Error) {
 	case listAction:
 		return h.List, nil
 	default:
-		// No action matched, we should fail and return an InvalidRequestErrorCode
 		return nil, cfnerr.New(invalidRequestError, "No action/invalid action specified", nil)
 	}
 }
 
-// Invoke handles the invocation of the handerFn.
 func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *metrics.Publisher, action string) handler.ProgressEvent {
-
-	// Create a channel to received a signal that work is done.
 	ch := make(chan handler.ProgressEvent, 1)
 
-	// Ask the goroutine to do some work for us.
 	go func() {
-		// start the timer
 		s := time.Now()
 		metricsPublisher.PublishInvocationMetric(time.Now(), string(action))
 
-		// Report the work is done.
 		pe := handlerFn(request)
-		log.Printf("Received event: %s\nMessage: %s\n",
-			pe.OperationStatus,
-			pe.Message,
-		)
+		log.Printf("Received event: %s\nMessage: %s\n", pe.OperationStatus, pe.Message)
+
 		e := time.Since(s)
 		metricsPublisher.PublishDurationMetric(time.Now(), string(action), e.Seconds()*1e3)
 		ch <- pe
@@ -188,12 +178,9 @@ func invoke(handlerFn handlerFunc, request handler.Request, metricsPublisher *me
 
 func isMutatingAction(action string) bool {
 	switch action {
-	case createAction:
-		return true
-	case updateAction:
-		return true
-	case deleteAction:
+	case createAction, updateAction, deleteAction:
 		return true
 	}
 	return false
 }
+

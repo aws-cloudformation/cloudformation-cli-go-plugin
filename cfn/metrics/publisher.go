@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -8,42 +9,39 @@ import (
 	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/logging"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cwtypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 )
 
 const (
-	// MetricNameSpaceRoot is the Metric name space root.
-	MetricNameSpaceRoot = "AWS/CloudFormation"
-	// MetricNameHanderException  is a metric type.
-	MetricNameHanderException = "HandlerException"
-	// MetricNameHanderDuration is a metric type.
-	MetricNameHanderDuration = "HandlerInvocationDuration"
-	// MetricNameHanderInvocationCount is a metric type.
+	MetricNameSpaceRoot             = "AWS/CloudFormation"
+	MetricNameHanderException       = "HandlerException"
+	MetricNameHanderDuration        = "HandlerInvocationDuration"
 	MetricNameHanderInvocationCount = "HandlerInvocationCount"
-	// DimensionKeyAcionType  is the Action key in the dimension.
-	DimensionKeyAcionType = "Action"
-	// DimensionKeyExceptionType  is the ExceptionType in the dimension.
-	DimensionKeyExceptionType = "ExceptionType"
-	// DimensionKeyResourceType  is the ResourceType in the dimension.
-	DimensionKeyResourceType = "ResourceType"
-	// ServiceInternalError ...
-	ServiceInternalError string = "ServiceInternal"
+	DimensionKeyAcionType           = "Action"
+	DimensionKeyExceptionType       = "ExceptionType"
+	DimensionKeyResourceType        = "ResourceType"
+	ServiceInternalError            = "ServiceInternal"
 )
 
-// A Publisher represents an object that publishes metrics to AWS Cloudwatch.
+// CloudWatchClient is the subset of the CloudWatch API used by this package.
+type CloudWatchClient interface {
+	PutMetricData(ctx context.Context, params *cloudwatch.PutMetricDataInput, optFns ...func(*cloudwatch.Options)) (*cloudwatch.PutMetricDataOutput, error)
+}
+
+// Publisher publishes metrics to AWS CloudWatch.
 type Publisher struct {
-	client       cloudwatchiface.CloudWatchAPI // AWS CloudWatch Service Client
-	namespace    string                        // custom resouces's namespace
+	client       CloudWatchClient
+	namespace    string
 	logger       *log.Logger
-	resourceType string // type of resource
+	resourceType string
 }
 
 // New creates a new Publisher.
-func New(client cloudwatchiface.CloudWatchAPI, resType string) *Publisher {
+func New(client CloudWatchClient, resType string) *Publisher {
 	if len(os.Getenv("AWS_SAM_LOCAL")) > 0 {
-		client = newNoopClient()
+		client = &noopCloudWatchClient{}
 	}
 	rn := ResourceTypeName(resType)
 	return &Publisher{
@@ -54,75 +52,61 @@ func New(client cloudwatchiface.CloudWatchAPI, resType string) *Publisher {
 	}
 }
 
-// PublishExceptionMetric publishes an exception metric.
 func (p *Publisher) PublishExceptionMetric(date time.Time, action string, e error) {
 	v := strings.ReplaceAll(e.Error(), "\n", " ")
 	dimensions := map[string]string{
-		DimensionKeyAcionType:     string(action),
+		DimensionKeyAcionType:     action,
 		DimensionKeyExceptionType: v,
 		DimensionKeyResourceType:  p.resourceType,
 	}
-	p.publishMetric(MetricNameHanderException, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
+	p.publishMetric(MetricNameHanderException, dimensions, cwtypes.StandardUnitCount, 1.0, date)
 }
 
-// PublishInvocationMetric publishes an invocation metric.
 func (p *Publisher) PublishInvocationMetric(date time.Time, action string) {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:    string(action),
+		DimensionKeyAcionType:    action,
 		DimensionKeyResourceType: p.resourceType,
 	}
-	p.publishMetric(MetricNameHanderInvocationCount, dimensions, cloudwatch.StandardUnitCount, 1.0, date)
+	p.publishMetric(MetricNameHanderInvocationCount, dimensions, cwtypes.StandardUnitCount, 1.0, date)
 }
 
-// PublishDurationMetric publishes an duration metric.
-//
-// A duration metric is the timing of something.
 func (p *Publisher) PublishDurationMetric(date time.Time, action string, secs float64) {
 	dimensions := map[string]string{
-		DimensionKeyAcionType:    string(action),
+		DimensionKeyAcionType:    action,
 		DimensionKeyResourceType: p.resourceType,
 	}
-	p.publishMetric(MetricNameHanderDuration, dimensions, cloudwatch.StandardUnitMilliseconds, secs, date)
+	p.publishMetric(MetricNameHanderDuration, dimensions, cwtypes.StandardUnitMilliseconds, secs, date)
 }
 
-func (p *Publisher) publishMetric(metricName string, data map[string]string, unit string, value float64, date time.Time) {
-
-	var d []*cloudwatch.Dimension
-
+func (p *Publisher) publishMetric(metricName string, data map[string]string, unit cwtypes.StandardUnit, value float64, date time.Time) {
+	var d []cwtypes.Dimension
 	for k, v := range data {
-		dim := &cloudwatch.Dimension{
+		d = append(d, cwtypes.Dimension{
 			Name:  aws.String(k),
 			Value: aws.String(v),
-		}
-		d = append(d, dim)
+		})
 	}
-	md := []*cloudwatch.MetricDatum{
+
+	md := []cwtypes.MetricDatum{
 		{
 			MetricName: aws.String(metricName),
-			Unit:       aws.String(unit),
+			Unit:       unit,
 			Value:      aws.Float64(value),
 			Dimensions: d,
-			Timestamp:  &date},
+			Timestamp:  &date,
+		},
 	}
-	pi := cloudwatch.PutMetricDataInput{
+
+	_, err := p.client.PutMetricData(context.Background(), &cloudwatch.PutMetricDataInput{
 		Namespace:  aws.String(p.namespace),
 		MetricData: md,
-	}
-	_, err := p.client.PutMetricData(&pi)
+	})
 	if err != nil {
 		p.logger.Printf("An error occurred while publishing metrics: %s", err)
-
 	}
 }
 
-// ResourceTypeName returns a type name by removing (::) and replaing with (/)
-//
-// Example
-//
-//	r := metrics.ResourceTypeName("AWS::Service::Resource")
-//
-//	// Will return "AWS/Service/Resource"
+// ResourceTypeName returns a type name by replacing (::) with (/).
 func ResourceTypeName(t string) string {
 	return strings.ReplaceAll(t, "::", "/")
-
 }
